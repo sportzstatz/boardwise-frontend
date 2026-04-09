@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SportsPredictionsHub</title>
+  <title>BoardWise</title>
 </head>
 <body>
-  <h1>SportsPredictionsHub</h1>
+  <h1>BoardWise</h1>
   <p id="status">Loading...</p>
 
   <script>
-    fetch("https://api.yourdomain.com/hello")
+    fetch("https://api.useboardwise.com/hello")
       .then((r) => r.json())
       .then((data) => {
         document.getElementById("status").textContent = data.message;
