@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BoardWise MLB</title>
+  <meta name="description" content="Live MLB forecast board from the BoardWise public API.">
+  <link rel="stylesheet" href="../assets/css/site.css">
+</head>
+<body class="board-body">
+  <main class="board-shell">
+    <nav class="topbar">
+      <a class="back-link" href="../">All sports</a>
+      <form id="date-form" class="date-form">
+        <label class="sr-only" for="board-date">Load a historical MLB board date</label>
+        <input id="board-date" name="date" type="date">
+        <button type="submit">Load date</button>
+      </form>
+    </nav>
+
+    <header class="page-hero">
+      <p class="eyebrow">BoardWise MLB</p>
+      <h1>MLB Forecast Board</h1>
+      <p class="page-copy">
+        A static page that fetches the live BoardWise MLB board from the read-only public API.
+      </p>
+      <div id="meta" class="meta-strip">
+        <span class="meta-pill">Loading latest board...</span>
+      </div>
+    </header>
+
+    <section id="status-note" class="status-note" hidden></section>
+    <section id="summary" class="summary-grid" aria-live="polite"></section>
+    <section id="loading" class="loading-panel">Loading the MLB board...</section>
+    <section id="error" class="error-panel" hidden></section>
+    <section id="games" class="board-grid" hidden></section>
+  </main>
+
+  <script src="../assets/js/mlb-board.js" defer></script>
+</body>
+</html>

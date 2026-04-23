@@ -1,23 +1,69 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BoardWise</title>
+  <meta name="description" content="BoardWise publishes daily sports boards from a read-only API.">
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
-  <h1>BoardWise</h1>
-  <p id="status">Loading...</p>
+<body class="home-body">
+  <main class="home-shell">
+    <section class="hero-card">
+      <p class="eyebrow">BoardWise</p>
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <h1>Daily sports boards powered by a read-only API.</h1>
+          <p class="lead">
+            BoardWise keeps the public site thin on purpose: the 7050 publishes an MLB read model,
+            the 7060 serves JSON, and this static frontend turns that payload into a board you can scan quickly.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-link" href="mlb/">Open MLB Forecast Board</a>
+            <p class="secondary-copy">NHL stays separate for now. This cutover is MLB only.</p>
+          </div>
+        </div>
+        <aside class="hero-panel">
+          <div class="panel-badge">Live now</div>
+          <h2>MLB Forecast Board</h2>
+          <p>
+            The MLB page fetches the canonical public endpoint and renders the current board directly in the browser.
+          </p>
+          <ul class="panel-list">
+            <li>Canonical route: <span>/api/v1/boards/mlb/current</span></li>
+            <li>Static frontend, live JSON</li>
+            <li>Home at <span>/</span>, board at <span>/mlb/</span></li>
+          </ul>
+          <a class="panel-link" href="mlb/">Go to /mlb/</a>
+        </aside>
+      </div>
+    </section>
 
-  <script>
-    fetch("https://api.useboardwise.com/hello")
-      .then((r) => r.json())
-      .then((data) => {
-        document.getElementById("status").textContent = data.message;
-      })
-      .catch(() => {
-        document.getElementById("status").textContent = "API fetch failed.";
-      });
-  </script>
+    <section class="home-grid">
+      <article class="story-card accent-a">
+        <p class="story-kicker">Read path</p>
+        <h2>MLB is now a served board, not a dumped page.</h2>
+        <p>
+          The frontend no longer needs pipeline-rendered HTML. It asks the public API for a board payload and renders it client-side.
+        </p>
+      </article>
+
+      <article class="story-card accent-b">
+        <p class="story-kicker">Separation</p>
+        <h2>NHL remains outside this cutover.</h2>
+        <p>
+          This home page points cleanly to MLB and leaves the door open for separate sports pages later without collapsing them into one route.
+        </p>
+      </article>
+
+      <article class="story-card accent-c">
+        <p class="story-kicker">Design</p>
+        <h2>Fast static shell, live board underneath.</h2>
+        <p>
+          The site is intentionally small: one stylesheet, one board script, and a dedicated page that renders recommendations, metadata, and game cards.
+        </p>
+      </article>
+    </section>
+  </main>
 </body>
 </html>
