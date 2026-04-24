@@ -151,6 +151,61 @@ function renderRecommendation(rec) {
     + `</article>`;
 }
 
+function renderBucketBadge(label, color, prefix) {
+  if (!label) return "";
+  const safeColor = /^#[0-9a-fA-F]{3,8}$/.test(String(color || "")) ? color : "";
+  const style = safeColor ? ` style="background:${safeColor}1f;color:${safeColor};border-color:${safeColor}55;"` : "";
+  return `<span class="bucket-badge"${style}>${esc(prefix)} ${esc(label)}</span>`;
+}
+
+function renderWinProbRow(game) {
+  const away = game.away_win_prob_text;
+  const home = game.home_win_prob_text;
+  if (!away && !home) return "";
+  return ""
+    + `<section class="section-block">`
+    + `<p class="section-label">Win probability</p>`
+    + `<div class="win-prob-row">`
+    + `<div class="win-prob-cell"><span class="label">${esc(game.away_team_abbr || "Away")}</span><span class="win-prob-value">${esc(away || "-")}</span></div>`
+    + `<div class="win-prob-cell"><span class="label">${esc(game.home_team_abbr || "Home")}</span><span class="win-prob-value">${esc(home || "-")}</span></div>`
+    + `</div>`
+    + `</section>`;
+}
+
+function renderModelDetails(game) {
+  const cells = Array.isArray(game.model_details_cells) ? game.model_details_cells : [];
+  if (!cells.length) return "";
+  const cellsHtml = cells.map((c) => ""
+    + `<div class="model-cell">`
+    + `<p class="label">${esc(c.label || "")}</p>`
+    + `<div class="model-cell-value">${esc(c.value ?? "-")}</div>`
+    + `</div>`
+  ).join("");
+  const projected = game.model_details_projected_score
+    ? `<p class="model-projected">${esc(game.model_details_projected_score)}</p>`
+    : "";
+  const ver = game.model_version ? `<p class="model-version">Model: ${esc(game.model_version)}</p>` : "";
+  return ""
+    + `<section class="section-block">`
+    + `<details class="model-details">`
+    + `<summary><span class="section-label">Model details</span></summary>`
+    + projected
+    + `<div class="model-grid">${cellsHtml}</div>`
+    + ver
+    + `</details>`
+    + `</section>`;
+}
+
+function renderBooksSeen(game) {
+  const books = Array.isArray(game.books_seen) ? game.books_seen : [];
+  if (!books.length) return "";
+  return ""
+    + `<div class="book-chip-list">`
+    + `<span class="label">Books</span>`
+    + books.map((b) => `<span class="mini-pill book-chip">${esc(b)}</span>`).join("")
+    + `</div>`;
+}
+
 function renderGame(game) {
   const recommendations = Array.isArray(game.recommendations) ? game.recommendations : [];
   const insightBits = [
@@ -173,6 +228,8 @@ function renderGame(game) {
     + `<div class="game-tags">`
     + (game.favorite_team ? `<span class="tag"><strong>Favorite</strong> ${esc(game.favorite_team)} ${esc(game.favorite_prob_text || "")}</span>` : "")
     + (game.board_state_label ? `<span class="tag">${esc(game.board_state_label)}</span>` : "")
+    + renderBucketBadge(game.prob_bucket_label, game.prob_bucket_color, "Prob")
+    + renderBucketBadge(game.ev_bucket_label, game.ev_bucket_color, "EV")
     + `</div>`
     + `</div>`
     + `<div class="game-subline">`
@@ -181,6 +238,7 @@ function renderGame(game) {
     + (game.board_state_note ? `<span>${esc(game.board_state_note)}</span>` : "")
     + `</div>`
     + `</header>`
+    + renderWinProbRow(game)
     + `<section class="section-block">`
     + `<p class="section-label">Pitchers</p>`
     + `<div class="pitcher-grid">`
@@ -189,8 +247,9 @@ function renderGame(game) {
     + `</div>`
     + `</section>`
     + (insightBits.length
-      ? `<section class="section-block"><p class="section-label">Market snapshot</p><div class="insight-strip">${insightBits.map((item) => `<span class="mini-pill">${esc(item)}</span>`).join("")}</div></section>`
-      : "")
+      ? `<section class="section-block"><p class="section-label">Market snapshot</p><div class="insight-strip">${insightBits.map((item) => `<span class="mini-pill">${esc(item)}</span>`).join("")}</div>${renderBooksSeen(game)}</section>`
+      : (renderBooksSeen(game) ? `<section class="section-block">${renderBooksSeen(game)}</section>` : ""))
+    + renderModelDetails(game)
     + `<section class="section-block">`
     + `<p class="section-label">Recommendations</p>`
     + (recommendations.length

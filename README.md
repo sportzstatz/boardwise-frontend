@@ -32,3 +32,28 @@ Why this track won:
 - API: `api.useboardwise.com`
 
 The frontend is static only. All live board data comes from the 7060 API.
+
+## Local preview (no build step)
+
+This repo has no build pipeline. To preview locally, serve the directory with any static HTTP server and open the URLs in a browser:
+
+```bash
+cd /path/to/boardwise-frontend
+python3 -m http.server 9876
+# then open:
+#   http://127.0.0.1:9876/
+#   http://127.0.0.1:9876/mlb/
+#   http://127.0.0.1:9876/mlb/?date=2026-04-22
+```
+
+The MLB page fetches data from `https://api.useboardwise.com` (CORS allows `http://localhost`/`127.0.0.1`-style origins is NOT configured — for local preview the API calls will be subject to the production CORS allowlist, which is `useboardwise.com`, `www.useboardwise.com`, `staging.useboardwise.com`, and `boardwise-frontend.pages.dev`). For style-only preview against canned JSON, point `API_BASE` in `assets/js/mlb-board.js` to a local JSON file or use a browser extension to override CORS.
+
+## Style-edit workflow
+
+When the API contract is stable, day-to-day edits go in:
+
+- `assets/css/site.css` — colors, spacing, layout. Theme tokens live in the `:root` block at the top.
+- `assets/js/mlb-board.js` — card construction and data formatting (`renderGame`, `renderRecommendation`, etc.).
+- `index.html`, `mlb/index.html` — page structure / DOM ids that the JS targets.
+
+After saving, refresh the local preview URL (no rebuild). Commit and push to `main` to deploy via Cloudflare Pages.
