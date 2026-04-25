@@ -3,19 +3,114 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BoardWise MLB</title>
-  <meta name="description" content="Live MLB forecast board from the BoardWise public API.">
-  <link rel="stylesheet" href="/assets/css/site.css">
+  <title>MLB Forecast and Betting Board</title>
+  <meta name="description" content="Live MLB forecast and betting board from the BoardWise public API.">
+  <style>
+    :root {
+      --bg: #f7f7f5;
+      --panel: #ffffff;
+      --ink: #101828;
+      --muted: #667085;
+      --line: #d0d5dd;
+      --accent: #0f4c81;
+      --good: #156f3c;
+      --good-soft: #edf9f0;
+      --accent-soft: #eef4ff;
+      --shadow: 0 10px 24px rgba(16, 24, 40, 0.07);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; color: var(--ink); background: var(--bg); }
+    .wrap { max-width: 1220px; margin: 0 auto; padding: 24px 18px 48px; }
+    .header { display: grid; gap: 12px; margin-bottom: 18px; }
+    h1 { margin: 0; font-size: clamp(28px, 4vw, 44px); line-height: 1.05; }
+    .subtitle { color: var(--muted); line-height: 1.5; max-width: 78ch; font-size: 15px; }
+    .meta, .nav-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .pill, .nav-link { border: 1px solid var(--line); background: var(--panel); padding: 8px 12px; border-radius: 999px; font-size: 13px; text-decoration: none; color: var(--muted); }
+    .nav-link { color: var(--ink); font-weight: 700; }
+    .nav-link.disabled { color: var(--muted); cursor: not-allowed; }
+    .date-form { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }
+    .date-form input[type=date] { border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; font-size: 13px; background: var(--panel); }
+    .date-form button { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .quick-guide { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .quick-guide-card { background: #fcfcfd; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+    .best-card-toggle { display: flex; gap: 8px; margin-bottom: 8px; }
+    .toggle-btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 9px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 120ms, color 120ms, border-color 120ms; }
+    .toggle-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+    .bucket-filter-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .bucket-pill { border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; transition: background 100ms, color 100ms, border-color 100ms; }
+    .bucket-pill.active { color: #fff; }
+    .tile-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 0; }
+    .tile { background: var(--panel); border: 1px solid var(--line); border-left-width: 6px; border-left-color: var(--accent); border-radius: 18px; padding: 18px; box-shadow: var(--shadow); }
+    .tile.strong { border-left-color: var(--good); }
+    .tile-top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 12px; }
+    .game-label { font-size: 24px; font-weight: 800; line-height: 1.1; }
+    .game-time { margin-top: 4px; color: var(--muted); font-size: 14px; }
+    .venue-text { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .favorite-badge { text-align: right; font-size: 14px; font-weight: 800; color: #667085; white-space: nowrap; }
+    .state-badge { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 800; color: var(--ink); background: #fcfcfd; margin-top: 10px; }
+    .pitchers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 14px; }
+    .pitcher-card { border: 1px solid #eaecf0; border-radius: 12px; padding: 12px; background: #fcfcfd; }
+    .pitcher-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .pitcher-name { margin-top: 4px; font-size: 15px; font-weight: 700; }
+    .lineup-tag { display: inline-block; margin-top: 4px; font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid transparent; }
+    .lineup-tag.confirmed { color: var(--good); background: var(--good-soft); border-color: rgba(21,111,60,.2); }
+    .lineup-tag.projected { color: var(--accent); background: var(--accent-soft); border-color: rgba(15,76,129,.18); }
+    .lineup-tag.unknown { color: var(--muted); background: #f2f4f7; border-color: var(--line); }
+    .best-card { border: 1px solid #eaecf0; border-radius: 12px; padding: 12px 14px; margin: 0 0 12px; background: #fcfcfd; }
+    .tile.strong .best-card { background: #f0faf2; border-color: rgba(21,111,60,.25); }
+    .best-bet { font-size: 19px; font-weight: 800; line-height: 1.1; margin-top: 2px; }
+    .best-meta { color: var(--muted); font-size: 14px; line-height: 1.45; }
+    .best-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #eaecf0; }
+    .metric-bubble { border: 1px solid #eaecf0; border-radius: 10px; padding: 8px 10px; background: #ffffff; text-align: center; }
+    .metric-bubble .m-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .metric-bubble .m-value { margin-top: 3px; font-size: 14px; font-weight: 800; }
+    .dropdown-stack { display: grid; gap: 10px; }
+    .market-dropdown { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fcfcfd; }
+    .market-dropdown summary { list-style: none; cursor: pointer; padding: 12px 14px; display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; font-weight: 700; }
+    .market-dropdown summary::-webkit-details-marker { display: none; }
+    .summary-label { font-weight: 700; font-size: 14px; white-space: nowrap; }
+    .summary-center { text-align: center; color: var(--ink); font-weight: 600; font-size: 14px; }
+    .summary-icon { color: var(--muted); font-size: 20px; line-height: 1; }
+    .market-dropdown[open] .summary-icon-plus { display: none; }
+    .market-dropdown:not([open]) .summary-icon-minus { display: none; }
+    .dropdown-body { padding: 0 14px 14px; border-top: 1px solid #eaecf0; }
+    .option-card { border: 1px solid #eaecf0; border-radius: 10px; padding: 12px; margin-top: 10px; background: #ffffff; }
+    .option-card.primary { border-color: rgba(15,76,129,.3); background: var(--accent-soft); }
+    .option-card.official { border-color: rgba(21,111,60,.3); background: var(--good-soft); }
+    .option-header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .option-label { font-size: 18px; font-weight: 800; line-height: 1.1; }
+    .option-meta { color: var(--muted); font-size: 14px; line-height: 1.45; }
+    .option-badge { border: 1px solid var(--line); border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .option-badge.official { color: var(--good); background: var(--good-soft); border-color: rgba(21,111,60,.2); }
+    .option-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+    .rating-badge { display: inline-block; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #fff; white-space: nowrap; }
+    .md-projected-score { border: 1px solid #eaecf0; border-radius: 12px; padding: 14px; margin-top: 10px; background: #ffffff; }
+    .md-projected-score .m-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .md-projected-score .m-value { margin-top: 4px; font-size: 18px; font-weight: 800; }
+    .md-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+    .md-cell { border: 1px solid #eaecf0; border-radius: 10px; padding: 10px 12px; background: #ffffff; }
+    .md-cell .m-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .md-cell .m-value { margin-top: 3px; font-size: 14px; font-weight: 700; word-break: break-word; }
+    .md-wide { grid-column: 1 / -1; }
+    .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .forecast-only-note { border: 1px dashed var(--line); border-radius: 12px; padding: 12px; background: #fcfcfd; color: var(--muted); font-size: 14px; margin: 14px 0; }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 18px; grid-column: 1 / -1; }
+    .loading-panel, .error-panel, .status-note { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; color: var(--muted); }
+    .error-panel { color: #b42318; border-color: rgba(180,35,24,.3); background: #fef3f2; }
+    .footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 980px) { .quick-guide { grid-template-columns: repeat(2, minmax(0, 1fr)); } .best-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } .option-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 720px) { .tile-top { display: grid; } .favorite-badge { text-align: left; } .quick-guide { grid-template-columns: 1fr; } .tile-list { grid-template-columns: 1fr; } .pitchers { grid-template-columns: 1fr; } .best-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .option-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } .md-grid { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body>
   <div class="wrap">
     <section class="header">
       <div class="nav-row">
         <a class="nav-link" href="/">All Sports</a>
-        <span class="nav-link nav-link-disabled" aria-disabled="true">NHL coming later</span>
+        <span class="nav-link disabled" aria-disabled="true">NHL coming later</span>
         <form id="date-form" class="date-form" autocomplete="off">
-          <label class="sr-only" for="board-date">Load a historical MLB board date</label>
-          <input id="board-date" name="date" type="date">
+          <input id="board-date" name="date" type="date" aria-label="Board date">
           <button type="submit">Load date</button>
         </form>
       </div>
@@ -26,18 +121,278 @@
 
     <section id="quick-guide" class="quick-guide"></section>
 
-    <div id="best-card-toggle" class="best-card-toggle"></div>
-    <div class="bucket-filter-row" id="ev-filters"></div>
+    <div id="best-card-toggle" class="best-card-toggle" style="display:none"></div>
+    <div class="bucket-filter-row" id="ev-filters" style="display:none"></div>
     <div class="bucket-filter-row" id="prob-filters" style="display:none"></div>
 
     <section id="status-note" class="status-note" hidden></section>
-    <section id="loading" class="loading-panel">Loading the MLB board...</section>
+    <section id="loading" class="loading-panel">Loading the MLB board…</section>
     <section id="error" class="error-panel" hidden></section>
     <section id="games" class="tile-list" hidden></section>
 
-    <section class="footer"><a href="/">All Sports</a></section>
+    <section class="footer">BoardWise static frontend. Data served by <code>api.useboardwise.com</code>.</section>
   </div>
+  <script>
+  (function(){
+    var API_BASE = "https://api.useboardwise.com";
+    var state = { payload: null, mode: "highest_ev", activeBucket: "all" };
+    var $ = function(id){ return document.getElementById(id); };
+    var metaEl=$("meta"), statusNoteEl=$("status-note"), loadingEl=$("loading"),
+        gamesEl=$("games"), errorEl=$("error"), dateForm=$("date-form"),
+        dateInput=$("board-date"), evFilters=$("ev-filters"), probFilters=$("prob-filters"),
+        toggleEl=$("best-card-toggle");
 
-  <script src="/assets/js/mlb-board.js" defer></script>
+    function esc(v){ return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+    function isIsoDate(v){ return /^\d{4}-\d{2}-\d{2}$/.test(v); }
+    function safeColor(v,f){ f=f||"#0f4c81"; return /^#[0-9a-fA-F]{3,8}$/.test(String(v||"")) ? v : f; }
+    function readTargetDate(){ var p=new URLSearchParams(window.location.search); var d=(p.get("date")||"").trim(); return isIsoDate(d)?d:""; }
+    function writeTargetDate(d){ var u=new URL(window.location.href); if(d) u.searchParams.set("date",d); else u.searchParams.delete("date"); window.history.replaceState({},"",u); }
+    function endpointFor(d){ return d ? API_BASE+"/api/v1/boards/mlb/"+encodeURIComponent(d) : API_BASE+"/api/v1/boards/mlb/current"; }
+    function fmtCount(v){ var n=Number(v); return isFinite(n)?n.toLocaleString():"0"; }
+    function setHidden(el,h){ if(el) el.hidden=h; }
+
+    function showLoading(){
+      setHidden(loadingEl,false); setHidden(errorEl,true); setHidden(gamesEl,true);
+      if(metaEl) metaEl.innerHTML = '<div class="pill">Loading latest board…</div>';
+    }
+    function showError(msg){
+      setHidden(loadingEl,true); setHidden(gamesEl,true);
+      if(errorEl){ errorEl.hidden=false; errorEl.textContent=msg; }
+    }
+
+    function topLevelCounts(p){
+      var books = Array.isArray(p.books_seen) ? p.books_seen : [];
+      return [
+        ["Generated", p.generated_at || "Unknown"],
+        ["Date", p.target_date || "-"],
+        ["Games", fmtCount(p.game_count)],
+        ["Betting Games", fmtCount(p.betting_game_count)],
+        ["Recommendations", fmtCount(p.recommendation_count)],
+        ["Books", books.length ? books.join(", ") : "None listed"]
+      ];
+    }
+    function setPageMeta(p, requested){
+      var d = p.target_date || requested || "-";
+      document.title = "BoardWise MLB — " + d;
+      if(metaEl) metaEl.innerHTML = topLevelCounts(p)
+        .map(function(r){ return '<div class="pill"><strong>'+esc(r[0])+'</strong> '+esc(r[1])+'</div>'; })
+        .join("");
+      if(dateInput) dateInput.value = p.target_date || requested || "";
+    }
+    function setStatusNote(p){
+      if(!statusNoteEl) return;
+      var notes = [p.mode_note, (p.summary && p.summary.validity) ? "Validity: "+p.summary.validity : ""].filter(Boolean);
+      if(!notes.length){ statusNoteEl.hidden=true; statusNoteEl.textContent=""; return; }
+      statusNoteEl.hidden=false; statusNoteEl.textContent=notes.join(" ");
+    }
+
+    function bestOption(g, variant){
+      var opts = g.best_card_options || {};
+      return opts[variant] || opts.highest_ev || (Array.isArray(g.recommendations) ? g.recommendations[0] : null);
+    }
+    function evBucket(g){ var o=bestOption(g,"highest_ev"); return (o&&o.ev_rating) || g.ev_bucket_label || "Low"; }
+    function evColor(g){ var o=bestOption(g,"highest_ev"); return safeColor((o&&o.ev_rating_color) || g.ev_bucket_color, "#0f4c81"); }
+    function probBucket(g){ var o=bestOption(g,"highest_model_prob"); return (o&&o.prob_rating) || g.prob_bucket_label || "<50%"; }
+    function probColor(g){ var o=bestOption(g,"highest_model_prob"); return safeColor((o&&o.prob_rating_color) || g.prob_bucket_color, "#0f4c81"); }
+
+    function renderQuickGuide(){
+      var items = [
+        ["Best Available Bet","The highest-ranked recommendation for each game, shown in the tile's best card."],
+        ["Market Dropdowns","Money Line, Run Line, and Total dropdowns show both sides of every market."],
+        ["Projected Score","Forecast means anchor the board even when no betting data is available."],
+        ["Lineup Status","Confirmed = official lineup; Projected = based on recent games."]
+      ];
+      var el=$("quick-guide"); if(!el) return;
+      el.innerHTML = items.map(function(it){
+        return '<article class="quick-guide-card"><div class="stat-label">'+esc(it[0])+'</div><div style="color:var(--muted);font-size:14px;margin-top:4px">'+esc(it[1])+'</div></article>';
+      }).join("");
+    }
+
+    function renderToggle(){
+      if(!toggleEl) return;
+      toggleEl.style.display = "flex";
+      toggleEl.innerHTML =
+        '<button class="toggle-btn '+(state.mode==="highest_ev"?"active":"")+'" data-best-card-sort="highest_ev">Highest EV</button>'+
+        '<button class="toggle-btn '+(state.mode==="highest_model_prob"?"active":"")+'" data-best-card-sort="highest_model_prob">Highest Model Prob</button>';
+      toggleEl.querySelectorAll("[data-best-card-sort]").forEach(function(b){
+        b.addEventListener("click", function(){ state.mode = b.getAttribute("data-best-card-sort"); state.activeBucket="all"; renderBoard(); });
+      });
+    }
+
+    function renderFilters(){
+      var ev = [["all","All Games","var(--accent)"],["High","High","#156f3c"],["Medium-High","Medium-High","#669f2a"],["Medium","Medium","#0f4c81"],["Medium-Low","Medium-Low","#b54708"],["Low","Low","#b42318"]];
+      var pr = [["all","All Games","var(--accent)"],["70%+","70%+","#156f3c"],["65–69%","65–69%","#669f2a"],["60–64%","60–64%","#dc6803"],["55–59%","55–59%","#e04f16"],["50–54%","50–54%","#b54708"],["<50%","<50%","#93370d"]];
+      var arr = state.mode==="highest_ev" ? ev : pr;
+      var target = state.mode==="highest_ev" ? evFilters : probFilters;
+      var other = state.mode==="highest_ev" ? probFilters : evFilters;
+      if(other) other.style.display="none";
+      if(!target) return;
+      target.style.display="flex";
+      target.innerHTML = arr.map(function(f){
+        var active = state.activeBucket === f[0];
+        var style = active ? ' style="background:'+esc(f[2])+';border-color:'+esc(f[2])+';color:#fff"' : "";
+        return '<button class="bucket-pill '+(active?"active":"")+'" data-bucket="'+esc(f[0])+'"'+style+'>'+esc(f[1])+'</button>';
+      }).join("");
+      target.querySelectorAll("[data-bucket]").forEach(function(b){
+        b.addEventListener("click", function(){ state.activeBucket = b.getAttribute("data-bucket")||"all"; renderBoard(); });
+      });
+    }
+
+    function metric(label,value){
+      return '<div class="metric-bubble"><div class="m-label">'+esc(label)+'</div><div class="m-value">'+esc(value||"-")+'</div></div>';
+    }
+
+    function renderPitchers(g){
+      return '<div class="pitchers">'+
+        '<div class="pitcher-card"><div class="pitcher-label">Away Pitcher ('+esc(g.away_team_abbr||"-")+')</div><div class="pitcher-name">'+esc(g.away_pitcher||"Not listed")+'</div><span class="lineup-tag '+esc(g.lineup_status_away||"unknown")+'">'+esc(g.lineup_status_away||"unknown")+'</span></div>'+
+        '<div class="pitcher-card"><div class="pitcher-label">Home Pitcher ('+esc(g.home_team_abbr||"-")+')</div><div class="pitcher-name">'+esc(g.home_pitcher||"Not listed")+'</div><span class="lineup-tag '+esc(g.lineup_status_home||"unknown")+'">'+esc(g.lineup_status_home||"unknown")+'</span></div>'+
+      '</div>';
+    }
+
+    function renderBestCard(opt, variant){
+      if(!opt) return '<div class="forecast-only-note">No best-bet recommendation is available for this sort.</div>';
+      var label = variant==="highest_ev" ? "Highest EV" : "Highest Model Prob";
+      var badge = variant==="highest_ev" ? opt.ev_rating : opt.prob_rating;
+      var color = safeColor(variant==="highest_ev" ? opt.ev_rating_color : opt.prob_rating_color, "#0f4c81");
+      return '<div class="best-card" data-best-card-variant="'+esc(variant)+'">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px">'+
+          '<div class="label">Best Available Bet <span style="font-weight:400;color:var(--muted)">('+esc(label)+')</span></div>'+
+          (badge ? '<span class="rating-badge" style="background:'+color+'">'+esc(badge)+'</span>' : '')+
+        '</div>'+
+        '<div class="best-bet">'+esc(opt.selection_text||"No selection")+'</div>'+
+        '<div class="best-meta">'+esc([opt.sportsbook,opt.odds_text].filter(Boolean).join(" ")||"No book/odds listed")+'</div>'+
+        '<div class="best-metrics">'+
+          metric("Odds",opt.odds_text)+
+          metric("Model Prob",opt.model_prob_text||opt.model_probability_text)+
+          metric("Edge",opt.edge_text)+
+          metric("EV / Unit",opt.ev_text)+
+          metric("Stake",opt.stake_text)+
+        '</div>'+
+      '</div>';
+    }
+
+    function renderOptionCard(o){
+      var color = safeColor(o.ev_rating_color || o.prob_rating_color, "#0f4c81");
+      var classes = ["option-card"];
+      if(o.is_primary) classes.push("primary");
+      if(o.is_official) classes.push("official");
+      return '<div class="'+classes.join(" ")+'">'+
+        '<div class="option-header">'+
+          '<span class="option-label">'+esc(o.label||o.selection_text||"Option")+'</span>'+
+          '<span style="display:flex;gap:6px;align-items:center">'+
+            (o.ev_rating ? '<span class="option-rating-badge rating-badge" style="background:'+color+';font-size:10px;padding:3px 7px">'+esc(o.ev_rating)+'</span>' : '')+
+            (o.is_official ? '<span class="option-badge official">Official</span>' : (o.status_label ? '<span class="option-badge">'+esc(o.status_label)+'</span>' : ''))+
+          '</span>'+
+        '</div>'+
+        '<div class="option-meta">'+esc([o.sportsbook,o.odds_text].filter(Boolean).join(" ")||"No book/odds listed")+'</div>'+
+        '<div class="option-metrics">'+
+          metric("Odds",o.odds_text)+
+          metric("Model Prob",o.model_probability_text||o.model_prob_text)+
+          metric("Edge",o.edge_text)+
+          metric("EV / Unit",o.ev_text)+
+          metric("Stake",o.stake_text)+
+        '</div>'+
+      '</div>';
+    }
+
+    function renderModelDetails(g){
+      var cells = Array.isArray(g.model_details_cells) ? g.model_details_cells : [];
+      var rows = cells.length ? cells : [
+        {label:"Away Win Prob", value:g.away_win_prob_text},
+        {label:"Home Win Prob", value:g.home_win_prob_text},
+        {label:"Projected Total", value:g.projected_total_text},
+        {label:"Projected Margin", value:g.projected_margin_text}
+      ].filter(function(r){return r.value;});
+      if(!rows.length && !g.model_details_projected_score && !g.model_version) return "";
+      return '<details class="market-dropdown"><summary>'+
+        '<span class="summary-label">Model Details</span>'+
+        '<span class="summary-center"></span>'+
+        '<span class="summary-icon"><span class="summary-icon-plus">+</span><span class="summary-icon-minus">−</span></span>'+
+      '</summary><div class="dropdown-body">'+
+        (g.model_details_projected_score ? '<div class="md-projected-score"><div class="m-label">Projected Score</div><div class="m-value">'+esc(g.model_details_projected_score)+'</div></div>' : '')+
+        '<div class="md-grid">'+
+          rows.map(function(c){ return '<div class="md-cell '+(c.wide?"md-wide":"")+'"><div class="m-label">'+esc(c.label||"")+'</div><div class="m-value">'+esc(c.value==null?"-":c.value)+'</div></div>'; }).join("")+
+          (g.model_version ? '<div class="md-cell md-wide"><div class="m-label">Model Version</div><div class="m-value">'+esc(g.model_version)+'</div></div>' : '')+
+        '</div>'+
+      '</div></details>';
+    }
+
+    function renderMarketDropdowns(g){
+      var dd = Array.isArray(g.market_dropdowns) ? g.market_dropdowns : [];
+      if(!dd.length) return '<div class="forecast-only-note">No market dropdowns are available for this game yet.</div>'+renderModelDetails(g);
+      return '<div class="dropdown-stack">'+ dd.map(function(m){
+        var color = safeColor(state.mode==="highest_ev" ? m.ev_summary_color : m.prob_summary_color, "#0f4c81");
+        var opts = Array.isArray(m.options) ? m.options : [];
+        return '<details class="market-dropdown"><summary>'+
+          '<span class="summary-label">'+esc(m.title||m.market_key||"Market")+'</span>'+
+          '<span class="summary-center" style="color:'+color+'">'+esc(m.summary_center_text||"")+'</span>'+
+          '<span class="summary-icon"><span class="summary-icon-plus">+</span><span class="summary-icon-minus">−</span></span>'+
+        '</summary><div class="dropdown-body">'+ opts.map(renderOptionCard).join("") +'</div></details>';
+      }).join("") + renderModelDetails(g) + '</div>';
+    }
+
+    function gamePassesFilter(g){
+      if(state.activeBucket==="all") return true;
+      return state.mode==="highest_ev" ? evBucket(g)===state.activeBucket : probBucket(g)===state.activeBucket;
+    }
+
+    function renderGame(g){
+      var opt = bestOption(g, state.mode);
+      var border = state.mode==="highest_ev" ? evColor(g) : probColor(g);
+      var cls = (opt && (opt.ev_rating==="High" || opt.prob_rating==="70%+")) ? "tile strong" : "tile";
+      return '<article class="'+cls+'" style="border-left-color:'+border+'" data-ev-bucket="'+esc(evBucket(g))+'" data-prob-bucket="'+esc(probBucket(g))+'">'+
+        '<div class="tile-top">'+
+          '<div>'+
+            '<div class="game-label">'+esc(g.game_label || ((g.away_team||"Away")+" at "+(g.home_team||"Home")))+'</div>'+
+            '<div class="game-time">'+esc(g.commence_time||"Time not listed")+'</div>'+
+            '<div class="venue-text">'+esc(g.venue||"Venue not listed")+'</div>'+
+            (g.board_state_label ? '<div class="state-badge">'+esc(g.board_state_label)+'</div>' : '')+
+            (g.board_state_note ? '<div class="venue-text">'+esc(g.board_state_note)+'</div>' : '')+
+          '</div>'+
+          '<div class="favorite-badge">'+esc(g.favorite_team||"Favorite")+'<br>'+esc(g.favorite_prob_text||"")+'</div>'+
+        '</div>'+
+        renderPitchers(g) + renderBestCard(opt, state.mode) + renderMarketDropdowns(g) +
+      '</article>';
+    }
+
+    function renderBoard(){
+      if(!state.payload) return;
+      renderToggle(); renderFilters();
+      var games = Array.isArray(state.payload.games) ? state.payload.games : [];
+      var filtered = games.filter(gamePassesFilter);
+      if(!gamesEl) return;
+      gamesEl.hidden = false;
+      gamesEl.innerHTML = filtered.length ? filtered.map(renderGame).join("") : '<article class="empty-state">No games match this filter.</article>';
+    }
+
+    function loadBoard(targetDate){
+      showLoading();
+      fetch(endpointFor(targetDate), { method:"GET", headers:{ Accept:"application/json" } })
+        .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+        .then(function(p){
+          state.payload = p;
+          setHidden(loadingEl,true); setHidden(errorEl,true);
+          setPageMeta(p, targetDate); setStatusNote(p); renderQuickGuide(); renderBoard();
+        })
+        .catch(function(e){ console.error(e); showError("Could not load the MLB board right now. Please try again in a moment."); });
+    }
+
+    function init(){
+      var d = readTargetDate();
+      if(dateInput) dateInput.value = d;
+      if(dateForm && dateInput){
+        dateForm.addEventListener("submit", function(ev){
+          ev.preventDefault();
+          var v = dateInput.value.trim();
+          if(v && !isIsoDate(v)){ showError("Dates must use YYYY-MM-DD."); return; }
+          writeTargetDate(v); loadBoard(v);
+        });
+      }
+      loadBoard(d);
+    }
+    if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", init);
+    else init();
+  })();
+  </script>
 </body>
 </html>

@@ -5,53 +5,59 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BoardWise</title>
   <meta name="description" content="BoardWise sports forecast boards powered by a read-only public API.">
-  <link rel="stylesheet" href="/assets/css/site.css">
+  <style>
+    :root { --bg:#f7f7f5; --panel:#ffffff; --ink:#101828; --muted:#667085; --line:#d0d5dd; --accent:#0f4c81; --shadow:0 10px 24px rgba(16,24,40,0.07); }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--ink); }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 18px 48px; }
+    .hero { background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 1px solid var(--line); border-radius: 18px; padding: 24px; box-shadow: var(--shadow); }
+    h1 { margin: 0 0 10px; font-size: clamp(30px, 4vw, 48px); line-height: 1.05; }
+    .subtitle { margin: 0; color: var(--muted); line-height: 1.5; max-width: 72ch; }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    .pill { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 8px 12px; color: var(--muted); font-size: 13px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+    .card { display: grid; gap: 12px; padding: 20px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+    .label { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .title { font-size: 26px; font-weight: 800; line-height: 1.1; }
+    .body { color: var(--muted); line-height: 1.5; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border-radius: 999px; text-decoration: none; font-weight: 700; border: 1px solid var(--line); color: var(--ink); background: #fcfcfd; }
+    .button.primary { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+    .button.disabled { color: var(--muted); cursor: not-allowed; opacity: 0.7; }
+    .footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body>
   <div class="wrap">
-    <section class="header">
-      <div class="nav-row">
-        <a class="nav-link" href="/mlb/">MLB Board</a>
-        <a class="nav-link nav-link-disabled" href="#nhl-coming-later" aria-disabled="true">NHL coming later</a>
-      </div>
+    <section class="hero">
       <h1>BoardWise</h1>
-      <div class="subtitle">Daily sports boards powered by a read-only API. MLB is live now; NHL can be added later through the same serving-view → API → static-page pattern.</div>
-      <div class="meta">
+      <p class="subtitle">Daily sports forecast and betting boards powered by the BoardWise read-only public API. MLB is live now; NHL can be added later through the same serving-view → API → static-page pattern.</p>
+      <div class="pill-row">
         <div class="pill">7050 computes</div>
         <div class="pill">7060 serves API JSON</div>
         <div class="pill">Static frontend renders</div>
+        <div class="pill">MLB board ready</div>
       </div>
     </section>
 
-    <section class="quick-guide">
-      <article class="quick-guide-card">
-        <div class="stat-label">MLB</div>
-        <div style="color:var(--muted);font-size:14px;margin-top:4px">Live forecast and betting board from the BoardWise public API.</div>
+    <section class="grid">
+      <article class="card">
+        <div class="label">MLB</div>
+        <div class="title">Forecast and Betting Board</div>
+        <div class="body">Live forecasts, projected scores, pitching matchups, and best-available bets from the BoardWise public API. Use the date picker for historical boards.</div>
+        <div class="actions">
+          <a class="button primary" href="/mlb/">Open MLB Board</a>
+        </div>
       </article>
-      <article class="quick-guide-card">
-        <div class="stat-label">NHL</div>
-        <div style="color:var(--muted);font-size:14px;margin-top:4px">Kept separate for now. Add a future NHL API route and page when ready.</div>
-      </article>
-      <article class="quick-guide-card">
-        <div class="stat-label">Read-only API</div>
-        <div style="color:var(--muted);font-size:14px;margin-top:4px">The frontend does not compute sports data; it fetches JSON and renders it.</div>
-      </article>
-      <article class="quick-guide-card">
-        <div class="stat-label">Serving layer</div>
-        <div style="color:var(--muted);font-size:14px;margin-top:4px">PostgreSQL serving views make board data ready for 7060.</div>
-      </article>
-    </section>
 
-    <section class="home-card-grid">
-      <article class="home-card">
-        <h2>MLB Forecast Board</h2>
-        <p>Open the current MLB board, use the date picker for historical boards, and compare game-level market dropdowns.</p>
-        <p style="margin-top:14px"><a class="nav-link" href="/mlb/">Open MLB Forecast Board</a></p>
-      </article>
-      <article class="home-card" id="nhl-coming-later">
-        <h2>NHL coming later</h2>
-        <p>NHL should stay in its own world until you intentionally add <code>serving.nhl_board_current</code>, a 7060 route, and <code>/nhl/</code>.</p>
-        <p style="margin-top:14px"><span class="nav-link nav-link-disabled" aria-disabled="true">NHL board not available yet</span></p>
+      <article class="card">
+        <div class="label">NHL</div>
+        <div class="title">Coming Later</div>
+        <div class="body">NHL board is intentionally separate. A future NHL serving view, API route, and page can be added when ready without disturbing MLB.</div>
+        <div class="actions">
+          <span class="button disabled" aria-disabled="true">NHL board not available yet</span>
+        </div>
       </article>
     </section>
 
