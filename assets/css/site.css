@@ -534,6 +534,13 @@
   margin-bottom: 8px;
 }
 .home-card p { color: var(--muted); line-height: 1.5; }
+.nav-link-disabled {
+  color: var(--muted);
+  background: #f2f4f7;
+  cursor: not-allowed;
+  pointer-events: none;
+  font-weight: 600;
+}
 @media (max-width: 720px) {
   .home-card-grid { grid-template-columns: 1fr; }
   .date-form { width: 100%; }

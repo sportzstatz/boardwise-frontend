@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BoardWise</title>
   <meta name="description" content="BoardWise sports forecast boards powered by a read-only public API.">
-  <link rel="stylesheet" href="assets/css/site.css">
+  <link rel="stylesheet" href="/assets/css/site.css">
 </head>
 <body>
   <div class="wrap">
     <section class="header">
       <div class="nav-row">
-        <a class="nav-link" href="mlb/">MLB Board</a>
-        <a class="nav-link" href="nhl/index.html">NHL Board</a>
+        <a class="nav-link" href="/mlb/">MLB Board</a>
+        <a class="nav-link nav-link-disabled" href="#nhl-coming-later" aria-disabled="true">NHL coming later</a>
       </div>
       <h1>BoardWise</h1>
       <div class="subtitle">Daily sports boards powered by a read-only API. MLB is live now; NHL can be added later through the same serving-view → API → static-page pattern.</div>
@@ -46,12 +46,12 @@
       <article class="home-card">
         <h2>MLB Forecast Board</h2>
         <p>Open the current MLB board, use the date picker for historical boards, and compare game-level market dropdowns.</p>
-        <p style="margin-top:14px"><a class="nav-link" href="mlb/">Open MLB Forecast Board</a></p>
+        <p style="margin-top:14px"><a class="nav-link" href="/mlb/">Open MLB Forecast Board</a></p>
       </article>
-      <article class="home-card">
+      <article class="home-card" id="nhl-coming-later">
         <h2>NHL coming later</h2>
         <p>NHL should stay in its own world until you intentionally add <code>serving.nhl_board_current</code>, a 7060 route, and <code>/nhl/</code>.</p>
-        <p style="margin-top:14px"><a class="nav-link" href="nhl/index.html">NHL Board placeholder</a></p>
+        <p style="margin-top:14px"><span class="nav-link nav-link-disabled" aria-disabled="true">NHL board not available yet</span></p>
       </article>
     </section>
 

@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BoardWise MLB</title>
   <meta name="description" content="Live MLB forecast board from the BoardWise public API.">
-  <link rel="stylesheet" href="../assets/css/site.css">
+  <link rel="stylesheet" href="/assets/css/site.css">
 </head>
 <body>
   <div class="wrap">
     <section class="header">
       <div class="nav-row">
-        <a class="nav-link" href="../index.html">All Sports</a>
-        <a class="nav-link" href="../nhl/index.html">NHL Board</a>
+        <a class="nav-link" href="/">All Sports</a>
+        <span class="nav-link nav-link-disabled" aria-disabled="true">NHL coming later</span>
         <form id="date-form" class="date-form" autocomplete="off">
           <label class="sr-only" for="board-date">Load a historical MLB board date</label>
           <input id="board-date" name="date" type="date">
@@ -35,9 +35,9 @@
     <section id="error" class="error-panel" hidden></section>
     <section id="games" class="tile-list" hidden></section>
 
-    <section class="footer">Pages path: <a href="../nhl/index.html">NHL</a> | <a href="../index.html">All Sports</a></section>
+    <section class="footer"><a href="/">All Sports</a></section>
   </div>
 
-  <script src="../assets/js/mlb-board.js" defer></script>
+  <script src="/assets/js/mlb-board.js" defer></script>
 </body>
 </html>
