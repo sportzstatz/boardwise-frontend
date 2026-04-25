@@ -7,34 +7,36 @@
   <meta name="description" content="Live MLB forecast board from the BoardWise public API.">
   <link rel="stylesheet" href="../assets/css/site.css">
 </head>
-<body class="board-body">
-  <main class="board-shell">
-    <nav class="topbar">
-      <a class="back-link" href="../">All sports</a>
-      <form id="date-form" class="date-form">
-        <label class="sr-only" for="board-date">Load a historical MLB board date</label>
-        <input id="board-date" name="date" type="date">
-        <button type="submit">Load date</button>
-      </form>
-    </nav>
-
-    <header class="page-hero">
-      <p class="eyebrow">BoardWise MLB</p>
-      <h1>MLB Forecast Board</h1>
-      <p class="page-copy">
-        A static page that fetches the live BoardWise MLB board from the read-only public API.
-      </p>
-      <div id="meta" class="meta-strip">
-        <span class="meta-pill">Loading latest board...</span>
+<body>
+  <div class="wrap">
+    <section class="header">
+      <div class="nav-row">
+        <a class="nav-link" href="../index.html">All Sports</a>
+        <a class="nav-link" href="../nhl/index.html">NHL Board</a>
+        <form id="date-form" class="date-form" autocomplete="off">
+          <label class="sr-only" for="board-date">Load a historical MLB board date</label>
+          <input id="board-date" name="date" type="date">
+          <button type="submit">Load date</button>
+        </form>
       </div>
-    </header>
+      <h1>MLB Forecast and Betting Board</h1>
+      <div class="subtitle">Forecasts render from the BoardWise public API. When matched odds are present, each tile shows a best available bet card and market-level dropdowns with both sides of every market.</div>
+      <div id="meta" class="meta"><div class="pill">Loading latest board…</div></div>
+    </section>
+
+    <section id="quick-guide" class="quick-guide"></section>
+
+    <div id="best-card-toggle" class="best-card-toggle"></div>
+    <div class="bucket-filter-row" id="ev-filters"></div>
+    <div class="bucket-filter-row" id="prob-filters" style="display:none"></div>
 
     <section id="status-note" class="status-note" hidden></section>
-    <section id="summary" class="summary-grid" aria-live="polite"></section>
     <section id="loading" class="loading-panel">Loading the MLB board...</section>
     <section id="error" class="error-panel" hidden></section>
-    <section id="games" class="board-grid" hidden></section>
-  </main>
+    <section id="games" class="tile-list" hidden></section>
+
+    <section class="footer">Pages path: <a href="../nhl/index.html">NHL</a> | <a href="../index.html">All Sports</a></section>
+  </div>
 
   <script src="../assets/js/mlb-board.js" defer></script>
 </body>
