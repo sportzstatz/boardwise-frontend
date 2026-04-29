@@ -1,0 +1,50 @@
+# BoardWise frontend — local-only files and generated tooling artifacts.
+# Keep actual static source files tracked: index.html, _headers, mlb/, assets/.
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.tmp
+*~
+.idea/
+.vscode/
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.csr
+secrets/
+credentials/
+
+# Logs
+*.log
+logs/
+
+# Node/tooling artifacts, defensive if local preview tooling is added
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.cache/
+.parcel-cache/
+.vite/
+dist/
+build/
+coverage/
+
+# Cloudflare / Wrangler local state
+.wrangler/
+.dev.vars
+
+# Temporary local output
+.tmp/
+tmp/
