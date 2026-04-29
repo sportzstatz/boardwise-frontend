@@ -14,10 +14,11 @@ Why this track won:
 
 ## Site structure
 
-- `/` is the landing page
-- `/mlb/` fetches the live MLB board JSON from `https://api.useboardwise.com/api/v1/boards/mlb/current`
-- `assets/css/site.css` contains the shared site styles
-- `assets/js/mlb-board.js` renders the MLB board payload in the browser
+- `/` (`index.html`) is the landing page.
+- `/mlb/` (`mlb/index.html`) fetches the live MLB board JSON from `https://api.useboardwise.com/api/v1/boards/mlb/current`.
+- `assets/js/mlb-board.js` renders the MLB board payload in the browser.
+- `index.html` and `mlb/index.html` currently carry their page-level styles in inline `<style>` blocks; neither page links `assets/css/site.css` today.
+- `assets/css/site.css` exists in the repo as a staging ground for shared styles and a future consolidation pass. It is not yet wired into either page, so editing it alone has no visible effect on the deployed site.
 
 ## Deployment notes
 
@@ -52,8 +53,8 @@ The MLB page fetches data from `https://api.useboardwise.com` (CORS allows `http
 
 When the API contract is stable, day-to-day edits go in:
 
-- `assets/css/site.css` — colors, spacing, layout. Theme tokens live in the `:root` block at the top.
+- `index.html`, `mlb/index.html` — page structure, DOM ids that the JS targets, **and** the inline `<style>` block that currently drives that page's look (colors, spacing, layout, theme tokens in the inline `:root` block).
 - `assets/js/mlb-board.js` — card construction and data formatting (`renderGame`, `renderRecommendation`, etc.).
-- `index.html`, `mlb/index.html` — page structure / DOM ids that the JS targets.
+- `assets/css/site.css` — only relevant if/when shared styles get consolidated out of the inline blocks. Until that consolidation lands and both pages `<link>` it, edits here will not affect the live site.
 
 After saving, refresh the local preview URL (no rebuild). Commit and push to `main` to deploy via Cloudflare Pages.
