@@ -393,7 +393,8 @@ function renderPicks(payload) {
       <td>${esc(p.bookmaker_title || p.bookmaker_key || "")}</td>
       <td class="num">${esc(fmtAmerican(p.price_american))}</td>
       <td class="num">${esc(modelPct)}</td>
-      <td>${esc(p.confidence_bucket_label || p.confidence_bucket_key || "")}</td>
+      <td>${esc(p.ev_rating_label || "—")}</td>
+      <td>${esc(p.confidence_bucket_label || p.confidence_bucket_key || "—")}</td>
       <td>${statusPill(p)}</td>
       <td>${esc((p.result_status || "").toUpperCase() || (p.is_settled ? "—" : ""))}</td>
       <td class="num">${esc(unitsWon)}</td>

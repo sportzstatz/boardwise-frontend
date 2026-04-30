@@ -232,11 +232,13 @@ function renderBestCard(option, variant) {
   const label = variant === "highest_ev" ? "Highest EV" : "Highest Model Prob";
   const badge = variant === "highest_ev" ? option.ev_rating : option.prob_rating;
   const color = safeColor(variant === "highest_ev" ? option.ev_rating_color : option.prob_rating_color, "#0f4c81");
+  const badgePrefix = variant === "highest_ev" ? "EV: " : "Prob: ";
+  const badgeTitle = variant === "highest_ev" ? "Expected value rating" : "Model probability rating";
   return `
     <div class="best-card" data-best-card-variant="${esc(variant)}">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
         <div class="label">Best Available Bet <span style="font-weight:400;color:var(--muted)">(${esc(label)})</span></div>
-        ${badge ? `<span class="rating-badge" style="background:${color}">${esc(badge)}</span>` : ""}
+        ${badge ? `<span class="rating-badge" title="${esc(badgeTitle)}" style="background:${color}">${esc(badgePrefix + badge)}</span>` : ""}
       </div>
       <div class="best-bet">${esc(option.selection_text || "No selection")}</div>
       <div class="best-meta">${esc([option.sportsbook, option.odds_text].filter(Boolean).join(" ") || "No book/odds listed")}</div>
@@ -261,7 +263,7 @@ function renderOptionCard(option) {
       <div class="option-header">
         <span class="option-label">${esc(option.label || option.selection_text || "Option")}</span>
         <span style="display:flex;gap:6px;align-items:center">
-          ${option.ev_rating ? `<span class="option-rating-badge rating-badge" style="background:${color};font-size:10px;padding:3px 7px">${esc(option.ev_rating)}</span>` : ""}
+          ${option.ev_rating ? `<span class="option-rating-badge rating-badge" title="Expected value rating" style="background:${color};font-size:10px;padding:3px 7px">EV: ${esc(option.ev_rating)}</span>` : ""}
           ${option.is_official ? `<span class="option-badge official">Official</span>` : option.status_label ? `<span class="option-badge">${esc(option.status_label)}</span>` : ""}
         </span>
       </div>
