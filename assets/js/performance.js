@@ -3,7 +3,7 @@ const API_BASE = "https://api.useboardwise.com";
 // Hard floor on visible pick history. Performance data on or before this date
 // (legacy / pre-launch noise) must never be shown on the frontend, no matter
 // what URL params or form values are submitted.
-const MIN_VISIBLE_DATE = "2026-04-30";
+const MIN_VISIBLE_DATE = "2026-04-29";
 
 // Default sport when the user lands on /performance/ with no sport filter set
 // in the URL.
