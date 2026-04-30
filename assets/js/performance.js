@@ -40,6 +40,10 @@ const els = {
   breakdownEmpty: document.getElementById("breakdown-empty"),
   picksTable: document.querySelector("#picks-table tbody"),
   picksEmpty: document.getElementById("picks-empty"),
+  chartContainer: document.getElementById("chart-container"),
+  chartEmpty: document.getElementById("chart-empty"),
+  chartMeta: document.getElementById("chart-meta"),
+  chartTooltip: document.getElementById("chart-tooltip"),
 };
 
 function esc(value) {
@@ -367,6 +371,205 @@ function renderPicks(payload) {
   tbody.innerHTML = html;
 }
 
+function fmtUnitsSigned(n, digits = 2) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return "0u";
+  const sign = v > 0 ? "+" : v < 0 ? "−" : "";
+  return `${sign}${Math.abs(v).toFixed(digits)}u`;
+}
+
+function buildCumulativeSeries(groups) {
+  // Expects /performance/breakdown rows with group_by="date" and group_value=YYYY-MM-DD.
+  const rows = (groups || [])
+    .filter((g) => g && typeof g.group_value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(g.group_value))
+    .map((g) => ({
+      date: g.group_value,
+      ts: Date.parse(`${g.group_value}T00:00:00Z`),
+      daily_units: Number(g.units_won) || 0,
+      daily_risked: Number(g.units_risked) || 0,
+      settled_count: Number(g.settled_count) || 0,
+      record: g.record || "0-0-0",
+    }))
+    .filter((r) => Number.isFinite(r.ts))
+    .sort((a, b) => a.ts - b.ts);
+
+  let acc = 0;
+  return rows.map((r) => {
+    acc += r.daily_units;
+    return { ...r, cumulative: acc };
+  });
+}
+
+function renderChart(payload) {
+  const container = els.chartContainer;
+  if (!container) return;
+
+  // Strip any prior svg (keep tooltip element).
+  const oldSvg = container.querySelector("svg");
+  if (oldSvg) oldSvg.remove();
+  if (els.chartTooltip) els.chartTooltip.classList.remove("is-visible");
+
+  const series = buildCumulativeSeries(payload && payload.groups);
+
+  if (!series.length) {
+    setHidden(els.chartEmpty, false);
+    els.chartEmpty.textContent =
+      "No settled picks for these filters yet — the curve will appear once results post.";
+    if (els.chartMeta) els.chartMeta.textContent = "0 settled days";
+    return;
+  }
+  setHidden(els.chartEmpty, true);
+
+  const W = 800;
+  const H = 240;
+  const M = { top: 16, right: 18, bottom: 30, left: 50 };
+  const innerW = W - M.left - M.right;
+  const innerH = H - M.top - M.bottom;
+
+  const tsMin = series[0].ts;
+  const tsMax = series[series.length - 1].ts;
+  const tsSpan = Math.max(1, tsMax - tsMin);
+
+  const yVals = series.map((r) => r.cumulative);
+  let yMin = Math.min(0, ...yVals);
+  let yMax = Math.max(0, ...yVals);
+  if (yMin === yMax) {
+    // Pure-zero series: still draw a baseline with a touch of head/foot room.
+    yMin = -1;
+    yMax = 1;
+  } else {
+    const pad = (yMax - yMin) * 0.08;
+    yMin -= pad;
+    yMax += pad;
+  }
+  const ySpan = yMax - yMin;
+
+  const xFor = (ts) =>
+    series.length === 1
+      ? M.left + innerW / 2
+      : M.left + ((ts - tsMin) / tsSpan) * innerW;
+  const yFor = (v) => M.top + ((yMax - v) / ySpan) * innerH;
+
+  const zeroY = yFor(0);
+  const linePts = series.map((r) => `${xFor(r.ts).toFixed(2)},${yFor(r.cumulative).toFixed(2)}`);
+
+  // Area path: top edge is the line, bottom edge is the zero baseline.
+  const areaParts = [];
+  areaParts.push(`M ${xFor(series[0].ts).toFixed(2)} ${zeroY.toFixed(2)}`);
+  for (const r of series) {
+    areaParts.push(`L ${xFor(r.ts).toFixed(2)} ${yFor(r.cumulative).toFixed(2)}`);
+  }
+  areaParts.push(`L ${xFor(series[series.length - 1].ts).toFixed(2)} ${zeroY.toFixed(2)}`);
+  areaParts.push("Z");
+  const areaPath = areaParts.join(" ");
+
+  const linePath =
+    series.length === 1
+      ? ""
+      : `M ${linePts[0]} ${linePts.slice(1).map((p) => `L ${p}`).join(" ")}`;
+
+  // Y-axis ticks: zero, max, min.
+  const yTicks = new Set([0, yMax, yMin]);
+  const yTickHtml = [...yTicks]
+    .map(
+      (v) =>
+        `<text class="label" x="${(M.left - 6).toFixed(2)}" y="${(yFor(v) + 3).toFixed(2)}" text-anchor="end">${esc(fmtUnitsSigned(v, Math.abs(v) >= 10 ? 0 : 1))}</text>`
+    )
+    .join("");
+
+  // X-axis labels: first, last, optional middle if >= 4 points.
+  const xLabelTs = series.length >= 4
+    ? [series[0].ts, series[Math.floor(series.length / 2)].ts, series[series.length - 1].ts]
+    : [series[0].ts, series[series.length - 1].ts];
+  const xLabelHtml = [...new Set(xLabelTs)]
+    .map((ts) => {
+      const date = new Date(ts).toISOString().slice(0, 10);
+      const anchor = ts === tsMin ? "start" : ts === tsMax ? "end" : "middle";
+      return `<text class="label" x="${xFor(ts).toFixed(2)}" y="${(H - 10).toFixed(2)}" text-anchor="${anchor}">${esc(date)}</text>`;
+    })
+    .join("");
+
+  const pointsHtml = series
+    .map((r, i) => {
+      const cls = r.daily_units > 0 ? "point win" : r.daily_units < 0 ? "point loss" : "point";
+      return `<circle class="${cls}" cx="${xFor(r.ts).toFixed(2)}" cy="${yFor(r.cumulative).toFixed(2)}" r="3.5" data-i="${i}"></circle>`;
+    })
+    .join("");
+
+  const svg = `
+<svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Cumulative units curve">
+  <defs>
+    <clipPath id="chart-clip-pos"><rect x="0" y="0" width="${W}" height="${Math.max(0, zeroY).toFixed(2)}"></rect></clipPath>
+    <clipPath id="chart-clip-neg"><rect x="0" y="${zeroY.toFixed(2)}" width="${W}" height="${Math.max(0, H - zeroY).toFixed(2)}"></rect></clipPath>
+  </defs>
+  <line class="axis" x1="${M.left}" y1="${M.top}" x2="${M.left}" y2="${(H - M.bottom).toFixed(2)}"></line>
+  <line class="axis" x1="${M.left}" y1="${(H - M.bottom).toFixed(2)}" x2="${(W - M.right).toFixed(2)}" y2="${(H - M.bottom).toFixed(2)}"></line>
+  <path class="area-pos" d="${areaPath}" clip-path="url(#chart-clip-pos)"></path>
+  <path class="area-neg" d="${areaPath}" clip-path="url(#chart-clip-neg)"></path>
+  <line class="zero-line" x1="${M.left}" y1="${zeroY.toFixed(2)}" x2="${(W - M.right).toFixed(2)}" y2="${zeroY.toFixed(2)}"></line>
+  ${linePath ? `<path class="line" d="${linePath}"></path>` : ""}
+  ${pointsHtml}
+  ${yTickHtml}
+  ${xLabelHtml}
+  <rect class="hover-target" x="${M.left}" y="${M.top}" width="${innerW}" height="${innerH}"></rect>
+</svg>`;
+
+  container.insertAdjacentHTML("beforeend", svg);
+
+  // Hover tooltip + nearest-point lookup.
+  const svgEl = container.querySelector("svg");
+  const tt = els.chartTooltip;
+
+  function showTooltipForIndex(i, clientX, clientY) {
+    const r = series[i];
+    if (!r || !tt) return;
+    const cumCls = r.cumulative > 0 ? "pos" : r.cumulative < 0 ? "neg" : "";
+    const dailyCls = r.daily_units > 0 ? "pos" : r.daily_units < 0 ? "neg" : "";
+    tt.innerHTML =
+      `<div><strong>${esc(r.date)}</strong></div>` +
+      `<div class="t-units ${cumCls}">${esc(fmtUnitsSigned(r.cumulative))} cumulative</div>` +
+      `<div class="t-sub">Day: <span class="t-units ${dailyCls}">${esc(fmtUnitsSigned(r.daily_units))}</span> · ${esc(r.record)} (${esc(String(r.settled_count))} settled)</div>`;
+    const rect = container.getBoundingClientRect();
+    tt.style.left = `${clientX - rect.left}px`;
+    tt.style.top = `${clientY - rect.top}px`;
+    tt.classList.add("is-visible");
+  }
+  function hideTooltip() {
+    if (tt) tt.classList.remove("is-visible");
+  }
+
+  svgEl.addEventListener("mousemove", (ev) => {
+    const rect = svgEl.getBoundingClientRect();
+    if (rect.width === 0) return;
+    // Convert client x → viewBox x.
+    const vx = ((ev.clientX - rect.left) / rect.width) * W;
+    if (vx < M.left || vx > W - M.right) {
+      hideTooltip();
+      return;
+    }
+    let bestI = 0;
+    let bestD = Infinity;
+    for (let i = 0; i < series.length; i++) {
+      const d = Math.abs(xFor(series[i].ts) - vx);
+      if (d < bestD) { bestD = d; bestI = i; }
+    }
+    showTooltipForIndex(bestI, ev.clientX, ev.clientY);
+  });
+  svgEl.addEventListener("mouseleave", hideTooltip);
+
+  // Header meta: total settled days, last cumulative.
+  if (els.chartMeta) {
+    const last = series[series.length - 1];
+    const totalSettled = series.reduce((s, r) => s + r.settled_count, 0);
+    const totalRisked = series.reduce((s, r) => s + r.daily_risked, 0);
+    const cumCls = last.cumulative > 0 ? "pos" : last.cumulative < 0 ? "neg" : "";
+    els.chartMeta.innerHTML =
+      `<strong class="${cumCls}">${esc(fmtUnitsSigned(last.cumulative))}</strong> over ${esc(String(series.length))} settled day${series.length === 1 ? "" : "s"}` +
+      ` · ${esc(String(totalSettled))} pick${totalSettled === 1 ? "" : "s"}` +
+      ` · ${esc(totalRisked.toFixed(2))}u risked`;
+  }
+}
+
 function fillSelect(selectId, options, { keyField = null, labelField = null, currentValue = "" } = {}) {
   const sel = document.getElementById(selectId);
   if (!sel) return;
@@ -416,16 +619,21 @@ async function loadAll(filters) {
   const summaryQs = buildQuery(filters, { includeSettled: false, overrides: { settled_only: filters.settled_only === false ? "false" : "true" } });
   const breakdownQs = buildQuery(filters, { overrides: { group_by: filters[GROUP_KEY] || DEFAULT_GROUP, settled_only: filters.settled_only === false ? "false" : "true" } });
   const picksQs = buildQuery(filters, { includeSettled: false, overrides: { limit: "100", settled_only: "false" } });
+  // Chart always reflects settled history (cumulative units only makes sense for graded picks),
+  // but otherwise inherits the active filters so the curve matches the rest of the page.
+  const chartQs = buildQuery(filters, { includeSettled: false, overrides: { group_by: "date", settled_only: "true" } });
 
   try {
-    const [summary, breakdown, picks] = await Promise.all([
+    const [summary, breakdown, picks, chart] = await Promise.all([
       fetchJson(`${API_BASE}/api/v1/performance/summary?${summaryQs}`),
       fetchJson(`${API_BASE}/api/v1/performance/breakdown?${breakdownQs}`),
       fetchJson(`${API_BASE}/api/v1/performance/picks?${picksQs}`),
+      fetchJson(`${API_BASE}/api/v1/performance/breakdown?${chartQs}`),
     ]);
     renderSummary(summary && summary.summary);
     renderBreakdown(breakdown);
     renderPicks(picks);
+    renderChart(chart);
   } catch (err) {
     showError(`Failed to load performance data: ${err.message}`);
     setHidden(els.kpiGrid, true);
