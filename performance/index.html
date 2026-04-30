@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Performance & ROI — BoardWise</title>
+  <meta name="description" content="BoardWise model performance, record, ROI, and CLV from the public API.">
+  <style>
+    :root {
+      --bg: #f7f7f5;
+      --panel: #ffffff;
+      --ink: #101828;
+      --muted: #667085;
+      --line: #d0d5dd;
+      --accent: #0f4c81;
+      --accent-soft: #eef4ff;
+      --good: #156f3c;
+      --good-soft: #edf9f0;
+      --bad: #b42318;
+      --bad-soft: #fef3f2;
+      --shadow: 0 10px 24px rgba(16, 24, 40, 0.07);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; color: var(--ink); background: var(--bg); }
+    .wrap { max-width: 1220px; margin: 0 auto; padding: 24px 18px 48px; }
+    .header { display: grid; gap: 12px; margin-bottom: 18px; }
+    h1 { margin: 0; font-size: clamp(28px, 4vw, 44px); line-height: 1.05; }
+    .subtitle { color: var(--muted); line-height: 1.5; max-width: 78ch; font-size: 15px; }
+    .nav-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .nav-link { border: 1px solid var(--line); background: var(--panel); padding: 8px 12px; border-radius: 999px; font-size: 13px; text-decoration: none; color: var(--ink); font-weight: 700; }
+    .nav-link.disabled { color: var(--muted); cursor: not-allowed; }
+
+    .filters { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 18px; }
+    .filters legend { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 0 6px; }
+    .filter-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .filter-grid label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .filter-grid input, .filter-grid select { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; background: #fcfcfd; color: var(--ink); }
+    .filter-row-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; align-items: center; }
+    .filter-row-actions .checkbox { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--ink); }
+    .filter-row-actions button { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 999px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .filter-row-actions button.secondary { background: var(--panel); color: var(--ink); border-color: var(--line); }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); }
+    .kpi .k-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .kpi .k-value { margin-top: 6px; font-size: 22px; font-weight: 800; line-height: 1.1; }
+    .kpi .k-sub { margin-top: 4px; font-size: 12px; color: var(--muted); }
+    .kpi.positive .k-value { color: var(--good); }
+    .kpi.negative .k-value { color: var(--bad); }
+
+    .section { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 18px; }
+    .section h2 { margin: 0 0 12px; font-size: 18px; }
+    .section .section-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+    .section .section-controls label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .section .section-controls select { border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: 14px; background: #fcfcfd; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eaecf0; vertical-align: top; }
+    th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; background: #fcfcfd; position: sticky; top: 0; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .table-scroll { max-height: 520px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+    .pill-tag { display: inline-block; border: 1px solid var(--line); background: #fcfcfd; border-radius: 999px; padding: 2px 8px; font-size: 11px; color: var(--muted); }
+    .pill-tag.good { color: var(--good); background: var(--good-soft); border-color: rgba(21,111,60,.25); }
+    .pill-tag.bad { color: var(--bad); background: var(--bad-soft); border-color: rgba(180,35,24,.25); }
+
+    .loading-panel, .error-panel, .status-note, .empty-state {
+      border: 1px solid var(--line); background: var(--panel); border-radius: 12px;
+      padding: 14px 18px; margin-bottom: 14px; color: var(--muted);
+    }
+    .error-panel { color: var(--bad); border-color: rgba(180,35,24,.3); background: var(--bad-soft); }
+    .empty-state { text-align: center; padding: 28px 18px; }
+    .footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
+
+    @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 720px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .filter-grid { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="header">
+      <div class="nav-row">
+        <a class="nav-link" href="/">All Sports</a>
+        <a class="nav-link" href="/mlb/">MLB Board</a>
+        <a class="nav-link" href="/performance/" aria-current="page">Performance</a>
+      </div>
+      <h1>Performance &amp; ROI</h1>
+      <div class="subtitle">Settled record, units won, ROI, and closing-line value (CLV) for published BoardWise picks. All numbers come from <code>serving.performance_pick_facts</code> via the public API. Pending picks count toward volume but never inflate ROI.</div>
+    </section>
+
+    <form id="filter-form" class="filters" autocomplete="off">
+      <div class="filter-grid">
+        <label>Sport
+          <select id="f-sport" name="sport"><option value="">All</option></select>
+        </label>
+        <label>Market
+          <select id="f-market" name="market_key"><option value="">All</option></select>
+        </label>
+        <label>Bookmaker
+          <select id="f-book" name="bookmaker_key"><option value="">All</option></select>
+        </label>
+        <label>Confidence bucket
+          <select id="f-confidence" name="confidence_bucket"><option value="">All</option></select>
+        </label>
+        <label>Model probability bucket
+          <select id="f-prob-bucket" name="model_probability_bucket"><option value="">All</option></select>
+        </label>
+        <label>Model version
+          <select id="f-model-version" name="model_version"><option value="">All</option></select>
+        </label>
+        <label>Prediction mode
+          <select id="f-mode" name="prediction_mode"><option value="">All</option></select>
+        </label>
+        <label>Start date
+          <input id="f-start" name="start_date" type="date">
+        </label>
+        <label>End date
+          <input id="f-end" name="end_date" type="date">
+        </label>
+        <label>Min model probability
+          <input id="f-min-prob" name="min_model_probability" type="number" min="0" max="1" step="0.01" placeholder="0.00">
+        </label>
+        <label>Max model probability
+          <input id="f-max-prob" name="max_model_probability" type="number" min="0" max="1" step="0.01" placeholder="1.00">
+        </label>
+      </div>
+      <div class="filter-row-actions">
+        <label class="checkbox"><input id="f-official" name="official_only" type="checkbox" checked> Official only</label>
+        <label class="checkbox"><input id="f-settled" name="settled_only" type="checkbox" checked> Settled only (KPIs)</label>
+        <button type="submit">Apply filters</button>
+        <button type="button" id="reset-filters" class="secondary">Reset</button>
+      </div>
+    </form>
+
+    <section id="error" class="error-panel" hidden></section>
+    <section id="loading" class="loading-panel">Loading performance summary…</section>
+    <section id="empty-summary" class="empty-state" hidden></section>
+
+    <section id="kpi-grid" class="kpi-grid" hidden></section>
+
+    <section class="section">
+      <h2>Breakdown</h2>
+      <div class="section-controls">
+        <label for="group-by">Group by</label>
+        <select id="group-by">
+          <option value="confidence_bucket">Confidence bucket</option>
+          <option value="model_probability_bucket">Model probability bucket</option>
+          <option value="model_version">Model version</option>
+          <option value="sport">Sport</option>
+          <option value="market">Market</option>
+          <option value="book">Bookmaker</option>
+          <option value="prediction_mode">Prediction mode</option>
+          <option value="date">Date</option>
+        </select>
+      </div>
+      <div id="breakdown-empty" class="empty-state" hidden></div>
+      <div class="table-scroll">
+        <table id="breakdown-table">
+          <thead>
+            <tr>
+              <th>Group</th>
+              <th class="num">Picks</th>
+              <th class="num">Settled</th>
+              <th>Record</th>
+              <th class="num">Units risked</th>
+              <th class="num">Units won</th>
+              <th class="num">ROI</th>
+              <th class="num">Avg CLV</th>
+              <th class="num">CLV coverage</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Recent picks</h2>
+      <div id="picks-empty" class="empty-state" hidden></div>
+      <div class="table-scroll">
+        <table id="picks-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Game</th>
+              <th>Market</th>
+              <th>Selection</th>
+              <th>Book</th>
+              <th class="num">Price</th>
+              <th class="num">Model %</th>
+              <th>Confidence</th>
+              <th>Status</th>
+              <th>Result</th>
+              <th class="num">Units won</th>
+              <th class="num">CLV Δ</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="footer">BoardWise static frontend. Performance data served by <code>api.useboardwise.com</code>.</section>
+  </div>
+  <script src="/assets/js/performance.js"></script>
+</body>
+</html>
