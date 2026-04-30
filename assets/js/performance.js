@@ -1,5 +1,24 @@
 const API_BASE = "https://api.useboardwise.com";
 
+// Hard floor on visible pick history. Performance data on or before this date
+// (legacy / pre-launch noise) must never be shown on the frontend, no matter
+// what URL params or form values are submitted.
+const MIN_VISIBLE_DATE = "2026-04-30";
+
+// Default sport when the user lands on /performance/ with no sport filter set
+// in the URL.
+const DEFAULT_SPORT = "mlb";
+
+function clampStartDate(value) {
+  if (!value || !isIsoDate(value)) return MIN_VISIBLE_DATE;
+  return value < MIN_VISIBLE_DATE ? MIN_VISIBLE_DATE : value;
+}
+
+function clampEndDate(value) {
+  if (!value || !isIsoDate(value)) return value || "";
+  return value < MIN_VISIBLE_DATE ? MIN_VISIBLE_DATE : value;
+}
+
 const FILTER_KEYS = [
   "sport",
   "market_key",
@@ -94,6 +113,11 @@ function readFilters() {
   // defaults
   if (!("official_only" in out)) out.official_only = true;
   if (!("settled_only" in out)) out.settled_only = true;
+  // Default sport when none was supplied in the URL.
+  if (!params.has("sport") && !out.sport) out.sport = DEFAULT_SPORT;
+  // Clamp any user-supplied dates up to the visible-history floor.
+  out.start_date = clampStartDate(out.start_date);
+  if (out.end_date) out.end_date = clampEndDate(out.end_date);
   return out;
 }
 
@@ -162,6 +186,9 @@ function readFiltersFromForm() {
   out[GROUP_KEY] = els.groupBy.value || DEFAULT_GROUP;
   if (out.start_date && !isIsoDate(out.start_date)) delete out.start_date;
   if (out.end_date && !isIsoDate(out.end_date)) delete out.end_date;
+  // Always enforce the visible-history floor, regardless of what was typed.
+  out.start_date = clampStartDate(out.start_date);
+  if (out.end_date) out.end_date = clampEndDate(out.end_date);
   return out;
 }
 
@@ -702,6 +729,13 @@ async function refresh(filters) {
 }
 
 function init() {
+  // Enforce the visible-history floor at the input level so the native date
+  // picker greys out anything on or before MIN_VISIBLE_DATE - 1 day.
+  const startEl = document.getElementById("f-start");
+  const endEl = document.getElementById("f-end");
+  if (startEl) startEl.min = MIN_VISIBLE_DATE;
+  if (endEl) endEl.min = MIN_VISIBLE_DATE;
+
   const filters = readFilters();
   applyFiltersToForm(filters);
 
@@ -712,7 +746,13 @@ function init() {
   });
 
   els.reset.addEventListener("click", () => {
-    const next = { official_only: true, settled_only: true, [GROUP_KEY]: DEFAULT_GROUP };
+    const next = {
+      official_only: true,
+      settled_only: true,
+      [GROUP_KEY]: DEFAULT_GROUP,
+      sport: DEFAULT_SPORT,
+      start_date: MIN_VISIBLE_DATE,
+    };
     refresh(next);
   });
 
