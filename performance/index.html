@@ -32,11 +32,18 @@
     .nav-link { border: 1px solid var(--line); background: var(--panel); padding: 8px 12px; border-radius: 999px; font-size: 13px; text-decoration: none; color: var(--ink); font-weight: 700; }
     .nav-link.disabled { color: var(--muted); cursor: not-allowed; }
 
-    .filters { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 18px; max-width: 100%; }
+    .filters { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 18px; max-width: 100%; min-width: 0; }
     .filters legend { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 0 6px; }
-    .filter-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-    .filter-grid label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; min-width: 0; }
-    .filter-grid input, .filter-grid select { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; background: #fcfcfd; color: var(--ink); width: 100%; max-width: 100%; min-width: 0; }
+    .filter-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; min-width: 0; max-width: 100%; }
+    .filter-grid label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; min-width: 0; max-width: 100%; }
+    .filter-grid input, .filter-grid select { display: block; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; background: #fcfcfd; color: var(--ink); width: 100%; max-width: 100%; min-width: 0; inline-size: 100%; max-inline-size: 100%; box-sizing: border-box; }
+    /* iOS Safari treats <input type="date"> as a fixed-width control by default and will overflow narrow grid cells. Force it to behave like every other input. */
+    .filter-grid input[type="date"] { -webkit-appearance: none; appearance: none; text-align: left; }
+    .filter-grid input[type="date"]::-webkit-date-and-time-value { text-align: left; min-width: 0; }
+    .filter-grid input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
+    @supports (-webkit-touch-callout: none) {
+      .filter-grid input[type="date"] { width: 100%; min-width: 0; max-width: 100%; }
+    }
     .filter-row-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; align-items: center; }
     .filter-row-actions .checkbox { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--ink); }
     .filter-row-actions button { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 999px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
@@ -111,7 +118,8 @@
     @media (max-width: 520px) {
       .wrap { padding: 14px 10px 32px; }
       .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-      .filter-grid { grid-template-columns: 1fr; gap: 10px; }
+      .filter-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+      .filter-grid input, .filter-grid select, .filter-grid input[type="date"] { width: 100%; min-width: 0; max-width: 100%; }
       .filters, .section { padding: 12px; }
       .filter-row-actions { gap: 8px; }
       .filter-row-actions button { flex: 1 1 auto; min-width: 0; }

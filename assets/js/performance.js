@@ -794,7 +794,7 @@ async function loadAll(filters) {
 
   const summaryQs = buildQuery(filters, { includeSettled: false, overrides: { settled_only: filters.settled_only === false ? "false" : "true" } });
   const breakdownQs = buildQuery(filters, { overrides: { group_by: filters[GROUP_KEY] || DEFAULT_GROUP, settled_only: filters.settled_only === false ? "false" : "true" } });
-  const picksQs = buildQuery(filters, { includeSettled: false, overrides: { limit: "100", settled_only: "false" } });
+  const picksQs = buildQuery(filters, { includeSettled: false, overrides: { limit: "100", settled_only: "false", active_only: "true", dedupe: "true" } });
   // Chart always reflects settled history (cumulative units only makes sense for graded picks),
   // but otherwise inherits the active filters so the curve matches the rest of the page.
   const chartQs = buildQuery(filters, { includeSettled: false, overrides: { group_by: "date", settled_only: "true" } });
