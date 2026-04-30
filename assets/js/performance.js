@@ -615,6 +615,16 @@ async function loadAll(filters) {
   setHidden(els.loading, false);
   setHidden(els.kpiGrid, true);
   setHidden(els.emptySummary, true);
+  // Wipe stale KPI content so it can never linger if the next render doesn't run.
+  if (els.kpiGrid) els.kpiGrid.innerHTML = "";
+  if (els.emptySummary) els.emptySummary.textContent = "";
+  // Reset chart panel to a fresh loading state for this query.
+  if (els.chartMeta) els.chartMeta.textContent = "Loading…";
+  if (els.chartContainer) {
+    const oldSvg = els.chartContainer.querySelector("svg");
+    if (oldSvg) oldSvg.remove();
+  }
+  setHidden(els.chartEmpty, true);
 
   const summaryQs = buildQuery(filters, { includeSettled: false, overrides: { settled_only: filters.settled_only === false ? "false" : "true" } });
   const breakdownQs = buildQuery(filters, { overrides: { group_by: filters[GROUP_KEY] || DEFAULT_GROUP, settled_only: filters.settled_only === false ? "false" : "true" } });
@@ -623,20 +633,60 @@ async function loadAll(filters) {
   // but otherwise inherits the active filters so the curve matches the rest of the page.
   const chartQs = buildQuery(filters, { includeSettled: false, overrides: { group_by: "date", settled_only: "true" } });
 
+  // Fetch in parallel but tolerate per-endpoint failures so one broken panel
+  // never wipes out the others (e.g. the chart shouldn't get stuck on
+  // "Loading…" because the picks endpoint hiccuped).
+  const settle = (p) => p.then(
+    (value) => ({ ok: true, value }),
+    (error) => ({ ok: false, error })
+  );
+
+  let anyFailed = false;
+  let firstErr = null;
   try {
-    const [summary, breakdown, picks, chart] = await Promise.all([
-      fetchJson(`${API_BASE}/api/v1/performance/summary?${summaryQs}`),
-      fetchJson(`${API_BASE}/api/v1/performance/breakdown?${breakdownQs}`),
-      fetchJson(`${API_BASE}/api/v1/performance/picks?${picksQs}`),
-      fetchJson(`${API_BASE}/api/v1/performance/breakdown?${chartQs}`),
+    const [summaryR, breakdownR, picksR, chartR] = await Promise.all([
+      settle(fetchJson(`${API_BASE}/api/v1/performance/summary?${summaryQs}`)),
+      settle(fetchJson(`${API_BASE}/api/v1/performance/breakdown?${breakdownQs}`)),
+      settle(fetchJson(`${API_BASE}/api/v1/performance/picks?${picksQs}`)),
+      settle(fetchJson(`${API_BASE}/api/v1/performance/breakdown?${chartQs}`)),
     ]);
-    renderSummary(summary && summary.summary);
-    renderBreakdown(breakdown);
-    renderPicks(picks);
-    renderChart(chart);
-  } catch (err) {
-    showError(`Failed to load performance data: ${err.message}`);
-    setHidden(els.kpiGrid, true);
+
+    const safeRender = (label, fn) => {
+      try { fn(); } catch (err) { anyFailed = true; firstErr = firstErr || `${label}: ${err.message}`; }
+    };
+
+    if (summaryR.ok) {
+      safeRender("summary", () => renderSummary(summaryR.value && summaryR.value.summary));
+    } else {
+      anyFailed = true; firstErr = firstErr || `summary: ${summaryR.error.message}`;
+      // Make sure stale KPIs cannot remain on a failed summary fetch.
+      setHidden(els.kpiGrid, true);
+      setHidden(els.emptySummary, false);
+      els.emptySummary.textContent = "Could not load summary for these filters.";
+    }
+
+    if (breakdownR.ok) {
+      safeRender("breakdown", () => renderBreakdown(breakdownR.value));
+    } else {
+      anyFailed = true; firstErr = firstErr || `breakdown: ${breakdownR.error.message}`;
+    }
+
+    if (picksR.ok) {
+      safeRender("picks", () => renderPicks(picksR.value));
+    } else {
+      anyFailed = true; firstErr = firstErr || `picks: ${picksR.error.message}`;
+    }
+
+    if (chartR.ok) {
+      safeRender("chart", () => renderChart(chartR.value));
+    } else {
+      anyFailed = true; firstErr = firstErr || `chart: ${chartR.error.message}`;
+      if (els.chartMeta) els.chartMeta.textContent = "Failed to load";
+      setHidden(els.chartEmpty, false);
+      els.chartEmpty.textContent = "Could not load the cumulative units chart.";
+    }
+
+    if (anyFailed) showError(`Failed to load performance data (${firstErr}).`);
   } finally {
     setHidden(els.loading, true);
   }
