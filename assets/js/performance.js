@@ -63,6 +63,11 @@ const els = {
   chartEmpty: document.getElementById("chart-empty"),
   chartMeta: document.getElementById("chart-meta"),
   chartTooltip: document.getElementById("chart-tooltip"),
+  bookCmpTable: document.querySelector("#book-comparison-table tbody"),
+  bookCmpEmpty: document.getElementById("book-comparison-empty"),
+  bookCmpSummary: document.getElementById("book-comparison-summary"),
+  bookCmpBooks: document.getElementById("book-cmp-books"),
+  bookCmpSame: document.getElementById("book-cmp-same"),
 };
 
 function esc(value) {
@@ -597,6 +602,139 @@ function renderChart(payload) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Book price comparison
+// ---------------------------------------------------------------------------
+
+const DEFAULT_BOOK_KEYS = ["draftkings", "fanduel", "betmgm", "espnbet"];
+
+function getSelectedBookKeys() {
+  if (!els.bookCmpBooks) return [];
+  return Array.from(
+    els.bookCmpBooks.querySelectorAll('input[type="checkbox"]:checked')
+  ).map((cb) => cb.value);
+}
+
+function populateBookComparisonBooks(bookmakers) {
+  if (!els.bookCmpBooks) return;
+  // Preserve current selections if user already checked some.
+  const prior = new Set(getSelectedBookKeys());
+  const seen = new Set();
+  const items = [];
+  for (const b of bookmakers || []) {
+    const key = String((b && (b.key || b.bookmaker_key)) || "");
+    const title = String((b && (b.title || b.bookmaker_title)) || key);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    items.push({ key, title });
+  }
+  // If page didn't deliver any, fall back to a sensible default set.
+  if (!items.length) {
+    for (const k of DEFAULT_BOOK_KEYS) items.push({ key: k, title: k });
+  }
+  // First load: pre-check the canonical four if they exist; otherwise check up to 4.
+  const firstLoad = prior.size === 0;
+  const html = items
+    .map((it) => {
+      const checked =
+        prior.has(it.key) ||
+        (firstLoad && DEFAULT_BOOK_KEYS.includes(it.key));
+      return `<label class="checkbox"><input type="checkbox" value="${esc(it.key)}"${checked ? " checked" : ""}> ${esc(it.title)}</label>`;
+    })
+    .join("");
+  els.bookCmpBooks.innerHTML = html;
+  // Wire change handlers (one delegated listener is enough).
+  if (!els.bookCmpBooks._wired) {
+    els.bookCmpBooks.addEventListener("change", () => {
+      const filters = readFiltersFromForm();
+      loadBookComparison(filters).catch(() => {});
+    });
+    els.bookCmpBooks._wired = true;
+  }
+}
+
+function buildBookComparisonQuery(filters) {
+  const params = new URLSearchParams();
+  // Reuse the same scope filters; pricing-book endpoint ignores bookmaker_key.
+  for (const key of FILTER_KEYS) {
+    if (key === "bookmaker_key") continue;
+    if (filters[key]) params.set(key, filters[key]);
+  }
+  params.set("official_only", filters.official_only === false ? "false" : "true");
+  params.set("settled_only", filters.settled_only === false ? "false" : "true");
+  const books = getSelectedBookKeys();
+  if (books.length) params.set("pricing_bookmaker_keys", books.join(","));
+  const same = !!(els.bookCmpSame && els.bookCmpSame.checked);
+  params.set("require_all_books", same ? "true" : "false");
+  return params.toString();
+}
+
+function renderBookComparison(payload) {
+  const tbody = els.bookCmpTable;
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  const rows = (payload && Array.isArray(payload.rows)) ? payload.rows : [];
+
+  if (els.bookCmpSummary) {
+    if (payload && payload.comparison_mode === "common_pick_set") {
+      const n = payload.common_pick_count == null ? 0 : Number(payload.common_pick_count);
+      els.bookCmpSummary.innerHTML = `Common set: <strong>${esc(String(n))}</strong> pick${n === 1 ? "" : "s"} priced at every selected book.`;
+    } else {
+      els.bookCmpSummary.innerHTML = `Available-per-book mode: sample sizes may differ.`;
+    }
+  }
+
+  if (!rows.length) {
+    setHidden(els.bookCmpEmpty, false);
+    if (payload && payload.comparison_mode === "common_pick_set") {
+      els.bookCmpEmpty.textContent =
+        "No common comparable pick set for the selected books and filters. Try fewer books or a wider date range.";
+    } else {
+      els.bookCmpEmpty.textContent =
+        "No book price data for these filters yet.";
+    }
+    return;
+  }
+  setHidden(els.bookCmpEmpty, true);
+
+  const html = rows.map((r) => {
+    const roi = r.roi === null || r.roi === undefined ? "N/A" : fmtPct(r.roi);
+    const avgPrice = r.avg_price_decimal === null || r.avg_price_decimal === undefined
+      ? "N/A"
+      : Number(r.avg_price_decimal).toFixed(3);
+    const bestRate = r.best_price_rate === null || r.best_price_rate === undefined
+      ? "N/A"
+      : fmtPct(r.best_price_rate, { digits: 0 });
+    return `<tr>
+      <td>${esc(r.pricing_bookmaker_title || r.pricing_bookmaker_key || "")}</td>
+      <td class="num">${esc(fmtNumber(r.pick_count))}</td>
+      <td>${esc(r.record || "0-0-0")}</td>
+      <td class="num">${esc(fmtNumber(r.units_risked))}</td>
+      <td class="num">${esc(fmtUnits(r.units_won))}</td>
+      <td class="num">${esc(roi)}</td>
+      <td class="num">${esc(avgPrice)}</td>
+      <td class="num">${esc(fmtNumber(r.best_price_count))}</td>
+      <td class="num">${esc(bestRate)}</td>
+      <td class="num">${esc(fmtNumber(r.source_book_count))}</td>
+    </tr>`;
+  }).join("");
+  tbody.innerHTML = html;
+}
+
+async function loadBookComparison(filters) {
+  if (!els.bookCmpTable) return;
+  const qs = buildBookComparisonQuery(filters);
+  try {
+    const data = await fetchJson(`${API_BASE}/api/v1/performance/book-comparison?${qs}`);
+    renderBookComparison(data);
+  } catch (err) {
+    if (els.bookCmpSummary) els.bookCmpSummary.textContent = "";
+    setHidden(els.bookCmpEmpty, false);
+    els.bookCmpEmpty.textContent = `Could not load book comparison: ${err.message}`;
+    els.bookCmpTable.innerHTML = "";
+  }
+}
+
 function fillSelect(selectId, options, { keyField = null, labelField = null, currentValue = "" } = {}) {
   const sel = document.getElementById(selectId);
   if (!sel) return;
@@ -632,6 +770,7 @@ async function loadFilters(filters) {
     fillSelect("f-prob-bucket", data.model_probability_buckets || [], { currentValue: filters.model_probability_bucket || "" });
     fillSelect("f-model-version", data.model_versions || [], { currentValue: filters.model_version || "" });
     fillSelect("f-mode", data.prediction_modes || [], { currentValue: filters.prediction_mode || "" });
+    populateBookComparisonBooks(data.bookmakers || []);
   } catch (err) {
     showError(`Failed to load filter options: ${err.message}`);
   }
@@ -717,6 +856,9 @@ async function loadAll(filters) {
   } finally {
     setHidden(els.loading, true);
   }
+
+  // Book comparison is independent and tolerates its own errors inline.
+  loadBookComparison(filters).catch(() => {});
 }
 
 async function refresh(filters) {
@@ -760,6 +902,13 @@ function init() {
     const next = readFiltersFromForm();
     refresh(next);
   });
+
+  if (els.bookCmpSame) {
+    els.bookCmpSame.addEventListener("change", () => {
+      const next = readFiltersFromForm();
+      loadBookComparison(next).catch(() => {});
+    });
+  }
 
   refresh(filters);
 }
