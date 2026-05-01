@@ -1,22 +1,53 @@
 const API_BASE = "https://api.useboardwise.com";
 
-// Hard floor on visible pick history. Performance data on or before this date
-// (legacy / pre-launch noise) must never be shown on the frontend, no matter
-// what URL params or form values are submitted.
-const MIN_VISIBLE_DATE = "2026-04-29";
+let runtimeMinVisibleDate = "";
 
 // Default sport when the user lands on /performance/ with no sport filter set
 // in the URL.
 const DEFAULT_SPORT = "mlb";
 
 function clampStartDate(value) {
-  if (!value || !isIsoDate(value)) return MIN_VISIBLE_DATE;
-  return value < MIN_VISIBLE_DATE ? MIN_VISIBLE_DATE : value;
+  const floor = currentMinVisibleDate();
+  if (!floor) return isIsoDate(value) ? value : "";
+  if (!value || !isIsoDate(value)) return floor;
+  return value < floor ? floor : value;
 }
 
 function clampEndDate(value) {
+  const floor = currentMinVisibleDate();
   if (!value || !isIsoDate(value)) return value || "";
-  return value < MIN_VISIBLE_DATE ? MIN_VISIBLE_DATE : value;
+  if (!floor) return value;
+  return value < floor ? floor : value;
+}
+
+function currentMinVisibleDate() {
+  return isIsoDate(runtimeMinVisibleDate) ? runtimeMinVisibleDate : "";
+}
+
+function setRuntimeVisibility(visibility) {
+  if (!visibility || typeof visibility !== "object") return;
+  const floor = visibility.min_visible_date || visibility.start_date_applied || "";
+  runtimeMinVisibleDate = isIsoDate(floor) ? floor : "";
+  applyDateInputMins();
+}
+
+function applyDateInputMins() {
+  const floor = currentMinVisibleDate();
+  const startEl = document.getElementById("f-start");
+  const endEl = document.getElementById("f-end");
+  if (startEl) startEl.min = floor || "";
+  if (endEl) endEl.min = floor || "";
+}
+
+function initialSportFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const raw = (params.get("sport") || "").trim();
+  return raw || DEFAULT_SPORT;
+}
+
+async function fetchFilterOptions(sport) {
+  const qs = sport ? `?sport=${encodeURIComponent(sport)}` : "";
+  return fetchJson(`${API_BASE}/api/v1/performance/filters${qs}`);
 }
 
 const FILTER_KEYS = [
@@ -727,6 +758,7 @@ async function loadBookComparison(filters) {
   const qs = buildBookComparisonQuery(filters);
   try {
     const data = await fetchJson(`${API_BASE}/api/v1/performance/book-comparison?${qs}`);
+    setRuntimeVisibility(data.visibility);
     renderBookComparison(data);
   } catch (err) {
     if (els.bookCmpSummary) els.bookCmpSummary.textContent = "";
@@ -760,10 +792,10 @@ function fillSelect(selectId, options, { keyField = null, labelField = null, cur
   if (currentValue && seen.has(currentValue)) sel.value = currentValue;
 }
 
-async function loadFilters(filters) {
+async function loadFilters(filters, { preloaded = null } = {}) {
   try {
-    const qs = filters.sport ? `?sport=${encodeURIComponent(filters.sport)}` : "";
-    const data = await fetchJson(`${API_BASE}/api/v1/performance/filters${qs}`);
+    const data = preloaded || await fetchFilterOptions(filters.sport || DEFAULT_SPORT);
+    setRuntimeVisibility(data.visibility);
     fillSelect("f-sport", data.sports || [], { currentValue: filters.sport || "" });
     fillSelect("f-market", data.markets || [], { currentValue: filters.market_key || "" });
     fillSelect("f-book", data.bookmakers || [], { keyField: "key", labelField: "title", currentValue: filters.bookmaker_key || "" });
@@ -823,6 +855,7 @@ async function loadAll(filters) {
     };
 
     if (summaryR.ok) {
+      setRuntimeVisibility(summaryR.value && summaryR.value.visibility);
       safeRender("summary", () => renderSummary(summaryR.value && summaryR.value.summary));
     } else {
       anyFailed = true; firstErr = firstErr || `summary: ${summaryR.error.message}`;
@@ -833,18 +866,21 @@ async function loadAll(filters) {
     }
 
     if (breakdownR.ok) {
+      setRuntimeVisibility(breakdownR.value && breakdownR.value.visibility);
       safeRender("breakdown", () => renderBreakdown(breakdownR.value));
     } else {
       anyFailed = true; firstErr = firstErr || `breakdown: ${breakdownR.error.message}`;
     }
 
     if (picksR.ok) {
+      setRuntimeVisibility(picksR.value && picksR.value.visibility);
       safeRender("picks", () => renderPicks(picksR.value));
     } else {
       anyFailed = true; firstErr = firstErr || `picks: ${picksR.error.message}`;
     }
 
     if (chartR.ok) {
+      setRuntimeVisibility(chartR.value && chartR.value.visibility);
       safeRender("chart", () => renderChart(chartR.value));
     } else {
       anyFailed = true; firstErr = firstErr || `chart: ${chartR.error.message}`;
@@ -862,22 +898,32 @@ async function loadAll(filters) {
   loadBookComparison(filters).catch(() => {});
 }
 
-async function refresh(filters) {
-  applyFiltersToForm(filters);
-  writeFiltersToUrl(filters);
-  await loadFilters(filters);
-  // Re-apply form values in case the selects only just got populated.
-  applyFiltersToForm(filters);
-  await loadAll(filters);
+async function refresh(filters, { preloadedFilters = null } = {}) {
+  const normalized = { ...filters };
+  normalized.start_date = clampStartDate(normalized.start_date);
+  if (normalized.end_date) normalized.end_date = clampEndDate(normalized.end_date);
+
+  applyFiltersToForm(normalized);
+  writeFiltersToUrl(normalized);
+  await loadFilters(normalized, { preloaded: preloadedFilters });
+
+  // Re-clamp after loadFilters in case backend metadata changed because sport changed.
+  normalized.start_date = clampStartDate(normalized.start_date);
+  if (normalized.end_date) normalized.end_date = clampEndDate(normalized.end_date);
+  applyFiltersToForm(normalized);
+  writeFiltersToUrl(normalized);
+
+  await loadAll(normalized);
 }
 
-function init() {
-  // Enforce the visible-history floor at the input level so the native date
-  // picker greys out anything on or before MIN_VISIBLE_DATE - 1 day.
-  const startEl = document.getElementById("f-start");
-  const endEl = document.getElementById("f-end");
-  if (startEl) startEl.min = MIN_VISIBLE_DATE;
-  if (endEl) endEl.min = MIN_VISIBLE_DATE;
+async function init() {
+  let preloadedFilters = null;
+  try {
+    preloadedFilters = await fetchFilterOptions(initialSportFromUrl());
+    setRuntimeVisibility(preloadedFilters.visibility);
+  } catch (err) {
+    showError(`Failed to load performance visibility settings: ${err.message}`);
+  }
 
   const filters = readFilters();
   applyFiltersToForm(filters);
@@ -894,8 +940,9 @@ function init() {
       settled_only: true,
       [GROUP_KEY]: DEFAULT_GROUP,
       sport: DEFAULT_SPORT,
-      start_date: MIN_VISIBLE_DATE,
     };
+    const floor = currentMinVisibleDate();
+    if (floor) next.start_date = floor;
     refresh(next);
   });
 
@@ -911,7 +958,7 @@ function init() {
     });
   }
 
-  refresh(filters);
+  refresh(filters, { preloadedFilters });
 }
 
-init();
+init().catch((err) => showError(`Failed to initialize performance page: ${err.message}`));
