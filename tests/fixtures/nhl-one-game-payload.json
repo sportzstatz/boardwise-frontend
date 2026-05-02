@@ -1,0 +1,118 @@
+{
+  "sport_key": "nhl",
+  "generated_at": "2026-05-01 08:05 AM CDT",
+  "target_date": "2026-05-01",
+  "requested_mode": "current",
+  "mode": "current",
+  "mode_note": null,
+  "game_count": 1,
+  "betting_game_count": 1,
+  "recommendation_count": 1,
+  "official_recommendations": [
+    {
+      "selection_text": "Boston Bruins moneyline",
+      "sportsbook": "DraftKings",
+      "odds_text": "-125",
+      "is_official": true,
+      "game_label": "New York Rangers at Boston Bruins"
+    }
+  ],
+  "books_seen": ["DraftKings"],
+  "summary": {
+    "game_count": 1,
+    "betting_game_count": 1,
+    "recommendation_count": 1,
+    "official_count": 1,
+    "books_seen_count": 1
+  },
+  "model_versions": ["nhl3_formula_v1"],
+  "games": [
+    {
+      "sport_key": "nhl",
+      "league_key": "nhl",
+      "target_date": "2026-05-01",
+      "game_label": "New York Rangers at Boston Bruins",
+      "away_team": "New York Rangers",
+      "home_team": "Boston Bruins",
+      "away_team_abbr": "NYR",
+      "home_team_abbr": "BOS",
+      "commence_time": "Fri 7:00 PM CT",
+      "venue": "TD Garden",
+      "board_state_label": "Current NHL board",
+      "board_state_note": "Imported from NHL engine live recommendations.",
+      "betting_available": true,
+      "favorite_team": "Boston Bruins",
+      "favorite_prob_text": "58.2%",
+      "model_version": "nhl3_formula_v1",
+      "model_details_projected_score": "New York Rangers 2.7, Boston Bruins 3.2",
+      "best_card_options": {
+        "highest_ev": {
+          "selection_text": "Boston Bruins moneyline",
+          "sportsbook": "DraftKings",
+          "odds_text": "-125",
+          "model_prob_text": "58.2%",
+          "edge_text": "+3.1%",
+          "ev_text": "+5.8%",
+          "stake_text": "1u",
+          "ev_rating": "Medium-High",
+          "ev_rating_color": "#669f2a",
+          "is_official": true
+        },
+        "highest_model_prob": {
+          "selection_text": "Boston Bruins moneyline",
+          "sportsbook": "DraftKings",
+          "odds_text": "-125",
+          "model_prob_text": "58.2%",
+          "prob_rating": "55-59%",
+          "prob_rating_color": "#e04f16"
+        }
+      },
+      "recommendations": [
+        {
+          "selection_text": "Boston Bruins moneyline",
+          "sportsbook": "DraftKings",
+          "odds_text": "-125",
+          "model_probability_text": "58.2%",
+          "edge_text": "+3.1%",
+          "ev_text": "+5.8%",
+          "stake_text": "1u",
+          "ev_rating": "Medium-High",
+          "ev_rating_color": "#669f2a",
+          "is_official": true
+        }
+      ],
+      "market_dropdowns": [
+        {
+          "title": "Moneyline",
+          "summary_center_text": "Boston Bruins -125",
+          "ev_summary_color": "#669f2a",
+          "prob_summary_color": "#e04f16",
+          "options": [
+            {
+              "label": "Boston Bruins",
+              "selection_text": "Boston Bruins moneyline",
+              "sportsbook": "DraftKings",
+              "odds_text": "-125",
+              "model_probability_text": "58.2%",
+              "edge_text": "+3.1%",
+              "ev_text": "+5.8%",
+              "stake_text": "1u",
+              "is_primary": true,
+              "is_official": true
+            }
+          ]
+        }
+      ],
+      "model_details_cells": [
+        {"label": "Away ML Prob", "value": "41.8%"},
+        {"label": "Home ML Prob", "value": "58.2%"},
+        {"label": "Projected Total", "value": "5.9"},
+        {"label": "Model Run", "value": "nhl3:daily"}
+      ],
+      "books_seen": ["DraftKings"]
+    }
+  ],
+  "all_sports_href": "/",
+  "mlb_href": "/mlb/",
+  "nhl_href": "/nhl/"
+}

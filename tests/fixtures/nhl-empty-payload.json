@@ -1,0 +1,25 @@
+{
+  "sport_key": "nhl",
+  "generated_at": "2026-05-01 08:00 AM CDT",
+  "target_date": "2026-05-01",
+  "requested_mode": "current",
+  "mode": "current",
+  "mode_note": "No published NHL board rows found for this date.",
+  "game_count": 0,
+  "betting_game_count": 0,
+  "recommendation_count": 0,
+  "official_recommendations": [],
+  "books_seen": [],
+  "summary": {
+    "game_count": 0,
+    "betting_game_count": 0,
+    "recommendation_count": 0,
+    "official_count": 0,
+    "books_seen_count": 0
+  },
+  "model_versions": [],
+  "games": [],
+  "all_sports_href": "/",
+  "mlb_href": "/mlb/",
+  "nhl_href": "/nhl/"
+}

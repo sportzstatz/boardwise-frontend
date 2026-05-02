@@ -300,6 +300,17 @@ function gamePassesFilter(game) {
   return state.mode === "highest_ev" ? evBucket(game) === state.activeBucket : probBucket(game) === state.activeBucket;
 }
 
+function renderEmptyBoard(payload) {
+  const targetDate = payload?.target_date ? ` for ${payload.target_date}` : "";
+  const note = payload?.mode_note || "Check back after the next NHL board publication.";
+  return `
+    <article class="empty-state">
+      <strong>No NHL board rows found${esc(targetDate)}.</strong><br>
+      <span>${esc(note)}</span>
+    </article>
+  `;
+}
+
 function renderGame(game) {
   const option = bestOption(game, state.mode);
   const border = state.mode === "highest_ev" ? evColor(game) : probColor(game);
@@ -325,12 +336,20 @@ function renderGame(game) {
 
 function renderBoard() {
   if (!state.payload) return;
-  renderToggleButtons();
-  renderFilters();
   const games = Array.isArray(state.payload.games) ? state.payload.games : [];
-  const filtered = games.filter(gamePassesFilter);
   if (!gamesEl) return;
   gamesEl.hidden = false;
+  if (!games.length) {
+    const toggle = document.getElementById("best-card-toggle");
+    if (toggle) toggle.style.display = "none";
+    if (evFilters) evFilters.style.display = "none";
+    if (probFilters) probFilters.style.display = "none";
+    gamesEl.innerHTML = renderEmptyBoard(state.payload);
+    return;
+  }
+  renderToggleButtons();
+  renderFilters();
+  const filtered = games.filter(gamePassesFilter);
   gamesEl.innerHTML = filtered.length
     ? filtered.map(renderGame).join("")
     : `<article class="empty-state">No games match this filter.</article>`;
