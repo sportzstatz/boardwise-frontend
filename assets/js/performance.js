@@ -1,42 +1,107 @@
 const API_BASE = "https://api.useboardwise.com";
 
-let runtimeMinVisibleDate = "";
-
 // Default sport when the user lands on /performance/ with no sport filter set
 // in the URL.
 const DEFAULT_SPORT = "mlb";
 
-function clampStartDate(value) {
-  const floor = currentMinVisibleDate();
+let visibilityConfig = {
+  publicSports: [DEFAULT_SPORT],
+  minVisibleDates: {},
+};
+
+function normaliseSportValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function uniqueStrings(values) {
+  const seen = new Set();
+  const out = [];
+  for (const value of values || []) {
+    const key = normaliseSportValue(value);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+}
+
+function updateVisibilityConfig(payload) {
+  const visibility = payload && payload.visibility ? payload.visibility : payload;
+  const sportsFromVisibility = Array.isArray(visibility && visibility.public_sports)
+    ? visibility.public_sports
+    : null;
+  const sportsFromFilters = Array.isArray(payload && payload.sports)
+    ? payload.sports
+    : null;
+  const publicSports = uniqueStrings(
+    sportsFromVisibility || sportsFromFilters || visibilityConfig.publicSports
+  );
+
+  const minVisibleDates = {};
+  const rawDates = visibility && visibility.min_visible_dates;
+  if (rawDates && typeof rawDates === "object" && !Array.isArray(rawDates)) {
+    for (const [sport, floor] of Object.entries(rawDates)) {
+      const sportKey = normaliseSportValue(sport);
+      if (sportKey && isIsoDate(floor)) minVisibleDates[sportKey] = floor;
+    }
+  }
+
+  visibilityConfig = {
+    publicSports: publicSports.length ? publicSports : [DEFAULT_SPORT],
+    minVisibleDates,
+  };
+}
+
+function selectedSport() {
+  const sportEl = document.getElementById("f-sport");
+  if (sportEl) return normaliseSportValue(sportEl.value);
+  return normaliseSportValue(initialSportFromUrl()) || DEFAULT_SPORT;
+}
+
+function floorForSport(sport) {
+  const sportKey = normaliseSportValue(sport);
+  if (!sportKey) return "";
+  const floor = visibilityConfig.minVisibleDates[sportKey];
+  return isIsoDate(floor) ? floor : "";
+}
+
+function clampStartDate(value, sport = selectedSport()) {
+  const floor = currentMinVisibleDate(sport);
   if (!floor) return isIsoDate(value) ? value : "";
   if (!value || !isIsoDate(value)) return floor;
   return value < floor ? floor : value;
 }
 
-function clampEndDate(value) {
-  const floor = currentMinVisibleDate();
+function clampEndDate(value, sport = selectedSport()) {
+  const floor = currentMinVisibleDate(sport);
   if (!value || !isIsoDate(value)) return value || "";
   if (!floor) return value;
   return value < floor ? floor : value;
 }
 
-function currentMinVisibleDate() {
-  return isIsoDate(runtimeMinVisibleDate) ? runtimeMinVisibleDate : "";
+function currentMinVisibleDate(sport = selectedSport()) {
+  if (!normaliseSportValue(sport)) return "";
+  return floorForSport(sport);
 }
 
 function setRuntimeVisibility(visibility) {
   if (!visibility || typeof visibility !== "object") return;
-  const floor = visibility.min_visible_date || visibility.start_date_applied || "";
-  runtimeMinVisibleDate = isIsoDate(floor) ? floor : "";
+  updateVisibilityConfig({ visibility });
   applyDateInputMins();
 }
 
-function applyDateInputMins() {
-  const floor = currentMinVisibleDate();
+function applyDateInputMins(sport = selectedSport()) {
+  const floor = currentMinVisibleDate(sport);
   const startEl = document.getElementById("f-start");
   const endEl = document.getElementById("f-end");
-  if (startEl) startEl.min = floor || "";
-  if (endEl) endEl.min = floor || "";
+  if (startEl) {
+    startEl.min = floor || "";
+    if (floor && startEl.value && startEl.value < floor) startEl.value = floor;
+  }
+  if (endEl) {
+    endEl.min = floor || "";
+    if (floor && endEl.value && endEl.value < floor) endEl.value = floor;
+  }
 }
 
 function initialSportFromUrl() {
@@ -152,8 +217,8 @@ function readFilters() {
   // Default sport when none was supplied in the URL.
   if (!params.has("sport") && !out.sport) out.sport = DEFAULT_SPORT;
   // Clamp any user-supplied dates up to the visible-history floor.
-  out.start_date = clampStartDate(out.start_date);
-  if (out.end_date) out.end_date = clampEndDate(out.end_date);
+  out.start_date = clampStartDate(out.start_date, out.sport || "");
+  if (out.end_date) out.end_date = clampEndDate(out.end_date, out.sport || "");
   return out;
 }
 
@@ -223,8 +288,8 @@ function readFiltersFromForm() {
   if (out.start_date && !isIsoDate(out.start_date)) delete out.start_date;
   if (out.end_date && !isIsoDate(out.end_date)) delete out.end_date;
   // Always enforce the visible-history floor, regardless of what was typed.
-  out.start_date = clampStartDate(out.start_date);
-  if (out.end_date) out.end_date = clampEndDate(out.end_date);
+  out.start_date = clampStartDate(out.start_date, out.sport || "");
+  if (out.end_date) out.end_date = clampEndDate(out.end_date, out.sport || "");
   return out;
 }
 
@@ -795,8 +860,9 @@ function fillSelect(selectId, options, { keyField = null, labelField = null, cur
 async function loadFilters(filters, { preloaded = null } = {}) {
   try {
     const data = preloaded || await fetchFilterOptions(filters.sport || DEFAULT_SPORT);
+    updateVisibilityConfig(data);
     setRuntimeVisibility(data.visibility);
-    fillSelect("f-sport", data.sports || [], { currentValue: filters.sport || "" });
+    fillSelect("f-sport", visibilityConfig.publicSports, { currentValue: filters.sport || "" });
     fillSelect("f-market", data.markets || [], { currentValue: filters.market_key || "" });
     fillSelect("f-book", data.bookmakers || [], { keyField: "key", labelField: "title", currentValue: filters.bookmaker_key || "" });
     fillSelect("f-confidence", data.confidence_buckets || [], { keyField: "key", labelField: "label", currentValue: filters.confidence_bucket || "" });
@@ -900,16 +966,16 @@ async function loadAll(filters) {
 
 async function refresh(filters, { preloadedFilters = null } = {}) {
   const normalized = { ...filters };
-  normalized.start_date = clampStartDate(normalized.start_date);
-  if (normalized.end_date) normalized.end_date = clampEndDate(normalized.end_date);
+  normalized.start_date = clampStartDate(normalized.start_date, normalized.sport || "");
+  if (normalized.end_date) normalized.end_date = clampEndDate(normalized.end_date, normalized.sport || "");
 
   applyFiltersToForm(normalized);
   writeFiltersToUrl(normalized);
   await loadFilters(normalized, { preloaded: preloadedFilters });
 
   // Re-clamp after loadFilters in case backend metadata changed because sport changed.
-  normalized.start_date = clampStartDate(normalized.start_date);
-  if (normalized.end_date) normalized.end_date = clampEndDate(normalized.end_date);
+  normalized.start_date = clampStartDate(normalized.start_date, normalized.sport || "");
+  if (normalized.end_date) normalized.end_date = clampEndDate(normalized.end_date, normalized.sport || "");
   applyFiltersToForm(normalized);
   writeFiltersToUrl(normalized);
 
@@ -920,6 +986,7 @@ async function init() {
   let preloadedFilters = null;
   try {
     preloadedFilters = await fetchFilterOptions(initialSportFromUrl());
+    updateVisibilityConfig(preloadedFilters);
     setRuntimeVisibility(preloadedFilters.visibility);
   } catch (err) {
     showError(`Failed to load performance visibility settings: ${err.message}`);
@@ -941,10 +1008,18 @@ async function init() {
       [GROUP_KEY]: DEFAULT_GROUP,
       sport: DEFAULT_SPORT,
     };
-    const floor = currentMinVisibleDate();
+    const floor = currentMinVisibleDate(DEFAULT_SPORT);
     if (floor) next.start_date = floor;
     refresh(next);
   });
+
+  const sportEl = document.getElementById("f-sport");
+  if (sportEl) {
+    sportEl.addEventListener("change", () => {
+      const next = readFiltersFromForm();
+      refresh(next);
+    });
+  }
 
   els.groupBy.addEventListener("change", () => {
     const next = readFiltersFromForm();
