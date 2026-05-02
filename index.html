@@ -32,12 +32,13 @@
   <div class="wrap">
     <section class="hero">
       <h1>BoardWise</h1>
-      <p class="subtitle">Daily sports forecast and betting boards powered by the BoardWise read-only public API. MLB is live now; NHL can be added later through the same serving-view → API → static-page pattern.</p>
+      <p class="subtitle">Daily sports forecast and betting boards powered by the BoardWise read-only public API. MLB and NHL now use canonical BoardWise serving views, API routes, and static pages.</p>
       <div class="pill-row">
         <div class="pill">7050 computes</div>
         <div class="pill">7060 serves API JSON</div>
         <div class="pill">Static frontend renders</div>
         <div class="pill">MLB board ready</div>
+        <div class="pill">NHL slips ready</div>
       </div>
     </section>
 
@@ -62,10 +63,10 @@
 
       <article class="card">
         <div class="label">NHL</div>
-        <div class="title">Coming Later</div>
-        <div class="body">NHL board is intentionally separate. A future NHL serving view, API route, and page can be added when ready without disturbing MLB.</div>
+        <div class="title">Slips and Betting Board</div>
+        <div class="body">Current NHL recommendations from the BoardWise public API. The page uses the canonical NHL board route and does not depend on the retired legacy mirror.</div>
         <div class="actions">
-          <span class="button disabled" aria-disabled="true">NHL board not available yet</span>
+          <a class="button primary" href="/nhl/">Open NHL Board</a>
         </div>
       </article>
     </section>
