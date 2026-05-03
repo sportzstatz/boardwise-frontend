@@ -102,6 +102,8 @@
         <a class="nav-link" href="/">All Sports</a>
         <a class="nav-link" href="/mlb/">MLB Board</a>
         <a class="nav-link" href="/performance/">Performance</a>
+        <a class="nav-link" href="/pricing/" data-auth-guest>Join beta</a>
+        <a class="nav-link" href="/account/" data-auth-label>Sign in</a>
         <form id="date-form" class="date-form" autocomplete="off">
           <input id="board-date" name="date" type="date" aria-label="Board date">
           <button type="submit">Load date</button>
@@ -125,6 +127,11 @@
 
     <section class="footer">BoardWise static frontend. Data served by <code>api.useboardwise.com</code>.</section>
   </div>
+  <script src="/assets/js/auth-state.js"></script>
+  <script src="/assets/js/gates.js"></script>
   <script src="/assets/js/nhl-board.js"></script>
+  <script>
+    window.BoardWiseGates && window.BoardWiseGates.applyFeatureGates();
+  </script>
 </body>
 </html>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Account - BoardWise</title>
+  <meta name="description" content="BoardWise account status and feature access.">
+  <link rel="stylesheet" href="/assets/css/site.css">
+  <style>
+    :root { --bg:#f7f7f5; --panel:#ffffff; --ink:#101828; --muted:#667085; --line:#d0d5dd; --accent:#0f4c81; --good:#156f3c; --good-soft:#edf9f0; --shadow:0 10px 24px rgba(16,24,40,0.07); }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--ink); }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 28px 18px 48px; }
+    .nav-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .nav-link { border: 1px solid var(--line); background: var(--panel); padding: 8px 12px; border-radius: 999px; font-size: 13px; text-decoration: none; color: var(--ink); font-weight: 700; }
+    .button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border-radius: 999px; text-decoration: none; font-weight: 700; border: 1px solid var(--line); color: var(--ink); background: #fcfcfd; }
+    .button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .muted { color: var(--muted); line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav-row">
+      <a class="nav-link" href="/">All Sports</a>
+      <a class="nav-link" href="/mlb/">MLB Board</a>
+      <a class="nav-link" href="/nhl/">NHL Board</a>
+      <a class="nav-link" href="/performance/">Performance</a>
+      <a class="nav-link" href="/pricing/" data-auth-guest>Join beta</a>
+    </nav>
+
+    <main class="account-panel">
+      <h1>Account</h1>
+      <p id="account-status" class="muted">Checking account state...</p>
+      <div id="account-actions"></div>
+      <h2>Feature access</h2>
+      <ul id="feature-list" class="feature-list"></ul>
+    </main>
+  </div>
+
+  <script src="/assets/js/auth-state.js"></script>
+  <script src="/assets/js/gates.js"></script>
+  <script>
+    function esc(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function featureLabel(key) {
+      return String(key || "")
+        .replaceAll("_", " ")
+        .replace(/\b\w/g, (match) => match.toUpperCase());
+    }
+
+    window.BoardWiseAuth.loadAuthState({ force: true }).then((state) => {
+      const status = document.getElementById("account-status");
+      const actions = document.getElementById("account-actions");
+      const list = document.getElementById("feature-list");
+
+      if (!state.authenticated) {
+        status.textContent = "You are browsing as a guest.";
+        actions.innerHTML = '<a class="button primary" href="/pricing/">Join beta</a>';
+      } else {
+        const name = window.BoardWiseAuth.displayName(state);
+        status.textContent = `Signed in as ${name}. Plan: ${state.plan}.`;
+        actions.innerHTML = '<a class="button" href="/performance/">Open performance</a>';
+      }
+
+      list.innerHTML = Object.entries(state.features || {})
+        .map(([key, enabled]) => `<li><span>${esc(featureLabel(key))}</span><span class="feature-badge ${enabled ? "available" : ""}">${enabled ? "Available" : "Locked"}</span></li>`)
+        .join("");
+
+      window.BoardWiseGates && window.BoardWiseGates.applyFeatureGates();
+    });
+  </script>
+</body>
+</html>
