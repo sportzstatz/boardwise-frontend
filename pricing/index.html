@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Join Beta - BoardWise</title>
+  <meta name="description" content="BoardWise founder beta and future subscription access.">
+  <link rel="stylesheet" href="/assets/css/site.css">
+  <style>
+    :root { --bg:#f7f7f5; --panel:#ffffff; --ink:#101828; --muted:#667085; --line:#d0d5dd; --accent:#0f4c81; --shadow:0 10px 24px rgba(16,24,40,0.07); }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--ink); }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 28px 18px 48px; }
+    .nav-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .nav-link { border: 1px solid var(--line); background: var(--panel); padding: 8px 12px; border-radius: 999px; font-size: 13px; text-decoration: none; color: var(--ink); font-weight: 700; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 20px; box-shadow: var(--shadow); }
+    .muted { color: var(--muted); line-height: 1.5; }
+    .button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border-radius: 999px; text-decoration: none; font-weight: 700; border: 1px solid var(--line); color: var(--ink); background: #fcfcfd; }
+    .button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <nav class="nav-row">
+      <a class="nav-link" href="/">All Sports</a>
+      <a class="nav-link" href="/mlb/">MLB Board</a>
+      <a class="nav-link" href="/nhl/">NHL Board</a>
+      <a class="nav-link" href="/performance/">Performance</a>
+      <a class="nav-link" href="/account/" data-auth-label>Sign in</a>
+    </nav>
+    <section class="panel">
+      <h1>BoardWise Founder Beta</h1>
+      <p class="muted">Founder beta accounts are the next BoardWise access path. Paid checkout is not live yet.</p>
+      <p><a class="button primary" href="/account/">Check account state</a></p>
+    </section>
+  </main>
+  <script src="/assets/js/auth-state.js"></script>
+  <script src="/assets/js/gates.js"></script>
+  <script>
+    window.BoardWiseGates && window.BoardWiseGates.applyFeatureGates();
+  </script>
+</body>
+</html>

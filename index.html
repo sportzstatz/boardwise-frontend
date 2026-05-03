@@ -40,6 +40,10 @@
         <div class="pill">MLB board ready</div>
         <div class="pill">NHL slips ready</div>
       </div>
+      <div class="actions" style="margin-top: 16px;">
+        <a class="button primary" href="/pricing/" data-auth-guest>Join beta</a>
+        <a class="button" href="/account/" data-auth-label>Sign in</a>
+      </div>
     </section>
 
     <section class="grid">
@@ -73,5 +77,10 @@
 
     <section class="footer">BoardWise static frontend. Data served by <code>api.useboardwise.com</code>.</section>
   </div>
+  <script src="/assets/js/auth-state.js"></script>
+  <script src="/assets/js/gates.js"></script>
+  <script>
+    window.BoardWiseGates && window.BoardWiseGates.applyFeatureGates();
+  </script>
 </body>
 </html>

@@ -546,3 +546,66 @@
   .date-form { width: 100%; }
   .date-form input[type="date"], .date-form button { width: 100%; }
 }
+
+/* Account-state and future gate helpers */
+.gate-card {
+  border: 1px solid var(--line, #d0d5dd);
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 18px;
+  box-shadow: var(--shadow, 0 10px 24px rgba(16, 24, 40, 0.07));
+}
+.gate-eyebrow {
+  color: var(--muted, #667085);
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.gate-card h3 {
+  margin: 8px 0 6px;
+}
+.gate-card p {
+  color: var(--muted, #667085);
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+.account-panel {
+  background: var(--panel, #ffffff);
+  border: 1px solid var(--line, #d0d5dd);
+  border-radius: 8px;
+  padding: 18px;
+  box-shadow: var(--shadow, 0 10px 24px rgba(16, 24, 40, 0.07));
+}
+.account-panel h1,
+.account-panel h2 {
+  margin-top: 0;
+}
+.feature-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.feature-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #eaecf0;
+  padding: 8px 0;
+}
+.feature-badge {
+  border: 1px solid var(--line, #d0d5dd);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--muted, #667085);
+  white-space: nowrap;
+}
+.feature-badge.available {
+  color: var(--good, #156f3c);
+  background: var(--good-soft, #edf9f0);
+  border-color: rgba(21, 111, 60, 0.25);
+}
