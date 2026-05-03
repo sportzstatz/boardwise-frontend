@@ -12,8 +12,26 @@
 
   function safeReturnTo(value) {
     const raw = String(value || "").trim();
-    if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+    if (raw.startsWith("/") && !raw.startsWith("//") && !raw.includes("\\")) {
+      return raw;
+    }
     return "/account/";
+  }
+
+  function scrubTokenFromUrl() {
+    const current = new URL(window.location.href);
+    current.searchParams.delete("token");
+
+    const returnTo = safeReturnTo(
+      current.searchParams.get("return_to") || "/account/"
+    );
+    current.search = "";
+    if (returnTo !== "/account/") {
+      current.searchParams.set("return_to", returnTo);
+    }
+
+    const cleanPath = `${current.pathname}${current.search}${current.hash || ""}`;
+    window.history.replaceState({}, document.title, cleanPath || "/login/");
   }
 
   function returnToFromParams(params) {
@@ -30,6 +48,7 @@
     if (!token) return false;
 
     const destination = returnToFromParams(params);
+    scrubTokenFromUrl();
 
     setMessage("Signing you in…");
     try {
@@ -48,8 +67,6 @@
         return true;
       }
 
-      // Remove the raw token from browser history before redirecting.
-      window.history.replaceState({}, document.title, "/login/");
       window.location.assign(destination);
       return true;
     } catch (_err) {
