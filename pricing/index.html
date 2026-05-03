@@ -26,12 +26,16 @@
       <a class="nav-link" href="/mlb/">MLB Board</a>
       <a class="nav-link" href="/nhl/">NHL Board</a>
       <a class="nav-link" href="/performance/">Performance</a>
-      <a class="nav-link" href="/account/" data-auth-label>Sign in</a>
+      <a class="nav-link" href="/login/" data-auth-guest>Sign in</a>
+      <a class="nav-link" href="/account/" data-auth-authenticated data-auth-label>Account</a>
     </nav>
     <section class="panel">
       <h1>BoardWise Founder Beta</h1>
       <p class="muted">Founder beta accounts are the next BoardWise access path. Paid checkout is not live yet.</p>
-      <p><a class="button primary" href="/account/">Check account state</a></p>
+      <p>
+        <a class="button primary" href="/login/" data-auth-guest>Sign in to BoardWise</a>
+        <a class="button primary" href="/account/" data-auth-authenticated data-auth-label>Account</a>
+      </p>
     </section>
   </main>
   <script src="/assets/js/auth-state.js"></script>

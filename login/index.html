@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in - BoardWise</title>
+  <meta name="description" content="Sign in to BoardWise with a passwordless email link.">
+  <link rel="stylesheet" href="/assets/css/site.css">
+  <style>
+    .muted {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 700;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      background: #fcfcfd;
+      cursor: pointer;
+      font: inherit;
+    }
+    .button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .auth-form {
+      display: grid;
+      gap: 12px;
+      max-width: 420px;
+      margin-top: 16px;
+    }
+    .auth-form label {
+      font-weight: 700;
+    }
+    .auth-form input[type="email"] {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 12px;
+      font: inherit;
+      color: var(--ink);
+      background: #fcfcfd;
+    }
+    .empty-state[data-kind="error"] {
+      border: 1px solid #f2b8b5;
+      border-radius: 12px;
+      background: #fff4f2;
+      color: #b42318;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <nav class="nav-row">
+      <a class="nav-link" href="/">All Sports</a>
+      <a class="nav-link" href="/mlb/">MLB Board</a>
+      <a class="nav-link" href="/nhl/">NHL Board</a>
+      <a class="nav-link" href="/performance/">Performance</a>
+      <a class="nav-link" href="/account/" data-auth-authenticated data-auth-label>Account</a>
+    </nav>
+
+    <section class="account-panel">
+      <h1>Sign in</h1>
+      <p class="muted">Enter the email attached to your BoardWise beta account. If it can sign in, we’ll send a one-time link.</p>
+
+      <form id="login-form" class="auth-form">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" required>
+        <button class="button primary" type="submit">Send sign-in link</button>
+      </form>
+
+      <div id="login-message" class="empty-state" role="status" aria-live="polite" hidden></div>
+    </section>
+  </main>
+
+  <script src="/assets/js/auth-state.js"></script>
+  <script src="/assets/js/gates.js"></script>
+  <script src="/assets/js/login.js"></script>
+</body>
+</html>
