@@ -25,6 +25,14 @@ function uniqueStrings(values) {
   return out;
 }
 
+function wiseStatusText(status) {
+  const value = String(status || "PASS").trim().toUpperCase();
+  if (value === "ELITE / VERIFY") return "Elite";
+  if (value === "MEDIUM-HIGH") return "Medium-High";
+  if (value === "HIGH") return "High";
+  return "Pass";
+}
+
 function updateVisibilityConfig(payload) {
   const visibility = payload && payload.visibility ? payload.visibility : payload;
   const sportsFromVisibility = Array.isArray(visibility && visibility.public_sports)
@@ -481,10 +489,7 @@ function renderPicks(payload) {
     const modelPct = p.model_probability === null || p.model_probability === undefined
       ? "N/A"
       : fmtPct(p.model_probability, { digits: 1 });
-    const wiseScore = p.wise_choice_score === null || p.wise_choice_score === undefined
-      ? "N/A"
-      : Number(p.wise_choice_score).toFixed(1);
-    const wiseText = `${p.wise_choice_status || "PASS"} ${wiseScore}`.trim();
+    const wiseText = wiseStatusText(p.wise_choice_status);
     const kellyPct = p.kelly_fraction === null || p.kelly_fraction === undefined
       ? "N/A"
       : fmtPct(p.kelly_fraction, { digits: 1 });

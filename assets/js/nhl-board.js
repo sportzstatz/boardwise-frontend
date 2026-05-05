@@ -3,8 +3,14 @@ const API_BASE = "https://api.useboardwise.com";
 const state = {
   payload: null,
   mode: "wise_choice",
+  view: "cards",
   activeBucket: "all"
 };
+
+const BOARD_VIEW_MODES = [
+  ["cards", "Cards"],
+  ["picks", "Picks"]
+];
 
 const BEST_CARD_MODES = [
   ["wise_choice", "Wise Choice"],
@@ -13,12 +19,12 @@ const BEST_CARD_MODES = [
 ];
 
 const WISE_BUCKETS = [
-  ["pass_lte_0", "0 or below - PASS", "#93370d"],
-  ["pass_0_3", "0 to 3 - PASS", "#b54708"],
-  ["pass_3_8", "3 to 8 - PASS", "#dc6803"],
-  ["pass_8_14", "8 to 14 - PASS", "#0f4c81"],
-  ["medium_high_14_20", "14 to 20 - MEDIUM-HIGH", "#669f2a"],
-  ["high_20_25", "20 to 25 - HIGH", "#156f3c"],
+  ["pass_lte_0", "0 or below - PASS", "#b42318"],
+  ["pass_0_3", "0 to 3 - PASS", "#b42318"],
+  ["pass_3_8", "3 to 8 - PASS", "#b42318"],
+  ["pass_8_14", "8 to 14 - PASS", "#b42318"],
+  ["medium_high_14_20", "14 to 20 - MEDIUM-HIGH", "#fdb022"],
+  ["high_20_25", "20 to 25 - HIGH", "#669f2a"],
   ["elite_verify_25_plus", "25+ - ELITE / VERIFY", "#067647"]
 ];
 
@@ -54,6 +60,18 @@ function isIsoDate(value) {
 
 function safeColor(value, fallback = "#0f4c81") {
   return /^#[0-9a-fA-F]{3,8}$/.test(String(value || "")) ? value : fallback;
+}
+
+function textColorFor(bgColor) {
+  return String(bgColor || "").toLowerCase() === "#fdb022" ? "#101828" : "#fff";
+}
+
+function wiseStatusText(status) {
+  const value = String(status || "PASS").trim().toUpperCase();
+  if (value === "ELITE / VERIFY") return "Elite";
+  if (value === "MEDIUM-HIGH") return "Medium-High";
+  if (value === "HIGH") return "High";
+  return "Pass";
 }
 
 function readTargetDate() {
@@ -130,12 +148,12 @@ function formatWise(option) {
 
 function wiseBucketForScore(score) {
   if (score === null) return { key: "unknown", label: "Unknown", status: "PASS", color: "#667085" };
-  if (score <= 0) return { key: "pass_lte_0", label: "0 or below - PASS", status: "PASS", color: "#93370d" };
-  if (score < 3) return { key: "pass_0_3", label: "0 to 3 - PASS", status: "PASS", color: "#b54708" };
-  if (score < 8) return { key: "pass_3_8", label: "3 to 8 - PASS", status: "PASS", color: "#dc6803" };
-  if (score < 14) return { key: "pass_8_14", label: "8 to 14 - PASS", status: "PASS", color: "#0f4c81" };
-  if (score < 20) return { key: "medium_high_14_20", label: "14 to 20 - MEDIUM-HIGH", status: "MEDIUM-HIGH", color: "#669f2a" };
-  if (score < 25) return { key: "high_20_25", label: "20 to 25 - HIGH", status: "HIGH", color: "#156f3c" };
+  if (score <= 0) return { key: "pass_lte_0", label: "0 or below - PASS", status: "PASS", color: "#b42318" };
+  if (score < 3) return { key: "pass_0_3", label: "0 to 3 - PASS", status: "PASS", color: "#b42318" };
+  if (score < 8) return { key: "pass_3_8", label: "3 to 8 - PASS", status: "PASS", color: "#b42318" };
+  if (score < 14) return { key: "pass_8_14", label: "8 to 14 - PASS", status: "PASS", color: "#b42318" };
+  if (score < 20) return { key: "medium_high_14_20", label: "14 to 20 - MEDIUM-HIGH", status: "MEDIUM-HIGH", color: "#fdb022" };
+  if (score < 25) return { key: "high_20_25", label: "20 to 25 - HIGH", status: "HIGH", color: "#669f2a" };
   return { key: "elite_verify_25_plus", label: "25+ - ELITE / VERIFY", status: "ELITE / VERIFY", color: "#067647" };
 }
 
@@ -148,7 +166,7 @@ function optionWiseBucket(option) {
     key: key || fallback.key,
     label: option.wise_choice_bucket_label || (found ? found[1] : fallback.label),
     status: option.wise_choice_status || fallback.status,
-    color: option.wise_choice_color || (found ? found[2] : fallback.color)
+    color: found ? found[2] : option.wise_choice_color || fallback.color
   };
 }
 
@@ -291,6 +309,22 @@ function renderToggleButtons() {
   });
 }
 
+function renderViewToggle() {
+  const el = document.getElementById("board-view-toggle");
+  if (!el) return;
+  el.style.display = "";
+  el.innerHTML = BOARD_VIEW_MODES.map(([key, label]) => `
+    <button class="toggle-btn ${state.view === key ? "active" : ""}" data-board-view="${esc(key)}">${esc(label)}</button>
+  `).join("");
+  el.querySelectorAll("[data-board-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.view = button.dataset.boardView || "cards";
+      state.activeBucket = "all";
+      renderBoard();
+    });
+  });
+}
+
 function renderFilters() {
   const valueFilters = [["High", "High", "#156f3c"], ["Medium-High", "Medium-High", "#669f2a"], ["Medium", "Medium", "#0f4c81"], ["Medium-Low", "Medium-Low", "#b54708"], ["Low", "Low", "#b42318"]];
   const modeFilters = state.mode === "wise_choice"
@@ -305,7 +339,7 @@ function renderFilters() {
   target.style.display = "";
   target.innerHTML = filters.map(([bucket, label, color]) => {
     const active = state.activeBucket === bucket;
-    const style = active ? ` style="background:${esc(color)};border-color:${esc(color)};color:#fff"` : "";
+    const style = active ? ` style="background:${esc(color)};border-color:${esc(color)};color:${esc(textColorFor(color))}"` : "";
     return `<button class="bucket-pill ${active ? "active" : ""}" data-bucket="${esc(bucket)}"${style}>${esc(label)}</button>`;
   }).join("");
   target.querySelectorAll("[data-bucket]").forEach((button) => {
@@ -340,7 +374,7 @@ function renderBestCard(option, variant) {
   const label = BEST_CARD_MODES.find(([key]) => key === variant)?.[1] || "Best Value";
   const wise = optionWiseBucket(option);
   const badge = variant === "wise_choice"
-    ? `${wise.status} ${formatWise(option)}`
+    ? wiseStatusText(wise.status)
     : variant === "best_growth"
       ? formatKelly(option)
       : (option.ev_text || option.ev_rating);
@@ -349,12 +383,13 @@ function renderBestCard(option, variant) {
     : variant === "best_growth"
       ? safeColor(kellyBucket(option).color, "#0f4c81")
       : safeColor(option.ev_rating_color, "#0f4c81");
-  const badgePrefix = variant === "wise_choice" ? "Wise: " : variant === "best_growth" ? "Kelly: " : "Value: ";
+  const badgePrefix = variant === "wise_choice" ? "" : variant === "best_growth" ? "Kelly: " : "Value: ";
+  const badgeTitle = variant === "wise_choice" ? `Wise Choice score ${formatWise(option)}` : variant === "best_growth" ? "Kelly percentage" : "Expected value rating";
   return `
     <div class="best-card" data-best-card-variant="${esc(variant)}">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
         <div class="label">${esc(label)}</div>
-        ${badge ? `<span class="rating-badge" style="background:${color}">${esc(badgePrefix + badge)}</span>` : ""}
+        ${badge ? `<span class="rating-badge ${variant === "wise_choice" ? "wise-rating-badge" : ""}" title="${esc(badgeTitle)}" style="background:${color};color:${esc(textColorFor(color))}">${esc(badgePrefix + badge)}</span>` : ""}
       </div>
       <div class="best-bet">${esc(option.selection_text || "No selection")}</div>
       <div class="best-meta">${esc([option.sportsbook, option.odds_text].filter(Boolean).join(" ") || "No book/odds listed")}</div>
@@ -366,6 +401,98 @@ function renderBestCard(option, variant) {
         ${metric("Kelly %", option.kelly_text || formatKelly(option))}
       </div>
     </div>
+  `;
+}
+
+function scoreOrFloor(value) {
+  const number = asNumber(value);
+  return number === null ? -999 : number;
+}
+
+function optionSortKey(option, variant = state.mode) {
+  const wiseScore = optionWiseScore(option);
+  const kelly = optionKelly(option);
+  const ev = asNumber(option?.expected_value_per_unit ?? option?.raw_ev);
+  const probability = asNumber(option?.model_probability);
+  const confidence = asNumber(option?.confidence_rank);
+  if (variant === "best_growth") {
+    return [kelly, wiseScore, ev, probability, confidence].map(scoreOrFloor);
+  }
+  if (variant === "best_value") {
+    return [ev, kelly, probability, confidence, wiseScore].map(scoreOrFloor);
+  }
+  return [wiseScore, kelly, ev, probability, confidence].map(scoreOrFloor);
+}
+
+function compareBetItems(a, b) {
+  const left = optionSortKey(a.option);
+  const right = optionSortKey(b.option);
+  for (let i = 0; i < Math.max(left.length, right.length); i += 1) {
+    const diff = (right[i] ?? -999) - (left[i] ?? -999);
+    if (diff !== 0) return diff;
+  }
+  return String(a.gameLabel).localeCompare(String(b.gameLabel));
+}
+
+function collectRecommendedBets(games) {
+  const bets = [];
+  for (const game of games) {
+    const recs = Array.isArray(game.recommendations) ? game.recommendations.filter((rec) => rec && typeof rec === "object") : [];
+    const official = recs.filter((rec) => rec.is_official);
+    const source = official.length ? official : recs;
+    if (!source.length) {
+      const option = bestOption(game, state.mode);
+      if (option) source.push(option);
+    }
+    for (const option of source) {
+      bets.push({
+        game,
+        option,
+        gameLabel: game.game_label || `${game.away_team || "Away"} at ${game.home_team || "Home"}`
+      });
+    }
+  }
+  return bets.sort(compareBetItems);
+}
+
+function optionModeBucket(option) {
+  if (state.mode === "wise_choice") {
+    const wise = optionWiseBucket(option);
+    return { key: wise.key, label: wiseStatusText(wise.status), color: safeColor(wise.color, "#0f4c81") };
+  }
+  if (state.mode === "best_growth") {
+    const bucket = kellyBucket(option);
+    const found = KELLY_BUCKETS.find(([key]) => key === bucket.key);
+    return { key: bucket.key, label: found ? found[1] : "Kelly", color: safeColor(bucket.color, "#0f4c81") };
+  }
+  return {
+    key: option.ev_rating || "Low",
+    label: option.ev_rating || "Value",
+    color: safeColor(option.ev_rating_color, "#0f4c81")
+  };
+}
+
+function betPassesFilter(item) {
+  if (state.activeBucket === "all") return true;
+  return optionModeBucket(item.option).key === state.activeBucket;
+}
+
+function renderBetPill(item) {
+  const bucket = optionModeBucket(item.option);
+  const color = safeColor(bucket.color, "#0f4c81");
+  const textColor = textColorFor(color);
+  const option = item.option;
+  const odds = [option.sportsbook, option.odds_text].filter(Boolean).join(" ");
+  return `
+    <article class="bet-pill-card" style="border-left-color:${color}">
+      <div class="bet-pill-main">
+        <div class="bet-pill-copy">
+          <div class="bet-pill-game">${esc(item.gameLabel)}</div>
+          <div class="bet-pill-choice">${esc(option.selection_text || option.label || "Recommendation")}${odds ? ` <span class="bet-pill-odds">${esc(odds)}</span>` : ""}</div>
+        </div>
+        <span class="bet-pill-bucket" style="background:${color};color:${textColor}">${esc(bucket.label)}</span>
+      </div>
+    </article>
   `;
 }
 
@@ -477,6 +604,8 @@ function renderBoard() {
   if (!gamesEl) return;
   gamesEl.hidden = false;
   if (!games.length) {
+    const viewToggle = document.getElementById("board-view-toggle");
+    if (viewToggle) viewToggle.style.display = "none";
     const toggle = document.getElementById("best-card-toggle");
     if (toggle) toggle.style.display = "none";
     if (evFilters) evFilters.style.display = "none";
@@ -484,8 +613,18 @@ function renderBoard() {
     gamesEl.innerHTML = renderEmptyBoard(state.payload);
     return;
   }
+  renderViewToggle();
   renderToggleButtons();
   renderFilters();
+  if (state.view === "picks") {
+    gamesEl.className = "bet-pill-list";
+    const filteredBets = collectRecommendedBets(games).filter(betPassesFilter);
+    gamesEl.innerHTML = filteredBets.length
+      ? filteredBets.map(renderBetPill).join("")
+      : `<article class="empty-state">No recommended bets match this filter.</article>`;
+    return;
+  }
+  gamesEl.className = "tile-list";
   const filtered = games.filter(gamePassesFilter);
   gamesEl.innerHTML = filtered.length
     ? filtered.map(renderGame).join("")
