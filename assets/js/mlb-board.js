@@ -23,7 +23,7 @@ const WISE_BUCKETS = [
   ["pass_0_3", "0 to 3 - PASS", "#b42318"],
   ["pass_3_8", "3 to 8 - PASS", "#b42318"],
   ["pass_8_14", "8 to 14 - PASS", "#b42318"],
-  ["medium_high_14_20", "14 to 20 - MEDIUM-HIGH", "#fdb022"],
+  ["medium_high_14_20", "14 to 20 - MEDIUM-HIGH", "#38bdf8"],
   ["high_20_25", "20 to 25 - HIGH", "#669f2a"],
   ["elite_verify_25_plus", "25+ - ELITE / VERIFY", "#067647"]
 ];
@@ -63,7 +63,7 @@ function safeColor(value, fallback = "#0f4c81") {
 }
 
 function textColorFor(bgColor) {
-  return String(bgColor || "").toLowerCase() === "#fdb022" ? "#101828" : "#fff";
+  return String(bgColor || "").toLowerCase() === "#38bdf8" ? "#101828" : "#fff";
 }
 
 function wiseStatusText(status) {
@@ -152,7 +152,7 @@ function wiseBucketForScore(score) {
   if (score < 3) return { key: "pass_0_3", label: "0 to 3 - PASS", status: "PASS", color: "#b42318" };
   if (score < 8) return { key: "pass_3_8", label: "3 to 8 - PASS", status: "PASS", color: "#b42318" };
   if (score < 14) return { key: "pass_8_14", label: "8 to 14 - PASS", status: "PASS", color: "#b42318" };
-  if (score < 20) return { key: "medium_high_14_20", label: "14 to 20 - MEDIUM-HIGH", status: "MEDIUM-HIGH", color: "#fdb022" };
+  if (score < 20) return { key: "medium_high_14_20", label: "14 to 20 - MEDIUM-HIGH", status: "MEDIUM-HIGH", color: "#38bdf8" };
   if (score < 25) return { key: "high_20_25", label: "20 to 25 - HIGH", status: "HIGH", color: "#669f2a" };
   return { key: "elite_verify_25_plus", label: "25+ - ELITE / VERIFY", status: "ELITE / VERIFY", color: "#067647" };
 }
