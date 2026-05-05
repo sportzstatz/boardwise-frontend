@@ -121,6 +121,7 @@ const FILTER_KEYS = [
   "bookmaker_key",
   "confidence_bucket",
   "model_probability_bucket",
+  "wise_choice_bucket",
   "model_version",
   "prediction_mode",
   "start_date",
@@ -135,6 +136,7 @@ const DEFAULT_GROUP = "confidence_bucket";
 const ALLOWED_GROUPS = new Set([
   "confidence_bucket",
   "model_probability_bucket",
+  "wise_choice_bucket",
   "model_version",
   "sport",
   "market",
@@ -247,6 +249,7 @@ function applyFiltersToForm(filters) {
     bookmaker_key: "f-book",
     confidence_bucket: "f-confidence",
     model_probability_bucket: "f-prob-bucket",
+    wise_choice_bucket: "f-wise-bucket",
     model_version: "f-model-version",
     prediction_mode: "f-mode",
     start_date: "f-start",
@@ -271,6 +274,7 @@ function readFiltersFromForm() {
     bookmaker_key: "f-book",
     confidence_bucket: "f-confidence",
     model_probability_bucket: "f-prob-bucket",
+    wise_choice_bucket: "f-wise-bucket",
     model_version: "f-model-version",
     prediction_mode: "f-mode",
     start_date: "f-start",
@@ -477,6 +481,13 @@ function renderPicks(payload) {
     const modelPct = p.model_probability === null || p.model_probability === undefined
       ? "N/A"
       : fmtPct(p.model_probability, { digits: 1 });
+    const wiseScore = p.wise_choice_score === null || p.wise_choice_score === undefined
+      ? "N/A"
+      : Number(p.wise_choice_score).toFixed(1);
+    const wiseText = `${p.wise_choice_status || "PASS"} ${wiseScore}`.trim();
+    const kellyPct = p.kelly_fraction === null || p.kelly_fraction === undefined
+      ? "N/A"
+      : fmtPct(p.kelly_fraction, { digits: 1 });
     const unitsWon = p.is_settled ? fmtUnits(p.units_won) : "—";
     const clv = (p.clv_prob_delta === null || p.clv_prob_delta === undefined)
       ? "N/A"
@@ -489,6 +500,8 @@ function renderPicks(payload) {
       <td>${esc(p.bookmaker_title || p.bookmaker_key || "")}</td>
       <td class="num">${esc(fmtAmerican(p.price_american))}</td>
       <td class="num">${esc(modelPct)}</td>
+      <td>${esc(wiseText)}</td>
+      <td class="num">${esc(kellyPct)}</td>
       <td>${esc(p.ev_rating_label || "—")}</td>
       <td>${esc(p.confidence_bucket_label || p.confidence_bucket_key || "—")}</td>
       <td>${statusPill(p)}</td>
@@ -867,6 +880,7 @@ async function loadFilters(filters, { preloaded = null } = {}) {
     fillSelect("f-book", data.bookmakers || [], { keyField: "key", labelField: "title", currentValue: filters.bookmaker_key || "" });
     fillSelect("f-confidence", data.confidence_buckets || [], { keyField: "key", labelField: "label", currentValue: filters.confidence_bucket || "" });
     fillSelect("f-prob-bucket", data.model_probability_buckets || [], { currentValue: filters.model_probability_bucket || "" });
+    fillSelect("f-wise-bucket", data.wise_choice_buckets || [], { keyField: "key", labelField: "label", currentValue: filters.wise_choice_bucket || "" });
     fillSelect("f-model-version", data.model_versions || [], { currentValue: filters.model_version || "" });
     fillSelect("f-mode", data.prediction_modes || [], { currentValue: filters.prediction_mode || "" });
     populateBookComparisonBooks(data.bookmakers || []);

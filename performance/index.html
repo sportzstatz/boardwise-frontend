@@ -179,6 +179,9 @@
         <label>Model probability bucket
           <select id="f-prob-bucket" name="model_probability_bucket"><option value="">All</option></select>
         </label>
+        <label>Wise Choice bucket
+          <select id="f-wise-bucket" name="wise_choice_bucket"><option value="">All</option></select>
+        </label>
         <label>Model version
           <select id="f-model-version" name="model_version"><option value="">All</option></select>
         </label>
@@ -219,6 +222,7 @@
         <select id="group-by">
           <option value="confidence_bucket">Confidence bucket</option>
           <option value="model_probability_bucket">Model probability bucket</option>
+          <option value="wise_choice_bucket">Wise Choice bucket</option>
           <option value="model_version">Model version</option>
           <option value="sport">Sport</option>
           <option value="market">Market</option>
@@ -297,6 +301,8 @@
               <th>Book</th>
               <th class="num">Price</th>
               <th class="num">Model %</th>
+              <th>Wise Choice</th>
+              <th class="num">Kelly %</th>
               <th title="Expected value rating at the published price">EV Rating</th>
               <th title="Model/policy confidence bucket used for performance grouping">Model Confidence</th>
               <th>Status</th>

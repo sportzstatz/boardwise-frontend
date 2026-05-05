@@ -2,9 +2,33 @@ const API_BASE = "https://api.useboardwise.com";
 
 const state = {
   payload: null,
-  mode: "highest_ev",
+  mode: "wise_choice",
   activeBucket: "all"
 };
+
+const BEST_CARD_MODES = [
+  ["wise_choice", "Wise Choice"],
+  ["best_growth", "Best Growth"],
+  ["best_value", "Best Value"]
+];
+
+const WISE_BUCKETS = [
+  ["pass_lte_0", "0 or below - PASS", "#93370d"],
+  ["pass_0_3", "0 to 3 - PASS", "#b54708"],
+  ["pass_3_8", "3 to 8 - PASS", "#dc6803"],
+  ["pass_8_14", "8 to 14 - PASS", "#0f4c81"],
+  ["medium_high_14_20", "14 to 20 - MEDIUM-HIGH", "#669f2a"],
+  ["high_20_25", "20 to 25 - HIGH", "#156f3c"],
+  ["elite_verify_25_plus", "25+ - ELITE / VERIFY", "#067647"]
+];
+
+const KELLY_BUCKETS = [
+  ["kelly_lte_0", "0% or less", "#93370d"],
+  ["kelly_0_5", "0-5%", "#b54708"],
+  ["kelly_5_10", "5-10%", "#dc6803"],
+  ["kelly_10_20", "10-20%", "#0f4c81"],
+  ["kelly_20_plus", "20%+", "#156f3c"]
+];
 
 const metaEl = document.getElementById("meta");
 const statusNoteEl = document.getElementById("status-note");
@@ -54,6 +78,89 @@ function endpointFor(date) {
 function formatCount(value) {
   const num = Number(value);
   return Number.isFinite(num) ? num.toLocaleString() : "0";
+}
+
+function asNumber(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+function parseAmericanOdds(value) {
+  const text = String(value ?? "").trim();
+  if (!text || text === "N/A") return null;
+  const num = Number(text.replace("+", ""));
+  return Number.isFinite(num) ? num : null;
+}
+
+function americanToDecimal(value) {
+  const price = asNumber(value);
+  if (price === null || price === 0) return null;
+  return price > 0 ? 1 + price / 100 : 1 + 100 / Math.abs(price);
+}
+
+function optionKelly(option) {
+  if (!option) return null;
+  const explicit = asNumber(option.kelly_fraction);
+  if (explicit !== null) return explicit;
+  const ev = asNumber(option.expected_value_per_unit ?? option.raw_ev);
+  const priceDecimal = asNumber(option.price_decimal) || americanToDecimal(option.price_american ?? parseAmericanOdds(option.odds_text));
+  if (ev === null || priceDecimal === null || priceDecimal <= 1) return null;
+  return ev / (priceDecimal - 1);
+}
+
+function optionWiseScore(option) {
+  if (!option) return null;
+  const explicit = asNumber(option.wise_choice_score);
+  if (explicit !== null) return explicit;
+  const kelly = optionKelly(option);
+  const probability = asNumber(option.model_probability);
+  if (kelly === null || probability === null || probability < 0 || probability > 1) return null;
+  return kelly * probability * 100;
+}
+
+function formatKelly(option) {
+  const kelly = optionKelly(option);
+  return kelly === null ? "N/A" : `${(kelly * 100).toFixed(1)}%`;
+}
+
+function formatWise(option) {
+  const score = optionWiseScore(option);
+  return score === null ? "N/A" : score.toFixed(1);
+}
+
+function wiseBucketForScore(score) {
+  if (score === null) return { key: "unknown", label: "Unknown", status: "PASS", color: "#667085" };
+  if (score <= 0) return { key: "pass_lte_0", label: "0 or below - PASS", status: "PASS", color: "#93370d" };
+  if (score < 3) return { key: "pass_0_3", label: "0 to 3 - PASS", status: "PASS", color: "#b54708" };
+  if (score < 8) return { key: "pass_3_8", label: "3 to 8 - PASS", status: "PASS", color: "#dc6803" };
+  if (score < 14) return { key: "pass_8_14", label: "8 to 14 - PASS", status: "PASS", color: "#0f4c81" };
+  if (score < 20) return { key: "medium_high_14_20", label: "14 to 20 - MEDIUM-HIGH", status: "MEDIUM-HIGH", color: "#669f2a" };
+  if (score < 25) return { key: "high_20_25", label: "20 to 25 - HIGH", status: "HIGH", color: "#156f3c" };
+  return { key: "elite_verify_25_plus", label: "25+ - ELITE / VERIFY", status: "ELITE / VERIFY", color: "#067647" };
+}
+
+function optionWiseBucket(option) {
+  if (!option) return wiseBucketForScore(null);
+  const key = option.wise_choice_bucket_key;
+  const found = WISE_BUCKETS.find(([bucket]) => bucket === key);
+  const fallback = wiseBucketForScore(optionWiseScore(option));
+  return {
+    key: key || fallback.key,
+    label: option.wise_choice_bucket_label || (found ? found[1] : fallback.label),
+    status: option.wise_choice_status || fallback.status,
+    color: option.wise_choice_color || (found ? found[2] : fallback.color)
+  };
+}
+
+function kellyBucket(option) {
+  const kelly = optionKelly(option);
+  if (kelly === null) return { key: "unknown", color: "#667085" };
+  const pct = kelly * 100;
+  if (pct <= 0) return { key: "kelly_lte_0", color: "#93370d" };
+  if (pct < 5) return { key: "kelly_0_5", color: "#b54708" };
+  if (pct < 10) return { key: "kelly_5_10", color: "#dc6803" };
+  if (pct < 20) return { key: "kelly_10_20", color: "#0f4c81" };
+  return { key: "kelly_20_plus", color: "#156f3c" };
 }
 
 function setHidden(el, hidden) {
@@ -114,15 +221,18 @@ function setStatusNote(payload) {
 
 function bestOption(game, variant = state.mode) {
   const options = game.best_card_options || {};
-  return options[variant] || options.highest_ev || (Array.isArray(game.recommendations) ? game.recommendations[0] : null);
+  if (variant === "best_value") return options.best_value || options.highest_ev || null;
+  if (variant === "best_growth") return options.best_growth || options.wise_choice || options.best_value || options.highest_ev || null;
+  if (variant === "wise_choice") return options.wise_choice || options.best_value || options.highest_ev || null;
+  return options[variant] || options.best_value || options.highest_ev || (Array.isArray(game.recommendations) ? game.recommendations[0] : null);
 }
 
 function evBucket(game) {
-  return bestOption(game, "highest_ev")?.ev_rating || game.ev_bucket_label || "Low";
+  return bestOption(game, "best_value")?.ev_rating || game.ev_bucket_label || "Low";
 }
 
 function evColor(game) {
-  return safeColor(bestOption(game, "highest_ev")?.ev_rating_color || game.ev_bucket_color, "#0f4c81");
+  return safeColor(bestOption(game, "best_value")?.ev_rating_color || game.ev_bucket_color, "#0f4c81");
 }
 
 function probBucket(game) {
@@ -131,6 +241,20 @@ function probBucket(game) {
 
 function probColor(game) {
   return safeColor(bestOption(game, "highest_model_prob")?.prob_rating_color || game.prob_bucket_color, "#0f4c81");
+}
+
+function modeBucket(game) {
+  const option = bestOption(game, state.mode);
+  if (state.mode === "wise_choice") return optionWiseBucket(option).key;
+  if (state.mode === "best_growth") return kellyBucket(option).key;
+  return evBucket(game);
+}
+
+function modeColor(game) {
+  const option = bestOption(game, state.mode);
+  if (state.mode === "wise_choice") return safeColor(optionWiseBucket(option).color, "#0f4c81");
+  if (state.mode === "best_growth") return safeColor(kellyBucket(option).color, "#0f4c81");
+  return evColor(game);
 }
 
 function renderQuickGuide(payload) {
@@ -155,10 +279,9 @@ function renderToggleButtons() {
   const el = document.getElementById("best-card-toggle");
   if (!el) return;
   el.style.display = "";
-  el.innerHTML = `
-    <button class="toggle-btn ${state.mode === "highest_ev" ? "active" : ""}" data-best-card-sort="highest_ev">Highest EV</button>
-    <button class="toggle-btn ${state.mode === "highest_model_prob" ? "active" : ""}" data-best-card-sort="highest_model_prob">Highest Model Prob</button>
-  `;
+  el.innerHTML = BEST_CARD_MODES.map(([key, label]) => `
+    <button class="toggle-btn ${state.mode === key ? "active" : ""}" data-best-card-sort="${esc(key)}">${esc(label)}</button>
+  `).join("");
   el.querySelectorAll("[data-best-card-sort]").forEach((button) => {
     button.addEventListener("click", () => {
       state.mode = button.dataset.bestCardSort;
@@ -169,12 +292,15 @@ function renderToggleButtons() {
 }
 
 function renderFilters() {
-  const filters = state.mode === "highest_ev"
-    ? [["all", "All Games", "var(--accent)"], ["High", "High", "#156f3c"], ["Medium-High", "Medium-High", "#669f2a"], ["Medium", "Medium", "#0f4c81"], ["Medium-Low", "Medium-Low", "#b54708"], ["Low", "Low", "#b42318"]]
-    : [["all", "All Games", "var(--accent)"], ["70%+", "70%+", "#156f3c"], ["65-69%", "65-69%", "#669f2a"], ["60-64%", "60-64%", "#dc6803"], ["55-59%", "55-59%", "#e04f16"], ["50-54%", "50-54%", "#b54708"], ["<50%", "<50%", "#93370d"]];
-  const target = state.mode === "highest_ev" ? evFilters : probFilters;
-  const other = state.mode === "highest_ev" ? probFilters : evFilters;
-  if (other) other.style.display = "none";
+  const valueFilters = [["High", "High", "#156f3c"], ["Medium-High", "Medium-High", "#669f2a"], ["Medium", "Medium", "#0f4c81"], ["Medium-Low", "Medium-Low", "#b54708"], ["Low", "Low", "#b42318"]];
+  const modeFilters = state.mode === "wise_choice"
+    ? WISE_BUCKETS
+    : state.mode === "best_growth"
+      ? KELLY_BUCKETS
+      : valueFilters;
+  const filters = [["all", "All Games", "var(--accent)"], ...modeFilters];
+  const target = evFilters;
+  if (probFilters) probFilters.style.display = "none";
   if (!target) return;
   target.style.display = "";
   target.innerHTML = filters.map(([bucket, label, color]) => {
@@ -211,14 +337,23 @@ function renderTeams(game) {
 
 function renderBestCard(option, variant) {
   if (!option) return `<div class="forecast-only-note">No recommendation is available for this sort.</div>`;
-  const label = variant === "highest_ev" ? "Highest EV" : "Highest Model Prob";
-  const badge = variant === "highest_ev" ? option.ev_rating : option.prob_rating;
-  const color = safeColor(variant === "highest_ev" ? option.ev_rating_color : option.prob_rating_color, "#0f4c81");
-  const badgePrefix = variant === "highest_ev" ? "EV: " : "Prob: ";
+  const label = BEST_CARD_MODES.find(([key]) => key === variant)?.[1] || "Best Value";
+  const wise = optionWiseBucket(option);
+  const badge = variant === "wise_choice"
+    ? `${wise.status} ${formatWise(option)}`
+    : variant === "best_growth"
+      ? formatKelly(option)
+      : (option.ev_text || option.ev_rating);
+  const color = variant === "wise_choice"
+    ? safeColor(wise.color, "#0f4c81")
+    : variant === "best_growth"
+      ? safeColor(kellyBucket(option).color, "#0f4c81")
+      : safeColor(option.ev_rating_color, "#0f4c81");
+  const badgePrefix = variant === "wise_choice" ? "Wise: " : variant === "best_growth" ? "Kelly: " : "Value: ";
   return `
     <div class="best-card" data-best-card-variant="${esc(variant)}">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-        <div class="label">Best Available Bet <span style="font-weight:400;color:var(--muted)">(${esc(label)})</span></div>
+        <div class="label">${esc(label)}</div>
         ${badge ? `<span class="rating-badge" style="background:${color}">${esc(badgePrefix + badge)}</span>` : ""}
       </div>
       <div class="best-bet">${esc(option.selection_text || "No selection")}</div>
@@ -228,7 +363,7 @@ function renderBestCard(option, variant) {
         ${metric("Model Prob", option.model_prob_text || option.model_probability_text)}
         ${metric("Edge", option.edge_text)}
         ${metric("EV / Unit", option.ev_text)}
-        ${metric("Stake", option.stake_text)}
+        ${metric("Kelly %", option.kelly_text || formatKelly(option))}
       </div>
     </div>
   `;
@@ -254,7 +389,7 @@ function renderOptionCard(option) {
         ${metric("Model Prob", option.model_probability_text || option.model_prob_text)}
         ${metric("Edge", option.edge_text)}
         ${metric("EV / Unit", option.ev_text)}
-        ${metric("Stake", option.stake_text)}
+        ${metric("Kelly %", option.kelly_text || formatKelly(option))}
       </div>
     </div>
   `;
@@ -280,7 +415,7 @@ function renderMarketDropdowns(game) {
   const dropdowns = Array.isArray(game.market_dropdowns) ? game.market_dropdowns : [];
   if (!dropdowns.length) return `<div class="forecast-only-note">No market dropdowns are available for this game yet.</div>${renderModelDetails(game)}`;
   return `<div class="dropdown-stack">${dropdowns.map((market) => {
-    const summaryColor = safeColor(state.mode === "highest_ev" ? market.ev_summary_color : market.prob_summary_color, "#0f4c81");
+    const summaryColor = safeColor(state.mode === "best_value" ? market.ev_summary_color : market.ev_summary_color || market.prob_summary_color, "#0f4c81");
     const options = Array.isArray(market.options) ? market.options : [];
     return `
       <details class="market-dropdown">
@@ -297,7 +432,7 @@ function renderMarketDropdowns(game) {
 
 function gamePassesFilter(game) {
   if (state.activeBucket === "all") return true;
-  return state.mode === "highest_ev" ? evBucket(game) === state.activeBucket : probBucket(game) === state.activeBucket;
+  return modeBucket(game) === state.activeBucket;
 }
 
 function renderEmptyBoard(payload) {
@@ -313,10 +448,12 @@ function renderEmptyBoard(payload) {
 
 function renderGame(game) {
   const option = bestOption(game, state.mode);
-  const border = state.mode === "highest_ev" ? evColor(game) : probColor(game);
-  const tileClass = option?.ev_rating === "High" || option?.prob_rating === "70%+" ? "tile strong" : "tile";
+  const border = modeColor(game);
+  const wise = optionWiseBucket(option);
+  const strong = wise.status === "HIGH" || wise.status === "ELITE / VERIFY" || option?.ev_rating === "High";
+  const tileClass = strong ? "tile strong" : "tile";
   return `
-    <article class="${tileClass}" style="border-left-color:${border}" data-ev-bucket="${esc(evBucket(game))}" data-prob-bucket="${esc(probBucket(game))}">
+    <article class="${tileClass}" style="border-left-color:${border}" data-ev-bucket="${esc(evBucket(game))}" data-prob-bucket="${esc(probBucket(game))}" data-wise-bucket="${esc(wise.key)}">
       <div class="tile-top">
         <div>
           <div class="game-label">${esc(game.game_label || `${game.away_team || "Away"} at ${game.home_team || "Home"}`)}</div>
