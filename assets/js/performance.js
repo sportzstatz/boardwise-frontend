@@ -25,12 +25,45 @@ function uniqueStrings(values) {
   return out;
 }
 
-function wiseStatusText(status) {
-  const value = String(status || "PASS").trim().toUpperCase();
-  if (value === "ELITE / VERIFY") return "Elite";
-  if (value === "MEDIUM-HIGH") return "Medium-High";
-  if (value === "HIGH") return "High";
-  return "Pass";
+const WISE_TIER_META = {
+  pass_lte_0: { tier: "No Edge", range: "<= 0" },
+  pass_0_3: { tier: "Tracker", range: "0-3" },
+  pass_3_8: { tier: "Lean", range: "3-8" },
+  pass_8_14: { tier: "Playable", range: "8-14" },
+  medium_high_14_20: { tier: "Strong", range: "14-20" },
+  high_20_25: { tier: "Prime", range: "20-25" },
+  elite_verify_25_plus: { tier: "Verify", range: "25+" },
+};
+
+function wiseStatusText(value) {
+  const key = String(value || "").trim();
+  const normalized = key.toUpperCase();
+  if (WISE_TIER_META[key]) return WISE_TIER_META[key].tier;
+  if (normalized === "NO EDGE") return "No Edge";
+  if (normalized === "TRACKER") return "Tracker";
+  if (normalized === "LEAN") return "Lean";
+  if (normalized === "PLAYABLE") return "Playable";
+  if (normalized === "STRONG" || normalized === "MEDIUM-HIGH") return "Strong";
+  if (normalized === "PRIME" || normalized === "HIGH") return "Prime";
+  if (normalized === "VERIFY" || normalized === "ELITE / VERIFY") return "Verify";
+  return "No Edge";
+}
+
+function wiseTierMetaFromGroup(group) {
+  const key = String((group && group.group_key) || "").trim();
+  if (WISE_TIER_META[key]) return WISE_TIER_META[key];
+
+  const label = String((group && group.group_value) || "").trim();
+  const normalized = label.toUpperCase();
+  if (normalized.includes("25+")) return WISE_TIER_META.elite_verify_25_plus;
+  if (normalized.includes("20-25") || normalized.includes("20 TO 25")) return WISE_TIER_META.high_20_25;
+  if (normalized.includes("14-20") || normalized.includes("14 TO 20")) return WISE_TIER_META.medium_high_14_20;
+  if (normalized.includes("8-14") || normalized.includes("8 TO 14")) return WISE_TIER_META.pass_8_14;
+  if (normalized.includes("3-8") || normalized.includes("3 TO 8")) return WISE_TIER_META.pass_3_8;
+  if (normalized.includes("0-3") || normalized.includes("0 TO 3")) return WISE_TIER_META.pass_0_3;
+  if (normalized.includes("<= 0") || normalized.includes("0 OR BELOW")) return WISE_TIER_META.pass_lte_0;
+
+  return { tier: label || "(unknown)", range: "—" };
 }
 
 function updateVisibilityConfig(payload) {
@@ -140,7 +173,7 @@ const FILTER_KEYS = [
 
 const BOOL_KEYS = ["official_only", "settled_only"];
 const GROUP_KEY = "group_by";
-const DEFAULT_GROUP = "confidence_bucket";
+const DEFAULT_GROUP = "wise_choice_bucket";
 const ALLOWED_GROUPS = new Set([
   "confidence_bucket",
   "model_probability_bucket",
@@ -422,6 +455,7 @@ function renderBreakdown(payload) {
   const tbody = els.breakdownTable;
   tbody.innerHTML = "";
   const groups = (payload && Array.isArray(payload.groups)) ? payload.groups : [];
+  const isWiseTier = payload && payload.group_by === "wise_choice_bucket";
   if (!groups.length) {
     setHidden(els.breakdownEmpty, false);
     els.breakdownEmpty.textContent = "No grouped rows for these filters yet.";
@@ -433,23 +467,19 @@ function renderBreakdown(payload) {
     const label = g.group_value === null || g.group_value === undefined || g.group_value === ""
       ? "(unknown)"
       : g.group_value;
+    const tierMeta = isWiseTier ? wiseTierMetaFromGroup(g) : { tier: label, range: "—" };
     const roi = g.roi === null || g.roi === undefined ? "N/A" : fmtPct(g.roi);
     const avgClv = (g.clv_coverage && Number(g.clv_coverage) > 0 && g.avg_clv_prob_delta !== null && g.avg_clv_prob_delta !== undefined)
       ? fmtDelta(g.avg_clv_prob_delta, { digits: 2, asPct: true })
       : "N/A";
-    const clvCov = g.clv_coverage === null || g.clv_coverage === undefined
-      ? "N/A"
-      : fmtPct(g.clv_coverage, { digits: 0 });
     return `<tr>
-      <td>${esc(label)}</td>
+      <td>${esc(tierMeta.tier)}</td>
+      <td>${esc(tierMeta.range)}</td>
       <td class="num">${esc(fmtNumber(g.pick_count))}</td>
-      <td class="num">${esc(fmtNumber(g.settled_count))}</td>
       <td>${esc(g.record || "0-0-0")}</td>
-      <td class="num">${esc(fmtNumber(g.units_risked))}</td>
       <td class="num">${esc(fmtUnits(g.units_won))}</td>
       <td class="num">${esc(roi)}</td>
       <td class="num">${esc(avgClv)}</td>
-      <td class="num">${esc(clvCov)}</td>
     </tr>`;
   }).join("");
   tbody.innerHTML = html;
@@ -489,7 +519,7 @@ function renderPicks(payload) {
     const modelPct = p.model_probability === null || p.model_probability === undefined
       ? "N/A"
       : fmtPct(p.model_probability, { digits: 1 });
-    const wiseText = wiseStatusText(p.wise_choice_status);
+    const wiseText = wiseStatusText(p.wise_choice_bucket_key || p.wise_choice_status);
     const kellyPct = p.kelly_fraction === null || p.kelly_fraction === undefined
       ? "N/A"
       : fmtPct(p.kelly_fraction, { digits: 1 });

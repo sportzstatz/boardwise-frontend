@@ -148,7 +148,7 @@
         <a class="nav-link" href="/account/" data-auth-authenticated data-auth-label>Account</a>
       </div>
       <h1>Performance &amp; ROI</h1>
-      <div class="subtitle">Settled record, units won, ROI, and closing-line value (CLV) for published BoardWise picks. All numbers come from <code>serving.performance_pick_facts</code> via the public API. Pending picks count toward volume but never inflate ROI.</div>
+      <div class="subtitle">Record, units, ROI, and closing-line value (CLV) for published BoardWise picks. Pending picks count toward volume but never inflate ROI.</div>
     </section>
 
     <section class="section chart-section" id="chart-section">
@@ -179,7 +179,7 @@
         <label>Model probability bucket
           <select id="f-prob-bucket" name="model_probability_bucket"><option value="">All</option></select>
         </label>
-        <label>Wise Choice bucket
+        <label>Wise Tier
           <select id="f-wise-bucket" name="wise_choice_bucket"><option value="">All</option></select>
         </label>
         <label>Model version
@@ -220,9 +220,9 @@
       <div class="section-controls">
         <label for="group-by">Group by</label>
         <select id="group-by">
+          <option value="wise_choice_bucket">Wise Tier</option>
           <option value="confidence_bucket">Confidence bucket</option>
           <option value="model_probability_bucket">Model probability bucket</option>
-          <option value="wise_choice_bucket">Wise Choice bucket</option>
           <option value="model_version">Model version</option>
           <option value="sport">Sport</option>
           <option value="market">Market</option>
@@ -236,15 +236,13 @@
         <table id="breakdown-table">
           <thead>
             <tr>
-              <th>Group</th>
+              <th>Tier</th>
+              <th>Range</th>
               <th class="num">Picks</th>
-              <th class="num">Settled</th>
               <th>Record</th>
-              <th class="num">Units risked</th>
-              <th class="num">Units won</th>
+              <th class="num">Units</th>
               <th class="num">ROI</th>
               <th class="num">Avg CLV</th>
-              <th class="num">CLV coverage</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -301,7 +299,7 @@
               <th>Book</th>
               <th class="num">Price</th>
               <th class="num">Model %</th>
-              <th>Wise Choice</th>
+              <th>Wise Tier</th>
               <th class="num">Kelly %</th>
               <th title="Expected value rating at the published price">EV Rating</th>
               <th title="Model/policy confidence bucket used for performance grouping">Model Confidence</th>
@@ -316,7 +314,7 @@
       </div>
     </section>
 
-    <section class="footer">BoardWise static frontend. Performance data served by <code>api.useboardwise.com</code>.</section>
+    <section class="footer">BoardWise is for informational and entertainment purposes only. No pick is guaranteed. Bet responsibly and use unit sizing.</section>
   </div>
   <script src="/assets/js/auth-state.js"></script>
   <script src="/assets/js/gates.js"></script>

@@ -13,19 +13,20 @@ const BOARD_VIEW_MODES = [
 ];
 
 const BEST_CARD_MODES = [
-  ["wise_choice", "Wise Choice"],
-  ["best_growth", "Best Growth"],
-  ["best_value", "Best Value"]
+  ["wise_choice", "Wise Choices™"],
+  ["best_value", "Best Value"],
+  ["best_growth", "Kelly Edge"],
+  ["full_board", "Full Board"]
 ];
 
 const WISE_BUCKETS = [
-  ["pass_lte_0", "0 or below - PASS", "#b42318"],
-  ["pass_0_3", "0 to 3 - PASS", "#b42318"],
-  ["pass_3_8", "3 to 8 - PASS", "#b42318"],
-  ["pass_8_14", "8 to 14 - PASS", "#b42318"],
-  ["medium_high_14_20", "14 to 20 - MEDIUM-HIGH", "#86efac"],
-  ["high_20_25", "20 to 25 - HIGH", "#669f2a"],
-  ["elite_verify_25_plus", "25+ - ELITE / VERIFY", "#067647"]
+  ["pass_lte_0", "<= 0 - No Edge", "#b42318"],
+  ["pass_0_3", "0-3 - Tracker", "#b42318"],
+  ["pass_3_8", "3-8 - Lean", "#b42318"],
+  ["pass_8_14", "8-14 - Playable", "#b42318"],
+  ["medium_high_14_20", "14-20 - Strong", "#86efac"],
+  ["high_20_25", "20-25 - Prime", "#669f2a"],
+  ["elite_verify_25_plus", "25+ - Verify", "#067647"]
 ];
 
 const KELLY_BUCKETS = [
@@ -66,12 +67,17 @@ function textColorFor(bgColor) {
   return String(bgColor || "").toLowerCase() === "#86efac" ? "#101828" : "#fff";
 }
 
-function wiseStatusText(status) {
-  const value = String(status || "PASS").trim().toUpperCase();
-  if (value === "ELITE / VERIFY") return "Elite";
-  if (value === "MEDIUM-HIGH") return "Medium-High";
-  if (value === "HIGH") return "High";
-  return "Pass";
+function wiseStatusText(value) {
+  const key = String(value || "").trim();
+  const normalized = key.toUpperCase();
+  if (key === "pass_lte_0" || normalized === "NO EDGE") return "No Edge";
+  if (key === "pass_0_3" || normalized === "TRACKER") return "Tracker";
+  if (key === "pass_3_8" || normalized === "LEAN") return "Lean";
+  if (key === "pass_8_14" || normalized === "PLAYABLE") return "Playable";
+  if (key === "medium_high_14_20" || normalized === "STRONG" || normalized === "MEDIUM-HIGH") return "Strong";
+  if (key === "high_20_25" || normalized === "PRIME" || normalized === "HIGH") return "Prime";
+  if (key === "elite_verify_25_plus" || normalized === "VERIFY" || normalized === "ELITE / VERIFY") return "Verify";
+  return "No Edge";
 }
 
 function readTargetDate() {
@@ -147,14 +153,14 @@ function formatWise(option) {
 }
 
 function wiseBucketForScore(score) {
-  if (score === null) return { key: "unknown", label: "Unknown", status: "PASS", color: "#667085" };
-  if (score <= 0) return { key: "pass_lte_0", label: "0 or below - PASS", status: "PASS", color: "#b42318" };
-  if (score < 3) return { key: "pass_0_3", label: "0 to 3 - PASS", status: "PASS", color: "#b42318" };
-  if (score < 8) return { key: "pass_3_8", label: "3 to 8 - PASS", status: "PASS", color: "#b42318" };
-  if (score < 14) return { key: "pass_8_14", label: "8 to 14 - PASS", status: "PASS", color: "#b42318" };
-  if (score < 20) return { key: "medium_high_14_20", label: "14 to 20 - MEDIUM-HIGH", status: "MEDIUM-HIGH", color: "#86efac" };
-  if (score < 25) return { key: "high_20_25", label: "20 to 25 - HIGH", status: "HIGH", color: "#669f2a" };
-  return { key: "elite_verify_25_plus", label: "25+ - ELITE / VERIFY", status: "ELITE / VERIFY", color: "#067647" };
+  if (score === null) return { key: "unknown", label: "Unknown", status: "No Edge", color: "#667085" };
+  if (score <= 0) return { key: "pass_lte_0", label: "<= 0 - No Edge", status: "No Edge", color: "#b42318" };
+  if (score < 3) return { key: "pass_0_3", label: "0-3 - Tracker", status: "Tracker", color: "#b42318" };
+  if (score < 8) return { key: "pass_3_8", label: "3-8 - Lean", status: "Lean", color: "#b42318" };
+  if (score < 14) return { key: "pass_8_14", label: "8-14 - Playable", status: "Playable", color: "#b42318" };
+  if (score < 20) return { key: "medium_high_14_20", label: "14-20 - Strong", status: "Strong", color: "#86efac" };
+  if (score < 25) return { key: "high_20_25", label: "20-25 - Prime", status: "Prime", color: "#669f2a" };
+  return { key: "elite_verify_25_plus", label: "25+ - Verify", status: "Verify", color: "#067647" };
 }
 
 function optionWiseBucket(option) {
@@ -298,7 +304,7 @@ function renderToggleButtons() {
   if (!el) return;
   el.style.display = "";
   el.innerHTML = BEST_CARD_MODES.map(([key, label]) => `
-    <button class="toggle-btn ${state.mode === key ? "active" : ""}" data-best-card-sort="${esc(key)}">${esc(label)}</button>
+    <button class="toggle-btn ${state.mode === key ? "active" : ""}" data-best-card-sort="${esc(key)}" title="${key === "wise_choice" ? "Official picks that pass BoardWise risk filters, ranked by safest-edge score. Safest Edge = Kelly Score × Model Probability" : ""}">${esc(label)}</button>
   `).join("");
   el.querySelectorAll("[data-best-card-sort]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -326,6 +332,11 @@ function renderViewToggle() {
 }
 
 function renderFilters() {
+  if (state.mode === "full_board") {
+    if (probFilters) probFilters.style.display = "none";
+    if (evFilters) evFilters.style.display = "none";
+    return;
+  }
   const valueFilters = [["High", "High", "#156f3c"], ["Medium-High", "Medium-High", "#669f2a"], ["Medium", "Medium", "#0f4c81"], ["Medium-Low", "Medium-Low", "#b54708"], ["Low", "Low", "#b42318"]];
   const modeFilters = state.mode === "wise_choice"
     ? WISE_BUCKETS
@@ -374,7 +385,7 @@ function renderBestCard(option, variant) {
   const label = BEST_CARD_MODES.find(([key]) => key === variant)?.[1] || "Best Value";
   const wise = optionWiseBucket(option);
   const badge = variant === "wise_choice"
-    ? wiseStatusText(wise.status)
+    ? officialTierBadge(option, wise)
     : variant === "best_growth"
       ? formatKelly(option)
       : (option.ev_text || option.ev_rating);
@@ -384,7 +395,7 @@ function renderBestCard(option, variant) {
       ? safeColor(kellyBucket(option).color, "#0f4c81")
       : safeColor(option.ev_rating_color, "#0f4c81");
   const badgePrefix = variant === "wise_choice" ? "" : variant === "best_growth" ? "Kelly: " : "Value: ";
-  const badgeTitle = variant === "wise_choice" ? `Wise Choice score ${formatWise(option)}` : variant === "best_growth" ? "Kelly percentage" : "Expected value rating";
+  const badgeTitle = variant === "wise_choice" ? `Safest Edge = Kelly Score × Model Probability (${formatWise(option)})` : variant === "best_growth" ? "Kelly percentage" : "Expected value rating";
   return `
     <div class="best-card" data-best-card-variant="${esc(variant)}">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
@@ -402,6 +413,14 @@ function renderBestCard(option, variant) {
       </div>
     </div>
   `;
+}
+
+function officialTierBadge(option, wise = optionWiseBucket(option)) {
+  const tier = wiseStatusText(wise.key || wise.status);
+  if (tier === "Verify") return "Verify Line";
+  if (option?.is_official && ["Strong", "Prime", "Playable"].includes(tier)) return `Official · ${tier}`;
+  if (tier === "Lean") return option?.is_official ? "Official · Lean" : "Lean · Not Official";
+  return tier;
 }
 
 function scoreOrFloor(value) {
@@ -458,7 +477,7 @@ function collectRecommendedBets(games) {
 function optionModeBucket(option) {
   if (state.mode === "wise_choice") {
     const wise = optionWiseBucket(option);
-    return { key: wise.key, label: wiseStatusText(wise.status), color: safeColor(wise.color, "#0f4c81") };
+    return { key: wise.key, label: wiseStatusText(wise.key || wise.status), color: safeColor(wise.color, "#0f4c81") };
   }
   if (state.mode === "best_growth") {
     const bucket = kellyBucket(option);
@@ -490,7 +509,7 @@ function renderBetPill(item) {
           <div class="bet-pill-game">${esc(item.gameLabel)}</div>
           <div class="bet-pill-choice">${esc(option.selection_text || option.label || "Recommendation")}${odds ? ` <span class="bet-pill-odds">${esc(odds)}</span>` : ""}</div>
         </div>
-        <span class="bet-pill-bucket" style="background:${color};color:${textColor}">${esc(bucket.label)}</span>
+        <span class="bet-pill-bucket" title="Safest Edge = Kelly Score × Model Probability" style="background:${color};color:${textColor}">${esc(bucket.label)}</span>
       </div>
     </article>
   `;
@@ -573,11 +592,12 @@ function renderEmptyBoard(payload) {
   `;
 }
 
-function renderGame(game) {
-  const option = bestOption(game, state.mode);
-  const border = modeColor(game);
+function renderGame(game, variant = state.mode) {
+  const option = bestOption(game, variant);
   const wise = optionWiseBucket(option);
-  const strong = wise.status === "HIGH" || wise.status === "ELITE / VERIFY" || option?.ev_rating === "High";
+  const border = variant === "wise_choice" ? safeColor(wise.color, "#0f4c81") : modeColor(game);
+  const tier = wiseStatusText(wise.key || wise.status);
+  const strong = tier === "Prime" || tier === "Verify" || tier === "Strong" || option?.ev_rating === "High";
   const tileClass = strong ? "tile strong" : "tile";
   return `
     <article class="${tileClass}" style="border-left-color:${border}" data-ev-bucket="${esc(evBucket(game))}" data-prob-bucket="${esc(probBucket(game))}" data-wise-bucket="${esc(wise.key)}">
@@ -592,7 +612,7 @@ function renderGame(game) {
         <div class="favorite-badge">${esc(game.favorite_team || "Favorite")}<br>${esc(game.favorite_prob_text || "")}</div>
       </div>
       ${renderTeams(game)}
-      ${renderBestCard(option, state.mode)}
+      ${renderBestCard(option, variant)}
       ${renderMarketDropdowns(game)}
     </article>
   `;
@@ -613,10 +633,11 @@ function renderBoard() {
     gamesEl.innerHTML = renderEmptyBoard(state.payload);
     return;
   }
-  renderViewToggle();
+  const viewToggle = document.getElementById("board-view-toggle");
+  if (viewToggle) viewToggle.style.display = "none";
   renderToggleButtons();
   renderFilters();
-  if (state.view === "picks") {
+  if (state.mode !== "full_board") {
     gamesEl.className = "bet-pill-list";
     const filteredBets = collectRecommendedBets(games).filter(betPassesFilter);
     gamesEl.innerHTML = filteredBets.length
@@ -627,7 +648,7 @@ function renderBoard() {
   gamesEl.className = "tile-list";
   const filtered = games.filter(gamePassesFilter);
   gamesEl.innerHTML = filtered.length
-    ? filtered.map(renderGame).join("")
+    ? filtered.map((game) => renderGame(game, "wise_choice")).join("")
     : `<article class="empty-state">No games match this filter.</article>`;
 }
 

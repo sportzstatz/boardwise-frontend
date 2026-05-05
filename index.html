@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BoardWise</title>
-  <meta name="description" content="BoardWise sports forecast boards powered by a read-only public API.">
+  <meta name="description" content="BoardWise turns sportsbook odds into ranked betting opportunities.">
   <style>
     :root { --bg:#f7f7f5; --panel:#ffffff; --ink:#101828; --muted:#667085; --line:#d0d5dd; --accent:#0f4c81; --shadow:0 10px 24px rgba(16,24,40,0.07); }
     * { box-sizing: border-box; }
@@ -32,17 +32,17 @@
   <div class="wrap">
     <section class="hero">
       <h1>BoardWise</h1>
-      <p class="subtitle">Daily sports forecast and betting boards powered by the BoardWise read-only public API. MLB and NHL now use canonical BoardWise serving views, API routes, and static pages.</p>
+      <p class="subtitle">BoardWise turns sportsbook odds into ranked betting opportunities.</p>
+      <p class="subtitle">Every pick is scored by expected value, Kelly strength, model probability, and line quality — then tracked publicly by record, units, ROI, and CLV.</p>
       <div class="pill-row">
-        <div class="pill">7050 computes</div>
-        <div class="pill">7060 serves API JSON</div>
-        <div class="pill">Static frontend renders</div>
-        <div class="pill">MLB board ready</div>
-        <div class="pill">NHL slips ready</div>
+        <div class="pill">Model-rated picks</div>
+        <div class="pill">Transparent performance</div>
+        <div class="pill">EV, Kelly, and probability</div>
+        <div class="pill">Tracked results</div>
       </div>
       <div class="actions" style="margin-top: 16px;">
-        <a class="button primary" href="/pricing/" data-auth-guest>Join beta</a>
-        <a class="button" href="/login/" data-auth-guest>Sign in</a>
+        <a class="button primary" href="/mlb/">View Today’s Wise Choices™</a>
+        <a class="button" href="/performance/">See Performance</a>
         <a class="button" href="/account/" data-auth-authenticated data-auth-label>Account</a>
       </div>
     </section>
@@ -50,8 +50,8 @@
     <section class="grid">
       <article class="card">
         <div class="label">MLB</div>
-        <div class="title">Forecast and Betting Board</div>
-        <div class="body">Live forecasts, projected scores, pitching matchups, and best-available bets from the BoardWise public API. Use the date picker for historical boards.</div>
+        <div class="title">Wise Choices™</div>
+        <div class="body">Today’s official picks, ranked by safest-edge score with Kelly strength, model probability, and line quality visible on every card.</div>
         <div class="actions">
           <a class="button primary" href="/mlb/">Open MLB Board</a>
         </div>
@@ -60,7 +60,7 @@
       <article class="card">
         <div class="label">Performance</div>
         <div class="title">Record, ROI, and CLV</div>
-        <div class="body">Settled record, units won, ROI, and closing-line value for published BoardWise picks. Filter by sport, market, book, model version, and confidence bucket.</div>
+        <div class="body">Public tracking for published picks by Wise Tier, sport, market, book, model version, and date.</div>
         <div class="actions">
           <a class="button primary" href="/performance/">Open Performance</a>
         </div>
@@ -68,15 +68,15 @@
 
       <article class="card">
         <div class="label">NHL</div>
-        <div class="title">Slips and Betting Board</div>
-        <div class="body">Current NHL recommendations from the BoardWise public API. The page uses the canonical NHL board route and does not depend on the retired legacy mirror.</div>
+        <div class="title">Hockey Board</div>
+        <div class="body">NHL recommendations use the same Wise Choices™, Best Value, Kelly Edge, and Full Board views as the baseball board.</div>
         <div class="actions">
           <a class="button primary" href="/nhl/">Open NHL Board</a>
         </div>
       </article>
     </section>
 
-    <section class="footer">BoardWise static frontend. Data served by <code>api.useboardwise.com</code>.</section>
+    <section class="footer">BoardWise is for informational and entertainment purposes only. No pick is guaranteed. Bet responsibly and use unit sizing.</section>
   </div>
   <script src="/assets/js/auth-state.js"></script>
   <script src="/assets/js/gates.js"></script>
