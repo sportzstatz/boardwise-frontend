@@ -2,7 +2,7 @@ const API_BASE = "https://api.useboardwise.com";
 
 const state = {
   payload: null,
-  mode: "wise_choice",
+  mode: "full_board",
   view: "cards",
   activeBucket: "all"
 };
@@ -507,7 +507,8 @@ function renderBetPill(item) {
       <div class="bet-pill-main">
         <div class="bet-pill-copy">
           <div class="bet-pill-game">${esc(item.gameLabel)}</div>
-          <div class="bet-pill-choice">${esc(option.selection_text || option.label || "Recommendation")}${odds ? ` <span class="bet-pill-odds">${esc(odds)}</span>` : ""}</div>
+          <div class="bet-pill-choice">${esc(option.selection_text || option.label || "Recommendation")}</div>
+          ${odds ? `<div class="bet-pill-odds">${esc(odds)}</div>` : ""}
         </div>
         <span class="bet-pill-bucket" title="Safest Edge = Kelly Score × Model Probability" style="background:${color};color:${textColor}">${esc(bucket.label)}</span>
       </div>

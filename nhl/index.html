@@ -19,7 +19,7 @@
       --shadow: 0 10px 24px rgba(16, 24, 40, 0.07);
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; color: var(--ink); background: var(--bg); }
+    body { margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; color: var(--ink); background: var(--bg); overflow-x: hidden; }
     .wrap { max-width: 1220px; margin: 0 auto; padding: 24px 18px 48px; }
     .header { display: grid; gap: 12px; margin-bottom: 18px; }
     h1 { margin: 0; font-size: clamp(28px, 4vw, 44px); line-height: 1.05; }
@@ -80,14 +80,14 @@
     .option-badge.official { color: var(--good); background: var(--good-soft); border-color: rgba(21,111,60,.2); }
     .rating-badge { display: inline-block; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #fff; white-space: nowrap; }
     .wise-rating-badge { text-transform: none; letter-spacing: 0; font-size: 12px; }
-    .bet-pill-list { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 0; }
-    .bet-pill-card { background: var(--panel); border: 1px solid var(--line); border-left-width: 6px; border-left-color: var(--accent); border-radius: 999px; padding: 11px 14px; box-shadow: var(--shadow); }
-    .bet-pill-main { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
-    .bet-pill-copy { min-width: 0; }
+    .bet-pill-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 0; max-width: 100%; min-width: 0; overflow-x: hidden; }
+    .bet-pill-card { background: var(--panel); border: 1px solid var(--line); border-left-width: 6px; border-left-color: var(--accent); border-radius: 999px; padding: 11px 14px; box-shadow: var(--shadow); max-width: 100%; min-width: 0; overflow: hidden; }
+    .bet-pill-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; justify-content: space-between; gap: 12px; align-items: center; max-width: 100%; min-width: 0; }
+    .bet-pill-copy { min-width: 0; max-width: 100%; }
     .bet-pill-game { color: var(--muted); font-size: 12px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .bet-pill-choice { margin-top: 2px; font-size: 18px; font-weight: 800; line-height: 1.15; }
-    .bet-pill-odds { color: var(--muted); font-size: 13px; font-weight: 700; white-space: nowrap; }
-    .bet-pill-bucket { flex: 0 0 auto; border-radius: 999px; padding: 6px 11px; font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .bet-pill-choice { margin-top: 2px; font-size: 18px; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
+    .bet-pill-odds { display: block; margin-top: 3px; color: var(--muted); font-size: 13px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+    .bet-pill-bucket { justify-self: end; border-radius: 999px; padding: 6px 11px; max-width: min(42vw, 170px); font-size: 12px; font-weight: 800; line-height: 1.15; text-align: center; white-space: normal; overflow-wrap: anywhere; }
     .md-projected-score { border: 1px solid #eaecf0; border-radius: 12px; padding: 14px; margin-top: 10px; background: #ffffff; }
     .md-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
     .md-cell { border: 1px solid #eaecf0; border-radius: 10px; padding: 10px 12px; background: #ffffff; }
@@ -101,7 +101,7 @@
     .error-panel { color: #b42318; border-color: rgba(180,35,24,.3); background: #fef3f2; }
     .footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
     @media (max-width: 980px) { .quick-guide { grid-template-columns: repeat(2, minmax(0, 1fr)); } .best-metrics, .option-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (max-width: 720px) { .tile-top { display: grid; } .favorite-badge { text-align: left; } .quick-guide, .tile-list, .team-grid, .md-grid { grid-template-columns: 1fr; } .best-metrics, .option-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bet-pill-card { border-radius: 18px; } .bet-pill-main { align-items: flex-start; } .bet-pill-choice { font-size: 16px; } }
+    @media (max-width: 720px) { .tile-top { display: grid; } .favorite-badge { text-align: left; } .quick-guide, .tile-list, .team-grid, .md-grid { grid-template-columns: 1fr; } .best-metrics, .option-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bet-pill-card { border-radius: 18px; } .bet-pill-main { align-items: flex-start; grid-template-columns: minmax(0, 1fr) minmax(84px, auto); gap: 10px; } .bet-pill-choice { font-size: 16px; } .bet-pill-bucket { max-width: 36vw; padding: 6px 9px; font-size: 11px; } }
   </style>
 </head>
 <body>
