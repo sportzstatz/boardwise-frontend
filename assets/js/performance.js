@@ -1,5 +1,10 @@
 const API_BASE = "https://api.useboardwise.com";
 
+// Hard floor on visible pick history. Performance data on or before this date
+// (legacy / pre-launch noise) must never be shown on the frontend, even if
+// runtime visibility metadata is unavailable or invalid.
+const MIN_VISIBLE_DATE = "2026-04-29";
+
 // Default sport when the user lands on /performance/ with no sport filter set
 // in the URL.
 const DEFAULT_SPORT = "mlb";
@@ -101,9 +106,9 @@ function selectedSport() {
 
 function floorForSport(sport) {
   const sportKey = normaliseSportValue(sport);
-  if (!sportKey) return "";
-  const floor = visibilityConfig.minVisibleDates[sportKey];
-  return isIsoDate(floor) ? floor : "";
+  const floor = sportKey ? visibilityConfig.minVisibleDates[sportKey] : "";
+  if (!isIsoDate(floor)) return MIN_VISIBLE_DATE;
+  return floor < MIN_VISIBLE_DATE ? MIN_VISIBLE_DATE : floor;
 }
 
 function clampStartDate(value, sport = selectedSport()) {
