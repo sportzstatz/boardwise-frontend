@@ -120,9 +120,22 @@ function clampEndDate(value, sport = selectedSport()) {
   return value < floor ? floor : value;
 }
 
+function fallbackMinVisibleDate() {
+  const fallbackSport = normaliseSportValue(DEFAULT_SPORT);
+  const defaultFloor = floorForSport(fallbackSport);
+  if (defaultFloor) return defaultFloor;
+
+  for (const sport of visibilityConfig.publicSports || []) {
+    const floor = floorForSport(sport);
+    if (floor) return floor;
+  }
+  return "";
+}
+
 function currentMinVisibleDate(sport = selectedSport()) {
-  if (!normaliseSportValue(sport)) return "";
-  return floorForSport(sport);
+  const sportKey = normaliseSportValue(sport);
+  if (!sportKey) return fallbackMinVisibleDate();
+  return floorForSport(sportKey) || fallbackMinVisibleDate();
 }
 
 function setRuntimeVisibility(visibility) {
