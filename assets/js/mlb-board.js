@@ -3,14 +3,8 @@ const API_BASE = "https://api.useboardwise.com";
 const state = {
   payload: null,
   mode: "full_board",
-  view: "cards",
   activeBucket: "all"
 };
-
-const BOARD_VIEW_MODES = [
-  ["cards", "Cards"],
-  ["picks", "Picks"]
-];
 
 const BEST_CARD_MODES = [
   ["wise_choice", "Wise Choices™"],
@@ -42,8 +36,8 @@ const statusNoteEl = document.getElementById("status-note");
 const loadingEl = document.getElementById("loading");
 const gamesEl = document.getElementById("games");
 const errorEl = document.getElementById("error");
-const dateForm = document.getElementById("date-form");
-const dateInput = document.getElementById("board-date");
+const dateForm = /** @type {HTMLFormElement | null} */ (document.getElementById("date-form"));
+const dateInput = /** @type {HTMLInputElement | null} */ (document.getElementById("board-date"));
 const evFilters = document.getElementById("ev-filters");
 const probFilters = document.getElementById("prob-filters");
 
@@ -265,10 +259,6 @@ function probBucket(game) {
   return bestOption(game, "highest_model_prob")?.prob_rating || game.prob_bucket_label || "<50%";
 }
 
-function probColor(game) {
-  return safeColor(bestOption(game, "highest_model_prob")?.prob_rating_color || game.prob_bucket_color, "#0f4c81");
-}
-
 function modeBucket(game) {
   const option = bestOption(game, state.mode);
   if (state.mode === "wise_choice") return optionWiseBucket(option).key;
@@ -307,25 +297,10 @@ function renderToggleButtons() {
   el.innerHTML = BEST_CARD_MODES.map(([key, label]) => `
     <button class="toggle-btn ${state.mode === key ? "active" : ""}" data-best-card-sort="${esc(key)}" title="${key === "wise_choice" ? "Official picks that pass BoardWise risk filters, ranked by safest-edge score. Safest Edge = Kelly Score × Model Probability" : ""}">${esc(label)}</button>
   `).join("");
-  el.querySelectorAll("[data-best-card-sort]").forEach((button) => {
+  el.querySelectorAll("[data-best-card-sort]").forEach((rawButton) => {
+    const button = /** @type {HTMLElement} */ (rawButton);
     button.addEventListener("click", () => {
       state.mode = button.dataset.bestCardSort;
-      state.activeBucket = "all";
-      renderBoard();
-    });
-  });
-}
-
-function renderViewToggle() {
-  const el = document.getElementById("board-view-toggle");
-  if (!el) return;
-  el.style.display = "";
-  el.innerHTML = BOARD_VIEW_MODES.map(([key, label]) => `
-    <button class="toggle-btn ${state.view === key ? "active" : ""}" data-board-view="${esc(key)}">${esc(label)}</button>
-  `).join("");
-  el.querySelectorAll("[data-board-view]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.view = button.dataset.boardView || "cards";
       state.activeBucket = "all";
       renderBoard();
     });
@@ -361,7 +336,8 @@ function renderFilters() {
     const style = active ? ` style="background:${esc(color)};border-color:${esc(color)};color:${esc(textColorFor(color))}"` : "";
     return `<button class="bucket-pill ${active ? "active" : ""}" data-bucket="${esc(bucket)}" data-bg="${esc(color)}"${style}>${esc(label)}</button>`;
   }).join("");
-  target.querySelectorAll("[data-bucket]").forEach((button) => {
+  target.querySelectorAll("[data-bucket]").forEach((rawButton) => {
+    const button = /** @type {HTMLElement} */ (rawButton);
     button.addEventListener("click", () => {
       state.activeBucket = button.dataset.bucket || "all";
       renderBoard();

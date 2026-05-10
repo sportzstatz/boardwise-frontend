@@ -9,6 +9,16 @@ const MIN_VISIBLE_DATE = "2026-04-29";
 // in the URL.
 const DEFAULT_SPORT = "mlb";
 
+/**
+ * @typedef {Record<string, string | boolean | undefined> & {
+ *   sport?: string;
+ *   official_only?: boolean;
+ *   settled_only?: boolean;
+ *   start_date?: string;
+ *   end_date?: string;
+ * }} PerformanceFilters
+ */
+
 let visibilityConfig = {
   publicSports: [DEFAULT_SPORT],
   minVisibleDates: {},
@@ -28,6 +38,42 @@ function uniqueStrings(values) {
     out.push(key);
   }
   return out;
+}
+
+/**
+ * @param {string} id
+ * @returns {HTMLInputElement | HTMLSelectElement | null}
+ */
+function fieldById(id) {
+  const el = document.getElementById(id);
+  if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement) return el;
+  return null;
+}
+
+/**
+ * @param {string} id
+ * @returns {HTMLInputElement | null}
+ */
+function inputById(id) {
+  const el = document.getElementById(id);
+  return el instanceof HTMLInputElement ? el : null;
+}
+
+/**
+ * @param {string} id
+ * @returns {HTMLSelectElement | null}
+ */
+function selectById(id) {
+  const el = document.getElementById(id);
+  return el instanceof HTMLSelectElement ? el : null;
+}
+
+/**
+ * @param {string} id
+ * @returns {HTMLElement | null}
+ */
+function elementById(id) {
+  return document.getElementById(id);
 }
 
 const WISE_TIER_META = {
@@ -99,7 +145,7 @@ function updateVisibilityConfig(payload) {
 }
 
 function selectedSport() {
-  const sportEl = document.getElementById("f-sport");
+  const sportEl = fieldById("f-sport");
   if (sportEl) return normaliseSportValue(sportEl.value);
   return normaliseSportValue(initialSportFromUrl()) || DEFAULT_SPORT;
 }
@@ -151,8 +197,8 @@ function setRuntimeVisibility(visibility) {
 
 function applyDateInputMins(sport = selectedSport()) {
   const floor = currentMinVisibleDate(sport);
-  const startEl = document.getElementById("f-start");
-  const endEl = document.getElementById("f-end");
+  const startEl = inputById("f-start");
+  const endEl = inputById("f-end");
   if (startEl) {
     startEl.min = floor || "";
     if (floor && startEl.value && startEl.value < floor) startEl.value = floor;
@@ -205,26 +251,26 @@ const ALLOWED_GROUPS = new Set([
 ]);
 
 const els = {
-  form: document.getElementById("filter-form"),
-  reset: document.getElementById("reset-filters"),
-  groupBy: document.getElementById("group-by"),
-  loading: document.getElementById("loading"),
-  error: document.getElementById("error"),
-  emptySummary: document.getElementById("empty-summary"),
-  kpiGrid: document.getElementById("kpi-grid"),
+  form: /** @type {HTMLFormElement | null} */ (document.getElementById("filter-form")),
+  reset: elementById("reset-filters"),
+  groupBy: selectById("group-by"),
+  loading: elementById("loading"),
+  error: elementById("error"),
+  emptySummary: elementById("empty-summary"),
+  kpiGrid: elementById("kpi-grid"),
   breakdownTable: document.querySelector("#breakdown-table tbody"),
-  breakdownEmpty: document.getElementById("breakdown-empty"),
+  breakdownEmpty: elementById("breakdown-empty"),
   picksTable: document.querySelector("#picks-table tbody"),
-  picksEmpty: document.getElementById("picks-empty"),
-  chartContainer: document.getElementById("chart-container"),
-  chartEmpty: document.getElementById("chart-empty"),
-  chartMeta: document.getElementById("chart-meta"),
-  chartTooltip: document.getElementById("chart-tooltip"),
+  picksEmpty: elementById("picks-empty"),
+  chartContainer: elementById("chart-container"),
+  chartEmpty: elementById("chart-empty"),
+  chartMeta: elementById("chart-meta"),
+  chartTooltip: elementById("chart-tooltip"),
   bookCmpTable: document.querySelector("#book-comparison-table tbody"),
-  bookCmpEmpty: document.getElementById("book-comparison-empty"),
-  bookCmpSummary: document.getElementById("book-comparison-summary"),
-  bookCmpBooks: document.getElementById("book-cmp-books"),
-  bookCmpSame: document.getElementById("book-cmp-same"),
+  bookCmpEmpty: elementById("book-comparison-empty"),
+  bookCmpSummary: elementById("book-comparison-summary"),
+  bookCmpBooks: elementById("book-cmp-books"),
+  bookCmpSame: inputById("book-cmp-same"),
 };
 
 function esc(value) {
@@ -260,7 +306,7 @@ function isIsoDate(value) {
 
 function readFilters() {
   const params = new URLSearchParams(window.location.search);
-  const out = {};
+  const out = /** @type {PerformanceFilters} */ ({});
   for (const key of FILTER_KEYS) {
     const v = (params.get(key) || "").trim();
     if (v) out[key] = v;
@@ -317,16 +363,22 @@ function applyFiltersToForm(filters) {
     max_model_probability: "f-max-prob",
   };
   for (const [key, id] of Object.entries(map)) {
-    const el = document.getElementById(id);
+    const el = fieldById(id);
     if (el) el.value = filters[key] || "";
   }
-  document.getElementById("f-official").checked = filters.official_only !== false;
-  document.getElementById("f-settled").checked = filters.settled_only !== false;
-  els.groupBy.value = ALLOWED_GROUPS.has(filters[GROUP_KEY]) ? filters[GROUP_KEY] : DEFAULT_GROUP;
+  const officialEl = inputById("f-official");
+  const settledEl = inputById("f-settled");
+  if (officialEl) officialEl.checked = filters.official_only !== false;
+  if (settledEl) settledEl.checked = filters.settled_only !== false;
+  if (els.groupBy) {
+    els.groupBy.value = ALLOWED_GROUPS.has(filters[GROUP_KEY])
+      ? String(filters[GROUP_KEY])
+      : DEFAULT_GROUP;
+  }
 }
 
 function readFiltersFromForm() {
-  const out = {};
+  const out = /** @type {PerformanceFilters} */ ({});
   const map = {
     sport: "f-sport",
     market_key: "f-market",
@@ -342,12 +394,13 @@ function readFiltersFromForm() {
     max_model_probability: "f-max-prob",
   };
   for (const [key, id] of Object.entries(map)) {
-    const v = (document.getElementById(id).value || "").trim();
+    const field = fieldById(id);
+    const v = (field?.value || "").trim();
     if (v) out[key] = v;
   }
-  out.official_only = document.getElementById("f-official").checked;
-  out.settled_only = document.getElementById("f-settled").checked;
-  out[GROUP_KEY] = els.groupBy.value || DEFAULT_GROUP;
+  out.official_only = inputById("f-official")?.checked ?? true;
+  out.settled_only = inputById("f-settled")?.checked ?? true;
+  out[GROUP_KEY] = els.groupBy?.value || DEFAULT_GROUP;
   if (out.start_date && !isIsoDate(out.start_date)) delete out.start_date;
   if (out.end_date && !isIsoDate(out.end_date)) delete out.end_date;
   // Always enforce the visible-history floor, regardless of what was typed.
@@ -774,7 +827,9 @@ const DEFAULT_BOOK_KEYS = ["draftkings", "fanduel", "betmgm", "espnbet"];
 function getSelectedBookKeys() {
   if (!els.bookCmpBooks) return [];
   return Array.from(
-    els.bookCmpBooks.querySelectorAll('input[type="checkbox"]:checked')
+    /** @type {NodeListOf<HTMLInputElement>} */ (
+      els.bookCmpBooks.querySelectorAll('input[type="checkbox"]:checked')
+    )
   ).map((cb) => cb.value);
 }
 
@@ -807,12 +862,12 @@ function populateBookComparisonBooks(bookmakers) {
     .join("");
   els.bookCmpBooks.innerHTML = html;
   // Wire change handlers (one delegated listener is enough).
-  if (!els.bookCmpBooks._wired) {
+  if (els.bookCmpBooks.dataset.wired !== "true") {
     els.bookCmpBooks.addEventListener("change", () => {
       const filters = readFiltersFromForm();
       loadBookComparison(filters).catch(() => {});
     });
-    els.bookCmpBooks._wired = true;
+    els.bookCmpBooks.dataset.wired = "true";
   }
 }
 
@@ -900,7 +955,7 @@ async function loadBookComparison(filters) {
 }
 
 function fillSelect(selectId, options, { keyField = null, labelField = null, currentValue = "" } = {}) {
-  const sel = document.getElementById(selectId);
+  const sel = selectById(selectId);
   if (!sel) return;
   const seen = new Set();
   const optsHtml = ['<option value="">All</option>'];
