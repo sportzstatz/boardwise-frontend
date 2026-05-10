@@ -34,20 +34,28 @@ Why this track won:
 
 The frontend is static only. All live board data comes from the 7060 API.
 
-## Local preview (no build step)
+## Node toolchain
 
-This repo has no build pipeline. To preview locally, serve the directory with any static HTTP server and open the URLs in a browser:
+This repo has a Node-based validation/build layer for CI.
 
 ```bash
-cd /path/to/boardwise-frontend
-python3 -m http.server 9876
-# then open:
-#   http://127.0.0.1:9876/
-#   http://127.0.0.1:9876/mlb/
-#   http://127.0.0.1:9876/mlb/?date=2026-04-22
+npm ci
+npm run lint
+npm run typecheck
+npm run test
+npm run build
 ```
 
-The MLB page fetches data from `https://api.useboardwise.com` (CORS allows `http://localhost`/`127.0.0.1`-style origins is NOT configured — for local preview the API calls will be subject to the production CORS allowlist, which is `useboardwise.com`, `www.useboardwise.com`, `staging.useboardwise.com`, and `boardwise-frontend.pages.dev`). For style-only preview against canned JSON, point `API_BASE` in `assets/js/mlb-board.js` to a local JSON file or use a browser extension to override CORS.
+The build output is written to `dist/`.
+
+For local preview with Vite:
+
+```bash
+npm run preview
+# open http://127.0.0.1:9876/
+```
+
+The production frontend remains static. Runtime API data is still fetched from `https://api.useboardwise.com`.
 
 ## Style-edit workflow
 

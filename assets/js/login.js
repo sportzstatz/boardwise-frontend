@@ -1,6 +1,6 @@
 (function () {
   const API_BASE = window.BOARDWISE_API_BASE || "https://api.useboardwise.com";
-  const form = document.getElementById("login-form");
+  const form = /** @type {HTMLFormElement | null} */ (document.getElementById("login-form"));
   const msg = document.getElementById("login-message");
 
   function setMessage(text, kind = "info") {
@@ -80,7 +80,7 @@
 
   async function startLogin(event) {
     event.preventDefault();
-    const emailInput = document.getElementById("email");
+    const emailInput = /** @type {HTMLInputElement | null} */ (document.getElementById("email"));
     const email = emailInput ? String(emailInput.value || "").trim() : "";
     if (!email) return;
 
