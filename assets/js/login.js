@@ -42,6 +42,19 @@
     return returnToFromParams(new URLSearchParams(window.location.search));
   }
 
+  function turnstileToken() {
+    const input = /** @type {HTMLInputElement | null} */ (
+      document.querySelector('input[name="cf-turnstile-response"]')
+    );
+    return input ? String(input.value || "").trim() : "";
+  }
+
+  function resetTurnstile() {
+    if (window.turnstile && typeof window.turnstile.reset === "function") {
+      window.turnstile.reset();
+    }
+  }
+
   async function verifyTokenIfPresent() {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
@@ -84,13 +97,23 @@
     const email = emailInput ? String(emailInput.value || "").trim() : "";
     if (!email) return;
 
+    const token = turnstileToken();
+    if (!token) {
+      setMessage("Complete the human check, then try again.", "error");
+      return;
+    }
+
     setMessage("Sending sign-in link…");
     try {
       const resp = await fetch(`${API_BASE}/api/v1/auth/magic-link/start`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, return_to: returnToFromUrl() }),
+        body: JSON.stringify({
+          email,
+          return_to: returnToFromUrl(),
+          turnstile_token: token,
+        }),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const body = await resp.json();
@@ -98,7 +121,9 @@
         body.message || "If that email can sign in, a link has been sent."
       );
       if (form) form.reset();
+      resetTurnstile();
     } catch (_err) {
+      resetTurnstile();
       setMessage("Could not request a sign-in link. Try again shortly.", "error");
     }
   }

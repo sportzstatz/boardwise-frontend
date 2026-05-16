@@ -74,6 +74,14 @@
       <form id="login-form" class="auth-form">
         <label for="email">Email</label>
         <input id="email" name="email" type="email" autocomplete="email" required>
+
+        <div
+          class="cf-turnstile"
+          data-sitekey="YOUR_PUBLIC_TURNSTILE_SITE_KEY"
+          data-action="magic_link_start"
+          data-theme="auto"
+        ></div>
+
         <button class="button primary" type="submit">Send sign-in link</button>
       </form>
 
@@ -83,6 +91,7 @@
 
   <script src="/assets/js/auth-state.js"></script>
   <script src="/assets/js/gates.js"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <script src="/assets/js/login.js"></script>
 </body>
 </html>
