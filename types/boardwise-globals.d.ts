@@ -25,8 +25,13 @@ interface BoardWiseGatesApi {
   }): string;
 }
 
+interface TurnstileApi {
+  reset(widgetId?: string): void;
+}
+
 interface Window {
   BOARDWISE_API_BASE?: string;
   BoardWiseAuth?: BoardWiseAuthApi;
   BoardWiseGates?: BoardWiseGatesApi;
+  turnstile?: TurnstileApi;
 }
