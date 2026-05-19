@@ -7,6 +7,7 @@ async function loadLoginScript({
   url = "/login/",
 } = {}) {
   vi.resetModules();
+  delete window.BoardWiseApi;
   window.history.pushState({}, "", url);
   window.BOARDWISE_API_BASE = API_BASE;
 
@@ -24,6 +25,7 @@ async function loadLoginScript({
     <p id="login-message" hidden></p>
   `;
 
+  await import("../assets/js/api-client.js");
   await import("../assets/js/login.js");
   await Promise.resolve();
 
@@ -38,13 +40,24 @@ function submit(form) {
   form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
 }
 
+function jsonResponse(body, { status = 200, statusText = "OK" } = {}) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    statusText,
+    text: async () => JSON.stringify(body),
+  };
+}
+
 async function settle() {
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let i = 0; i < 5; i++) {
+    await Promise.resolve();
+  }
 }
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  delete window.BoardWiseApi;
   delete window.BOARDWISE_API_BASE;
   delete window.turnstile;
   document.body.innerHTML = "";
@@ -68,10 +81,9 @@ describe("login", () => {
   });
 
   it("sends the Turnstile token in the magic-link start request", async () => {
-    const fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ ok: true, message: "Sent" }),
-    });
+    const fetch = vi.fn().mockResolvedValue(
+      jsonResponse({ ok: true, message: "Sent" })
+    );
     vi.stubGlobal("fetch", fetch);
     window.turnstile = { reset: vi.fn() };
 
@@ -87,7 +99,9 @@ describe("login", () => {
       expect.objectContaining({
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+        }),
       })
     );
 
@@ -104,10 +118,7 @@ describe("login", () => {
     const reset = vi.fn();
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ ok: true, message: "Sent" }),
-      })
+      vi.fn().mockResolvedValue(jsonResponse({ ok: true, message: "Sent" }))
     );
     window.turnstile = { reset };
 
@@ -125,10 +136,9 @@ describe("login", () => {
     const reset = vi.fn();
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 500,
-      })
+      vi.fn().mockResolvedValue(
+        jsonResponse({ detail: "failed" }, { status: 500, statusText: "Server Error" })
+      )
     );
     window.turnstile = { reset };
 
@@ -143,10 +153,9 @@ describe("login", () => {
   });
 
   it("verifies magic-link tokens without requiring Turnstile", async () => {
-    const fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 400,
-    });
+    const fetch = vi.fn().mockResolvedValue(
+      jsonResponse({ detail: "invalid" }, { status: 400, statusText: "Bad Request" })
+    );
     vi.stubGlobal("fetch", fetch);
 
     const { message } = await loadLoginScript({
@@ -160,7 +169,9 @@ describe("login", () => {
       expect.objectContaining({
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+        }),
         body: JSON.stringify({ token: "magic-token" }),
       })
     );

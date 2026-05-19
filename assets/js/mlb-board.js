@@ -1,5 +1,3 @@
-const API_BASE = "https://api.useboardwise.com";
-
 const state = {
   payload: null,
   mode: "full_board",
@@ -85,12 +83,6 @@ function writeTargetDate(date) {
   if (date) url.searchParams.set("date", date);
   else url.searchParams.delete("date");
   window.history.replaceState({}, "", url);
-}
-
-function endpointFor(date) {
-  return date
-    ? `${API_BASE}/api/v1/boards/mlb/${encodeURIComponent(date)}`
-    : `${API_BASE}/api/v1/boards/mlb/current`;
 }
 
 function formatCount(value) {
@@ -646,12 +638,7 @@ function renderBoard() {
 async function loadBoard(targetDate) {
   showLoading();
   try {
-    const response = await fetch(endpointFor(targetDate), {
-      method: "GET",
-      headers: { Accept: "application/json" }
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
+    const payload = await window.BoardWiseApi.getMlbBoard(targetDate);
     state.payload = payload;
     setHidden(loadingEl, true);
     setHidden(errorEl, true);

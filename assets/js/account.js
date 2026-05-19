@@ -30,10 +30,7 @@
       if (logout) {
         logout.addEventListener('click', async () => {
           try {
-            await fetch(`${window.BOARDWISE_API_BASE || 'https://api.useboardwise.com'}/api/v1/auth/logout`, {
-              method: 'POST',
-              credentials: 'include',
-            });
+            await window.BoardWiseApi.logout();
           } finally {
             window.location.reload();
           }

@@ -1,5 +1,3 @@
-const API_BASE = "https://api.useboardwise.com";
-
 // Hard floor on visible pick history. Performance data on or before this date
 // (legacy / pre-launch noise) must never be shown on the frontend, even if
 // runtime visibility metadata is unavailable or invalid.
@@ -216,8 +214,7 @@ function initialSportFromUrl() {
 }
 
 async function fetchFilterOptions(sport) {
-  const qs = sport ? `?sport=${encodeURIComponent(sport)}` : "";
-  return fetchJson(`${API_BASE}/api/v1/performance/filters${qs}`);
+  return window.BoardWiseApi.getPerformanceFilters(sport);
 }
 
 const FILTER_KEYS = [
@@ -425,12 +422,6 @@ function buildQuery(filters, { includeSettled = true, overrides = {} } = {}) {
     else params.set(k, v);
   }
   return params.toString();
-}
-
-async function fetchJson(url) {
-  const res = await fetch(url, { credentials: "omit" });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
 }
 
 function fmtPct(value, { digits = 2 } = {}) {
@@ -943,7 +934,7 @@ async function loadBookComparison(filters) {
   if (!els.bookCmpTable) return;
   const qs = buildBookComparisonQuery(filters);
   try {
-    const data = await fetchJson(`${API_BASE}/api/v1/performance/book-comparison?${qs}`);
+    const data = await window.BoardWiseApi.getPerformanceBookComparison(qs);
     setRuntimeVisibility(data.visibility);
     renderBookComparison(data);
   } catch (err) {
@@ -1032,10 +1023,10 @@ async function loadAll(filters) {
   let firstErr = null;
   try {
     const [summaryR, breakdownR, picksR, chartR] = await Promise.all([
-      settle(fetchJson(`${API_BASE}/api/v1/performance/summary?${summaryQs}`)),
-      settle(fetchJson(`${API_BASE}/api/v1/performance/breakdown?${breakdownQs}`)),
-      settle(fetchJson(`${API_BASE}/api/v1/performance/picks?${picksQs}`)),
-      settle(fetchJson(`${API_BASE}/api/v1/performance/breakdown?${chartQs}`)),
+      settle(window.BoardWiseApi.getPerformanceSummary(summaryQs)),
+      settle(window.BoardWiseApi.getPerformanceBreakdown(breakdownQs)),
+      settle(window.BoardWiseApi.getPerformancePicks(picksQs)),
+      settle(window.BoardWiseApi.getPerformanceBreakdown(chartQs)),
     ]);
 
     const safeRender = (label, fn) => {

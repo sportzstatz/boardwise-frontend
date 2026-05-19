@@ -2,17 +2,29 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 async function loadAuthStateScript() {
   vi.resetModules();
+  delete window.BoardWiseApi;
   delete window.BoardWiseAuth;
   delete window.BOARDWISE_API_BASE;
+  await import("../assets/js/api-client.js");
   await import("../assets/js/auth-state.js");
   return window.BoardWiseAuth;
 }
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  delete window.BoardWiseApi;
   delete window.BoardWiseAuth;
   delete window.BOARDWISE_API_BASE;
 });
+
+function jsonResponse(body, { status = 200, statusText = "OK" } = {}) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    statusText,
+    text: async () => JSON.stringify(body),
+  };
+}
 
 describe("auth-state", () => {
   it("falls back to guest state when /api/v1/me is unavailable", async () => {
@@ -31,9 +43,8 @@ describe("auth-state", () => {
   it("normalizes authenticated state and feature flags from the API", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
+      vi.fn().mockResolvedValue(
+        jsonResponse({
           authenticated: true,
           user: {
             email: "founder@example.test",
@@ -44,7 +55,7 @@ describe("auth-state", () => {
             performance_picks: true
           }
         })
-      })
+      )
     );
 
     const auth = await loadAuthStateScript();

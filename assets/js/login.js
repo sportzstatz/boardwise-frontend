@@ -1,5 +1,4 @@
 (function () {
-  const API_BASE = window.BOARDWISE_API_BASE || "https://api.useboardwise.com";
   const form = /** @type {HTMLFormElement | null} */ (document.getElementById("login-form"));
   const msg = document.getElementById("login-message");
 
@@ -55,6 +54,14 @@
     }
   }
 
+  /**
+   * @param {unknown} error
+   * @returns {error is BoardWiseApiErrorLike}
+   */
+  function isApiError(error) {
+    return Boolean(error && typeof error === "object" && "status" in error);
+  }
+
   async function verifyTokenIfPresent() {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
@@ -65,24 +72,17 @@
 
     setMessage("Signing you in…");
     try {
-      const resp = await fetch(`${API_BASE}/api/v1/auth/magic-link/verify`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
-      });
-
-      if (!resp.ok) {
+      await window.BoardWiseApi.verifyMagicLink(token);
+      window.location.assign(destination);
+      return true;
+    } catch (err) {
+      if (isApiError(err)) {
         setMessage(
           "That sign-in link is invalid or expired. Request a new link.",
           "error"
         );
         return true;
       }
-
-      window.location.assign(destination);
-      return true;
-    } catch (_err) {
       setMessage(
         "Could not verify that sign-in link. Request a new link.",
         "error"
@@ -105,20 +105,15 @@
 
     setMessage("Sending sign-in link…");
     try {
-      const resp = await fetch(`${API_BASE}/api/v1/auth/magic-link/start`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          return_to: returnToFromUrl(),
-          turnstile_token: token,
-        }),
+      const body = await window.BoardWiseApi.startMagicLink({
+        email,
+        return_to: returnToFromUrl(),
+        turnstile_token: token,
       });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const body = await resp.json();
       setMessage(
-        body.message || "If that email can sign in, a link has been sent."
+        body && body.message
+          ? String(body.message)
+          : "If that email can sign in, a link has been sent."
       );
       if (form) form.reset();
       resetTurnstile();
