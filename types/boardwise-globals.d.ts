@@ -29,8 +29,116 @@ interface TurnstileApi {
   reset(widgetId?: string): void;
 }
 
+type BoardWiseApiQueryValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
+
+type BoardWisePerformanceQuery =
+  | string
+  | URLSearchParams
+  | Record<
+      string,
+      BoardWiseApiQueryValue | BoardWiseApiQueryValue[]
+    >;
+
+interface BoardWiseApiErrorLike extends Error {
+  status: number;
+  statusText: string;
+  url: string;
+  body?: unknown;
+}
+
+interface BoardWiseBoardPayload {
+  [key: string]: any;
+  games?: any[];
+  visibility?: Record<string, any>;
+}
+
+interface BoardWisePerformanceFiltersPayload {
+  [key: string]: any;
+  sports?: string[];
+  markets?: any[];
+  bookmakers?: any[];
+  confidence_buckets?: any[];
+  model_probability_buckets?: any[];
+  wise_choice_buckets?: any[];
+  model_versions?: any[];
+  prediction_modes?: any[];
+  visibility?: Record<string, any>;
+}
+
+interface BoardWisePerformanceSummaryPayload {
+  [key: string]: any;
+  summary?: Record<string, any>;
+  visibility?: Record<string, any>;
+}
+
+interface BoardWisePerformanceBreakdownPayload {
+  [key: string]: any;
+  groups?: any[];
+  visibility?: Record<string, any>;
+}
+
+interface BoardWisePerformancePicksPayload {
+  [key: string]: any;
+  picks?: any[];
+  visibility?: Record<string, any>;
+}
+
+interface BoardWisePerformanceBookComparisonPayload {
+  [key: string]: any;
+  rows?: any[];
+  comparison_mode?: string;
+  common_pick_count?: number;
+  visibility?: Record<string, any>;
+}
+
+interface BoardWiseApiClient {
+  ApiError: {
+    new (
+      message: string,
+      details: {
+        status: number;
+        statusText: string;
+        url: string;
+        body?: unknown;
+      }
+    ): BoardWiseApiErrorLike;
+  };
+  endpoints: Readonly<Record<string, string>>;
+  buildUrl(path: string, query?: BoardWisePerformanceQuery): string;
+  serializeQuery(query?: BoardWisePerformanceQuery): string;
+  getMe(): Promise<BoardWiseAuthState>;
+  startMagicLink(input: {
+    email: string;
+    return_to?: string;
+    turnstile_token?: string;
+  }): Promise<Record<string, any>>;
+  verifyMagicLink(token: string): Promise<Record<string, any> | null>;
+  logout(): Promise<Record<string, any> | null>;
+  getMlbBoard(targetDate?: string): Promise<BoardWiseBoardPayload>;
+  getNhlBoard(targetDate?: string): Promise<BoardWiseBoardPayload>;
+  getPerformanceFilters(sport?: string): Promise<BoardWisePerformanceFiltersPayload>;
+  getPerformanceSummary(
+    query: BoardWisePerformanceQuery
+  ): Promise<BoardWisePerformanceSummaryPayload>;
+  getPerformanceBreakdown(
+    query: BoardWisePerformanceQuery
+  ): Promise<BoardWisePerformanceBreakdownPayload>;
+  getPerformancePicks(
+    query: BoardWisePerformanceQuery
+  ): Promise<BoardWisePerformancePicksPayload>;
+  getPerformanceBookComparison(
+    query: BoardWisePerformanceQuery
+  ): Promise<BoardWisePerformanceBookComparisonPayload>;
+}
+
 interface Window {
   BOARDWISE_API_BASE?: string;
+  BoardWiseApi?: BoardWiseApiClient;
   BoardWiseAuth?: BoardWiseAuthApi;
   BoardWiseGates?: BoardWiseGatesApi;
   turnstile?: TurnstileApi;

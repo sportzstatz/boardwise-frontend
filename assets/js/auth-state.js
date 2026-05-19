@@ -1,6 +1,4 @@
 (function () {
-  const API_BASE = window.BOARDWISE_API_BASE || "https://api.useboardwise.com";
-
   const PUBLIC_FEATURES = {
     account_profile: false,
     mlb_board_basic: true,
@@ -41,15 +39,7 @@
   async function loadAuthState(options = {}) {
     if (cachedState && !options.force) return cachedState;
     try {
-      const resp = await fetch(`${API_BASE}/api/v1/me`, {
-        credentials: "include",
-        cache: "no-store",
-      });
-      if (!resp.ok) {
-        cachedState = normaliseState(guestState);
-        return cachedState;
-      }
-      cachedState = normaliseState(await resp.json());
+      cachedState = normaliseState(await window.BoardWiseApi.getMe());
       return cachedState;
     } catch (_err) {
       cachedState = normaliseState(guestState);
