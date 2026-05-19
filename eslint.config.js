@@ -37,6 +37,7 @@ export default [
       "tests/**/*.js",
       "vite.config.js",
       "vitest.config.js",
+      "playwright.contract.config.js",
       "eslint.config.js",
       "scripts/**/*.mjs",
     ],

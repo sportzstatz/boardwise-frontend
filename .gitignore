@@ -41,6 +41,8 @@ pnpm-debug.log*
 dist/
 build/
 coverage/
+test-results/
+playwright-report/
 
 # Cloudflare / Wrangler local state
 .wrangler/
