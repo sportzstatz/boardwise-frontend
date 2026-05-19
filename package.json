@@ -10,12 +10,15 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:contracts": "playwright test -c playwright.contract.config.js",
+    "test:contracts:headed": "playwright test -c playwright.contract.config.js --headed",
     "build": "vite build && node scripts/copy-static-assets.mjs",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",
     "preview": "vite --host 127.0.0.1 --port 9876"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@playwright/test": "^1.60.0",
     "@types/node": "^22.0.0",
     "eslint": "^9.0.0",
     "globals": "^15.0.0",
