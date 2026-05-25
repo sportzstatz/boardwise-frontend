@@ -1,0 +1,123 @@
+name: Frontend Release Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - preview
+          - production
+      expected_sha:
+        description: "Commit SHA to release"
+        required: true
+        type: string
+      notes:
+        description: "Release notes / reason"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: frontend-release-${{ inputs.environment }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  release-gate:
+    name: boardwise-frontend / release-gate / ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout expected commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.expected_sha }}
+
+      - name: Verify checked out SHA
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          echo "Expected: ${{ inputs.expected_sha }}"
+          echo "Actual:   ${actual}"
+          test "${actual}" = "${{ inputs.expected_sha }}"
+
+      - name: Verify commit is reachable from main
+        run: |
+          set -euo pipefail
+          git fetch origin main --quiet
+          git merge-base --is-ancestor "${{ inputs.expected_sha }}" origin/main
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate frontend
+        run: |
+          npm run lint
+          npm run typecheck
+          npm run test
+          npm run test:contracts
+          npm run build
+          git diff --check
+
+      - name: Verify build output
+        run: |
+          test -f dist/index.html
+          test -f dist/_headers
+          test -f dist/_redirects
+          test -f dist/assets/js/api-client.js
+          test -f dist/assets/js/mlb-board.js
+          test -f dist/assets/js/nhl-board.js
+          test -f dist/assets/js/performance.js
+
+      - name: Release handoff
+        run: |
+          cat > release-handoff.md <<'EOF'
+          # boardwise-frontend release handoff
+
+          Environment: ${{ inputs.environment }}
+          Commit: ${{ inputs.expected_sha }}
+          Notes: ${{ inputs.notes }}
+
+          ## Required smoke
+
+          - Cloudflare Pages deploy commit matches expected SHA.
+          - / returns 200.
+          - /login/ renders form and Turnstile area.
+          - /mlb/ loads board data.
+          - /nhl/ loads board payload.
+          - /performance/ loads filters/summary/breakdown/picks.
+          - No BoardWiseApi undefined errors.
+          - No /api/v1/operator calls.
+          - No X-BoardWise-Operator-Key header.
+          EOF
+
+          cat release-handoff.md
+
+      - name: Upload release handoff
+        uses: actions/upload-artifact@v7
+        with:
+          name: boardwise-frontend-release-handoff-${{ inputs.environment }}
+          path: release-handoff.md
+          retention-days: 30
