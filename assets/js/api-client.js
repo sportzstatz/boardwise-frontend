@@ -188,10 +188,12 @@
 
     /**
      * @param {string} [targetDate]
+     * @param {{ model?: string }} [options]
      */
-    getMlbBoard(targetDate) {
+    getMlbBoard(targetDate, options = {}) {
       return jsonRequest(
-        boardPath(ENDPOINTS.mlbBoardDate, targetDate, ENDPOINTS.mlbBoardCurrent)
+        boardPath(ENDPOINTS.mlbBoardDate, targetDate, ENDPOINTS.mlbBoardCurrent),
+        { query: options.model ? { model: options.model } : undefined }
       );
     },
 
@@ -206,10 +208,14 @@
 
     /**
      * @param {string} [sport]
+     * @param {{ model_family?: string }} [options]
      */
-    getPerformanceFilters(sport) {
+    getPerformanceFilters(sport, options = {}) {
+      const query = sport || options.model_family
+        ? { sport, model_family: options.model_family }
+        : undefined;
       return jsonRequest(ENDPOINTS.performanceFilters, {
-        query: sport ? { sport } : undefined,
+        query,
       });
     },
 

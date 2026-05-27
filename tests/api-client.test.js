@@ -54,6 +54,18 @@ describe("api-client", () => {
     );
   });
 
+  it("serializes the MLB model selector", async () => {
+    const fetch = vi.fn().mockResolvedValue(jsonResponse({ games: [] }));
+    vi.stubGlobal("fetch", fetch);
+
+    const api = await loadApiClient();
+    await api.getMlbBoard("2026-05-27", { model: "obsidian_steed" });
+
+    const url = new URL(fetch.mock.calls[0][0]);
+    expect(url.pathname).toBe("/api/v1/boards/mlb/2026-05-27");
+    expect(url.searchParams.get("model")).toBe("obsidian_steed");
+  });
+
   it("loads the NHL dated endpoint", async () => {
     const fetch = vi.fn().mockResolvedValue(jsonResponse({ games: [] }));
     vi.stubGlobal("fetch", fetch);
@@ -132,6 +144,19 @@ describe("api-client", () => {
     expect(url.searchParams.get("bookmaker_key")).toBe("draftkings,fanduel");
     expect(url.searchParams.get("limit")).toBe("100");
     expect(url.searchParams.has("empty")).toBe(false);
+  });
+
+  it("serializes the performance model family filter", async () => {
+    const fetch = vi.fn().mockResolvedValue(jsonResponse({ sports: [] }));
+    vi.stubGlobal("fetch", fetch);
+
+    const api = await loadApiClient();
+    await api.getPerformanceFilters("mlb", { model_family: "obsidian_steed" });
+
+    const url = new URL(fetch.mock.calls[0][0]);
+    expect(url.pathname).toBe("/api/v1/performance/filters");
+    expect(url.searchParams.get("sport")).toBe("mlb");
+    expect(url.searchParams.get("model_family")).toBe("obsidian_steed");
   });
 
   it("throws BoardWiseApiError for non-2xx responses", async () => {

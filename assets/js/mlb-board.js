@@ -1,7 +1,9 @@
 const state = {
   payload: null,
   mode: "full_board",
-  activeBucket: "all"
+  activeBucket: "all",
+  requestedModel: "",
+  selectedModel: ""
 };
 
 const BEST_CARD_MODES = [
@@ -29,6 +31,11 @@ const KELLY_BUCKETS = [
   ["kelly_20_plus", "20%+", "#156f3c"]
 ];
 
+const MODEL_OPTIONS = [
+  ["obsidian_steed", "Obsidian Steed", "New model"],
+  ["classic_mlb", "Classic MLB", "Legacy baseline"]
+];
+
 const metaEl = document.getElementById("meta");
 const statusNoteEl = document.getElementById("status-note");
 const loadingEl = document.getElementById("loading");
@@ -38,6 +45,7 @@ const dateForm = /** @type {HTMLFormElement | null} */ (document.getElementById(
 const dateInput = /** @type {HTMLInputElement | null} */ (document.getElementById("board-date"));
 const evFilters = document.getElementById("ev-filters");
 const probFilters = document.getElementById("prob-filters");
+const modelSelectorEl = document.getElementById("model-selector");
 
 function esc(value) {
   return String(value ?? "")
@@ -83,6 +91,29 @@ function writeTargetDate(date) {
   if (date) url.searchParams.set("date", date);
   else url.searchParams.delete("date");
   window.history.replaceState({}, "", url);
+}
+
+function readModelFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const model = (params.get("model") || "").trim();
+  return MODEL_OPTIONS.some(([key]) => key === model) ? model : "";
+}
+
+function writeModelToUrl(model) {
+  const url = new URL(window.location.href);
+  if (model) url.searchParams.set("model", model);
+  else url.searchParams.delete("model");
+  window.history.replaceState({}, "", url);
+}
+
+function modelOption(key) {
+  return MODEL_OPTIONS.find(([value]) => value === key) || MODEL_OPTIONS[0];
+}
+
+function selectedModelMetadata(payload = state.payload) {
+  return payload && payload.model_metadata && typeof payload.model_metadata === "object"
+    ? payload.model_metadata
+    : {};
 }
 
 function formatCount(value) {
@@ -198,14 +229,18 @@ function showError(message) {
 
 function topLevelCounts(payload) {
   const booksSeen = Array.isArray(payload.books_seen) ? payload.books_seen : [];
+  const metadata = selectedModelMetadata(payload);
+  const selectedModel = metadata.selected_model_family || state.selectedModel;
+  const model = selectedModel ? modelOption(selectedModel) : null;
   return [
     ["Generated", payload.generated_at || "Unknown"],
     ["Date", payload.target_date || "-"],
+    model ? ["Model", `${model[1]} · ${model[2]}`] : null,
     ["Games", formatCount(payload.game_count)],
     ["Betting Games", formatCount(payload.betting_game_count)],
     ["Recommendations", formatCount(payload.recommendation_count)],
     ["Books", booksSeen.length ? booksSeen.join(", ") : "None listed"]
-  ];
+  ].filter(Boolean);
 }
 
 function setPageMeta(payload, requestedDate) {
@@ -267,9 +302,9 @@ function modeColor(game) {
 
 function renderQuickGuide() {
   const items = [
-    ["Wise Choices™", "Official picks that pass BoardWise risk filters, ranked by safest-edge score."],
+    ["Wise Choices™", "Signal buckets, not guarantees. Higher score does not automatically mean higher historical ROI."],
+    ["Model Selector", "Compare Obsidian Steed with Classic MLB while the new model builds live history."],
     ["Market Dropdowns", "Money Line, Run Line, and Total dropdowns show both sides of every market."],
-    ["Projected Score", "Forecast means anchor the board even when no betting data is available."],
     ["Lineup Status", "Confirmed = official lineup; Projected = based on recent games."]
   ];
   const el = document.getElementById("quick-guide");
@@ -295,6 +330,46 @@ function renderToggleButtons() {
       state.mode = button.dataset.bestCardSort;
       state.activeBucket = "all";
       renderBoard();
+    });
+  });
+}
+
+function renderModelSelector() {
+  if (!modelSelectorEl) return;
+  const metadata = selectedModelMetadata();
+  const selected = metadata.selected_model_family || state.selectedModel || "classic_mlb";
+  const available = new Map(
+    (Array.isArray(metadata.available_model_families) ? metadata.available_model_families : [])
+      .map((item) => [item.key, item])
+  );
+  modelSelectorEl.hidden = false;
+  modelSelectorEl.innerHTML = `
+    <span class="model-selector-label">Model</span>
+    ${MODEL_OPTIONS.map(([key, label, badge]) => {
+      const item = available.get(key) || {};
+      const active = key === selected;
+      const disabled = item.available === false;
+      return `
+        <button
+          class="model-selector-button ${active ? "active" : ""}"
+          type="button"
+          data-model-family="${esc(key)}"
+          ${disabled ? "aria-disabled=\"true\"" : ""}
+          title="${disabled ? "No published rows for this date/model yet" : ""}"
+        >
+          <span>${esc(label)}</span>
+          <span class="model-tag">${esc(badge)}</span>
+        </button>`;
+    }).join("")}
+  `;
+  modelSelectorEl.querySelectorAll("[data-model-family]").forEach((rawButton) => {
+    const button = /** @type {HTMLButtonElement} */ (rawButton);
+    button.addEventListener("click", () => {
+      const next = button.dataset.modelFamily || "";
+      if (!next || next === state.selectedModel) return;
+      state.requestedModel = next;
+      writeModelToUrl(next);
+      loadBoard(readTargetDate());
     });
   });
 }
@@ -358,10 +433,27 @@ function metric(label, value) {
   return `<div class="metric-bubble"><div class="m-label">${esc(label)}</div><div class="m-value">${esc(value || "-")}</div></div>`;
 }
 
+function formatProbability(value) {
+  const number = asNumber(value);
+  if (number === null) return "N/A";
+  return `${(number * 100).toFixed(1)}%`;
+}
+
+function optionMarketProbability(option) {
+  if (!option) return null;
+  return asNumber(
+    option.market_no_vig_prob ??
+    option.market_implied_prob ??
+    option.implied_probability ??
+    option.price_implied_probability
+  );
+}
+
 function renderBestCard(option, variant) {
   if (!option) return `<div class="forecast-only-note">No best-bet recommendation is available for this sort.</div>`;
   const label = BEST_CARD_MODES.find(([key]) => key === variant)?.[1] || "Best Value";
   const wise = optionWiseBucket(option);
+  const model = modelOption(selectedModelMetadata().selected_model_family || state.selectedModel || "classic_mlb");
   const badge = variant === "wise_choice"
     ? officialTierBadge(option, wise)
     : variant === "best_growth"
@@ -381,13 +473,13 @@ function renderBestCard(option, variant) {
         ${badge ? `<span class="rating-badge ${variant === "wise_choice" ? "wise-rating-badge" : ""}" title="${esc(badgeTitle)}" style="background:${color};color:${esc(textColorFor(color))}">${esc(badgePrefix + badge)}</span>` : ""}
       </div>
       <div class="best-bet">${esc(option.selection_text || "No selection")}</div>
-      <div class="best-meta">${esc([option.sportsbook, option.odds_text].filter(Boolean).join(" ") || "No book/odds listed")}</div>
+      <div class="best-meta">${esc([model[1], option.sportsbook, option.odds_text].filter(Boolean).join(" · ") || "No book/odds listed")}</div>
       <div class="best-metrics">
         ${metric("Odds", option.odds_text)}
-        ${metric("Model Prob", option.model_prob_text || option.model_probability_text)}
+        ${metric("Win Prob", option.model_prob_text || option.model_probability_text)}
+        ${metric("Market Impl", formatProbability(optionMarketProbability(option)))}
         ${metric("Edge", option.edge_text)}
         ${metric("EV / Unit", option.ev_text)}
-        ${metric("Kelly %", option.kelly_text || formatKelly(option))}
       </div>
     </div>
   `;
@@ -511,10 +603,10 @@ function renderOptionCard(option) {
       <div class="option-meta">${esc([option.sportsbook, option.odds_text].filter(Boolean).join(" ") || "No book/odds listed")}</div>
       <div class="option-metrics">
         ${metric("Odds", option.odds_text)}
-        ${metric("Model Prob", option.model_probability_text || option.model_prob_text)}
+        ${metric("Win Prob", option.model_probability_text || option.model_prob_text)}
+        ${metric("Market Impl", formatProbability(optionMarketProbability(option)))}
         ${metric("Edge", option.edge_text)}
         ${metric("EV / Unit", option.ev_text)}
-        ${metric("Kelly %", option.kelly_text || formatKelly(option))}
       </div>
     </div>
   `;
@@ -638,13 +730,18 @@ function renderBoard() {
 async function loadBoard(targetDate) {
   showLoading();
   try {
-    const payload = await window.BoardWiseApi.getMlbBoard(targetDate);
+    const payload = await window.BoardWiseApi.getMlbBoard(targetDate, {
+      model: state.requestedModel || undefined
+    });
     state.payload = payload;
+    const metadata = selectedModelMetadata(payload);
+    state.selectedModel = metadata.selected_model_family || state.requestedModel || "classic_mlb";
     setHidden(loadingEl, true);
     setHidden(errorEl, true);
     setPageMeta(payload, targetDate);
     setStatusNote(payload);
     renderQuickGuide();
+    renderModelSelector();
     renderBoard();
   } catch (error) {
     console.error(error);
@@ -654,6 +751,7 @@ async function loadBoard(targetDate) {
 
 function init() {
   const initialDate = readTargetDate();
+  state.requestedModel = readModelFromUrl();
   if (dateInput) dateInput.value = initialDate;
   if (dateForm && dateInput) {
     dateForm.addEventListener("submit", (event) => {
