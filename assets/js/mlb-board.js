@@ -20,7 +20,7 @@ const WISE_BUCKETS = [
   ["pass_8_14", "8-14 - Playable", "#b42318"],
   ["medium_high_14_20", "14-20 - Strong", "#86efac"],
   ["high_20_25", "20-25 - Prime", "#669f2a"],
-  ["elite_verify_25_plus", "25+ - Verify", "#067647"]
+  ["elite_verify_25_plus", "25+ - Verify", "#667085"]
 ];
 
 const KELLY_BUCKETS = [
@@ -170,14 +170,14 @@ function formatWise(option) {
 }
 
 function wiseBucketForScore(score) {
-  if (score === null) return { key: "unknown", label: "Unknown", status: "No Edge", color: "#667085" };
-  if (score <= 0) return { key: "pass_lte_0", label: "<= 0 - No Edge", status: "No Edge", color: "#b42318" };
-  if (score < 3) return { key: "pass_0_3", label: "0-3 - Tracker", status: "Tracker", color: "#b42318" };
-  if (score < 8) return { key: "pass_3_8", label: "3-8 - Lean", status: "Lean", color: "#b42318" };
-  if (score < 14) return { key: "pass_8_14", label: "8-14 - Playable", status: "Playable", color: "#b42318" };
-  if (score < 20) return { key: "medium_high_14_20", label: "14-20 - Strong", status: "Strong", color: "#86efac" };
-  if (score < 25) return { key: "high_20_25", label: "20-25 - Prime", status: "Prime", color: "#669f2a" };
-  return { key: "elite_verify_25_plus", label: "25+ - Verify", status: "Verify", color: "#067647" };
+  if (score === null) return { key: "unknown", label: "Unknown", status: "No Edge", rank: 0, color: "#667085" };
+  if (score <= 0) return { key: "pass_lte_0", label: "<= 0 - No Edge", status: "No Edge", rank: 1, color: "#b42318" };
+  if (score < 3) return { key: "pass_0_3", label: "0-3 - Tracker", status: "Tracker", rank: 2, color: "#b42318" };
+  if (score < 8) return { key: "pass_3_8", label: "3-8 - Lean", status: "Lean", rank: 3, color: "#b42318" };
+  if (score < 14) return { key: "pass_8_14", label: "8-14 - Playable", status: "Playable", rank: 4, color: "#b42318" };
+  if (score < 20) return { key: "medium_high_14_20", label: "14-20 - Strong", status: "Strong", rank: 5, color: "#86efac" };
+  if (score < 25) return { key: "high_20_25", label: "20-25 - Prime", status: "Prime", rank: 6, color: "#669f2a" };
+  return { key: "elite_verify_25_plus", label: "25+ - Verify", status: "Verify", rank: 7, color: "#667085" };
 }
 
 function optionWiseBucket(option) {
@@ -189,6 +189,7 @@ function optionWiseBucket(option) {
     key: key || fallback.key,
     label: option.wise_choice_bucket_label || (found ? found[1] : fallback.label),
     status: option.wise_choice_status || fallback.status,
+    rank: asNumber(option.wise_choice_rank) ?? fallback.rank,
     color: found ? found[2] : option.wise_choice_color || fallback.color
   };
 }
@@ -354,7 +355,7 @@ function renderModelSelector() {
           class="model-selector-button ${active ? "active" : ""}"
           type="button"
           data-model-family="${esc(key)}"
-          ${disabled ? "aria-disabled=\"true\"" : ""}
+          ${disabled ? "disabled aria-disabled=\"true\"" : ""}
           title="${disabled ? "No published rows for this date/model yet" : ""}"
         >
           <span>${esc(label)}</span>
@@ -365,6 +366,7 @@ function renderModelSelector() {
   modelSelectorEl.querySelectorAll("[data-model-family]").forEach((rawButton) => {
     const button = /** @type {HTMLButtonElement} */ (rawButton);
     button.addEventListener("click", () => {
+      if (button.disabled || button.getAttribute("aria-disabled") === "true") return;
       const next = button.dataset.modelFamily || "";
       if (!next || next === state.selectedModel) return;
       state.requestedModel = next;
@@ -682,7 +684,7 @@ function renderGame(game, variant = state.mode) {
   const wise = optionWiseBucket(option);
   const border = variant === "wise_choice" ? safeColor(wise.color, "#0f4c81") : modeColor(game);
   const tier = wiseStatusText(wise.key || wise.status);
-  const strong = tier === "Prime" || tier === "Verify" || tier === "Strong" || option?.ev_rating === "High";
+  const strong = tier === "Prime" || tier === "Strong" || option?.ev_rating === "High";
   const tileClass = strong ? "tile strong" : "tile";
   return `
     <article class="${tileClass}" style="border-left-color:${border}" data-ev-bucket="${esc(evBucket(game))}" data-prob-bucket="${esc(probBucket(game))}" data-wise-bucket="${esc(wise.key)}">
@@ -766,6 +768,14 @@ function init() {
     });
   }
   loadBoard(initialDate);
+}
+
+if (["", "localhost", "127.0.0.1"].includes(window.location.hostname)) {
+  const testWindow = /** @type {Window & { __BoardWiseMlbTestHooks?: any }} */ (window);
+  testWindow.__BoardWiseMlbTestHooks = Object.freeze({
+    wiseBucketForScore,
+    wiseStatusText
+  });
 }
 
 init();
