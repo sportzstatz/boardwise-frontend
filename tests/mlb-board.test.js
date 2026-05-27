@@ -127,6 +127,29 @@ describe("mlb-board model selector", () => {
     expect(new URL(window.location.href).searchParams.get("model")).toBeNull();
   });
 
+  it("fails closed when a model availability row is missing", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        available_model_families: [
+          { key: "classic_mlb", label: "Classic MLB", available: true },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(1));
+
+    const obsidianButton = /** @type {HTMLButtonElement} */ (
+      document.querySelector('[data-model-family="obsidian_steed"]')
+    );
+    expect(obsidianButton.disabled).toBe(true);
+    obsidianButton.click();
+
+    expect(getMlbBoard).toHaveBeenCalledTimes(1);
+    expect(new URL(window.location.href).searchParams.get("model")).toBeNull();
+  });
+
   it("does not style Verify as a strong card by default", async () => {
     window.history.replaceState({}, "", "/mlb/");
     const verifyPick = {

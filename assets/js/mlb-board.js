@@ -339,8 +339,9 @@ function renderModelSelector() {
   if (!modelSelectorEl) return;
   const metadata = selectedModelMetadata();
   const selected = metadata.selected_model_family || state.selectedModel || "classic_mlb";
+  const metadataHasAvailability = Array.isArray(metadata.available_model_families);
   const available = new Map(
-    (Array.isArray(metadata.available_model_families) ? metadata.available_model_families : [])
+    (metadataHasAvailability ? metadata.available_model_families : [])
       .map((item) => [item.key, item])
   );
   modelSelectorEl.hidden = false;
@@ -349,7 +350,7 @@ function renderModelSelector() {
     ${MODEL_OPTIONS.map(([key, label, badge]) => {
       const item = available.get(key) || {};
       const active = key === selected;
-      const disabled = item.available === false;
+      const disabled = metadataHasAvailability ? (!available.has(key) || item.available === false) : false;
       return `
         <button
           class="model-selector-button ${active ? "active" : ""}"
