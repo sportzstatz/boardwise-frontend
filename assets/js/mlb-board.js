@@ -116,6 +116,19 @@ function selectedModelMetadata(payload = state.payload) {
     : {};
 }
 
+function modelAvailabilityMap(metadata = selectedModelMetadata()) {
+  return new Map(
+    (Array.isArray(metadata.available_model_families) ? metadata.available_model_families : [])
+      .map((item) => [item.key, item])
+  );
+}
+
+function shouldShowModelOption(key, metadata = selectedModelMetadata()) {
+  const selected = metadata.selected_model_family || state.selectedModel || "classic_mlb";
+  const item = modelAvailabilityMap(metadata).get(key);
+  return !(item?.status === "shadow" && key !== selected);
+}
+
 function formatCount(value) {
   const num = Number(value);
   return Number.isFinite(num) ? num.toLocaleString() : "0";
@@ -304,10 +317,12 @@ function modeColor(game) {
 function renderQuickGuide() {
   const items = [
     ["Wise Choices™", "Signal buckets, not guarantees. Higher score does not automatically mean higher historical ROI."],
-    ["Model Selector", "Compare Obsidian Steed with Classic MLB while the new model builds live history."],
+    shouldShowModelOption("obsidian_steed")
+      ? ["Model Selector", "Compare Obsidian Steed with Classic MLB while the new model builds live history."]
+      : null,
     ["Market Dropdowns", "Money Line, Run Line, and Total dropdowns show both sides of every market."],
     ["Lineup Status", "Confirmed = official lineup; Projected = based on recent games."]
-  ];
+  ].filter(Boolean);
   const el = document.getElementById("quick-guide");
   if (!el) return;
   el.innerHTML = items.map(([label, text]) => `
@@ -347,7 +362,7 @@ function renderModelSelector() {
   modelSelectorEl.hidden = false;
   modelSelectorEl.innerHTML = `
     <span class="model-selector-label">Model</span>
-    ${MODEL_OPTIONS.map(([key, label, badge]) => {
+    ${MODEL_OPTIONS.filter(([key]) => shouldShowModelOption(key, metadata)).map(([key, label, badge]) => {
       const item = available.get(key) || {};
       const active = key === selected;
       const disabled = metadataHasAvailability ? (!available.has(key) || item.available === false) : false;
@@ -615,6 +630,43 @@ function renderOptionCard(option) {
   `;
 }
 
+function renderTrackerOutcome(outcome) {
+  const label = outcome.label || outcome.side || "Tracker";
+  return `
+    <div class="option-card tracker-option">
+      <div class="option-header">
+        <span class="option-label">${esc(label)}</span>
+        <span class="option-badge">${esc(outcome.tracking_only === false ? "Review" : "Tracking")}</span>
+      </div>
+      <div class="option-meta">${esc([outcome.sportsbook, outcome.odds_text].filter(Boolean).join(" ") || "Tracker market")}</div>
+      <div class="option-metrics">
+        ${metric("Model", outcome.model_probability_text || formatProbability(outcome.model_probability))}
+        ${metric("Market", outcome.market_probability_text || formatProbability(outcome.market_probability))}
+        ${metric("Edge", outcome.edge_text)}
+        ${metric("Odds", outcome.odds_text)}
+      </div>
+    </div>
+  `;
+}
+
+function renderTrackerMarketDropdowns(game) {
+  const dropdowns = Array.isArray(game.tracker_market_dropdowns) ? game.tracker_market_dropdowns : [];
+  if (!dropdowns.length) return "";
+  return `<div class="dropdown-stack tracker-dropdown-stack">${dropdowns.map((market) => {
+    const outcomes = Array.isArray(market.outcomes) ? market.outcomes : [];
+    return `
+      <details class="market-dropdown tracker-market-dropdown">
+        <summary>
+          <span class="summary-label">${esc(market.title || market.market_key || "Tracker")}</span>
+          <span class="summary-center">${esc(market.tracking_only === false ? "" : "Tracking")}</span>
+          <span class="summary-icon"><span class="summary-icon-plus">+</span><span class="summary-icon-minus">−</span></span>
+        </summary>
+        <div class="dropdown-body">${outcomes.map(renderTrackerOutcome).join("")}</div>
+      </details>
+    `;
+  }).join("")}</div>`;
+}
+
 function renderMarketDropdowns(game) {
   const dropdowns = Array.isArray(game.market_dropdowns) ? game.market_dropdowns : [];
   if (!dropdowns.length) {
@@ -702,6 +754,7 @@ function renderGame(game, variant = state.mode) {
       ${renderPitchers(game)}
       ${renderBestCard(option, variant)}
       ${renderMarketDropdowns(game)}
+      ${renderTrackerMarketDropdowns(game)}
     </article>
   `;
 }

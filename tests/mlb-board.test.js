@@ -150,6 +150,25 @@ describe("mlb-board model selector", () => {
     expect(new URL(window.location.href).searchParams.get("model")).toBeNull();
   });
 
+  it("hides shadow-only model options from the public Classic page", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        available_model_families: [
+          { key: "classic_mlb", label: "Classic MLB", status: "legacy_baseline" },
+          { key: "obsidian_steed", label: "Obsidian Steed", status: "shadow" },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(1));
+
+    expect(document.querySelector('[data-model-family="classic_mlb"]')).not.toBeNull();
+    expect(document.querySelector('[data-model-family="obsidian_steed"]')).toBeNull();
+    expect(document.body.textContent).not.toContain("Obsidian Steed");
+  });
+
   it("does not style Verify as a strong card by default", async () => {
     window.history.replaceState({}, "", "/mlb/");
     const verifyPick = {
@@ -184,6 +203,90 @@ describe("mlb-board model selector", () => {
 
     expect(document.querySelector(".tile.strong")).toBeNull();
     expect(document.body.textContent).toContain("Verify Line");
+  });
+
+  it("renders tracker markets separately from official and Wise Choice buckets", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const officialPick = {
+      selection_text: "Home Moneyline",
+      label: "Home Moneyline",
+      sportsbook: "BookA",
+      odds_text: "-120",
+      wise_choice_score: 9,
+      wise_choice_bucket_key: "pass_8_14",
+      wise_choice_bucket_label: "8-14 - Playable",
+      wise_choice_status: "Playable",
+      is_official: true,
+    };
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        games: [
+          {
+            game_label: "Away at Home",
+            commence_time: "7:05 PM",
+            venue: "Test Park",
+            favorite_team: "Home",
+            favorite_prob_text: "55.0%",
+            best_card_options: { wise_choice: officialPick },
+            recommendations: [officialPick],
+            market_dropdowns: [
+              {
+                title: "Money Line",
+                market_key: "h2h",
+                options: [officialPick],
+              },
+            ],
+            tracker_market_dropdowns: [
+              {
+                market_key: "first_inning_total",
+                title: "1st Inning Total",
+                tracking_only: true,
+                outcomes: [
+                  {
+                    side: "over",
+                    label: "Over 0.5",
+                    model_probability_text: "31.2%",
+                    market_probability_text: "29.5%",
+                    tracking_only: true,
+                  },
+                ],
+              },
+              {
+                market_key: "nrfi_yrfi",
+                title: "NRFI/YRFI",
+                tracking_only: true,
+                outcomes: [
+                  {
+                    side: "yrfi",
+                    label: "YRFI",
+                    model_probability_text: "31.2%",
+                    tracking_only: true,
+                  },
+                  {
+                    side: "nrfi",
+                    label: "NRFI",
+                    model_probability_text: "68.8%",
+                    tracking_only: true,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tracker-market-dropdown")).not.toBeNull());
+
+    expect(document.body.textContent).toContain("1st Inning Total");
+    expect(document.body.textContent).toContain("NRFI/YRFI");
+    expect(document.body.textContent).toContain("Over 0.5");
+    expect(document.body.textContent).toContain("YRFI");
+    expect(document.querySelector(".tracker-market-dropdown .option-badge.official")).toBeNull();
+    expect(document.querySelector(".best-card")?.textContent).toContain("Home Moneyline");
+    expect(document.querySelector(".best-card")?.textContent).not.toContain("YRFI");
   });
 
   it("matches Wise Choice boundary fixture labels", async () => {
