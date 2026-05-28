@@ -185,6 +185,9 @@
         <label>Model version
           <select id="f-model-version" name="model_version"><option value="">All</option></select>
         </label>
+        <label>Model family
+          <select id="f-model-family" name="model_family"><option value="">All</option></select>
+        </label>
         <label>Prediction mode
           <select id="f-mode" name="prediction_mode"><option value="">All</option></select>
         </label>
@@ -215,6 +218,10 @@
 
     <section id="kpi-grid" class="kpi-grid" hidden></section>
 
+    <section class="status-note">
+      Wise Tier is a model signal bucket, not a guarantee. Higher score does not automatically mean higher historical ROI; compare tiers by sample size, units, ROI, and CLV.
+    </section>
+
     <section class="section">
       <h2>Breakdown</h2>
       <div class="section-controls">
@@ -224,6 +231,7 @@
           <option value="confidence_bucket">Confidence bucket</option>
           <option value="model_probability_bucket">Model probability bucket</option>
           <option value="model_version">Model version</option>
+          <option value="model_family">Model family</option>
           <option value="sport">Sport</option>
           <option value="market">Market</option>
           <option value="book">Bookmaker</option>
@@ -238,6 +246,7 @@
             <tr>
               <th>Tier</th>
               <th>Range</th>
+              <th>Tier health</th>
               <th class="num">Picks</th>
               <th>Record</th>
               <th class="num">Units</th>
@@ -293,6 +302,7 @@
           <thead>
             <tr>
               <th>Date</th>
+              <th>Model</th>
               <th>Game</th>
               <th>Market</th>
               <th>Selection</th>

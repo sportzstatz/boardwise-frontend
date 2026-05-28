@@ -66,6 +66,7 @@ interface BoardWisePerformanceFiltersPayload {
   model_probability_buckets?: any[];
   wise_choice_buckets?: any[];
   model_versions?: any[];
+  model_families?: any[];
   prediction_modes?: any[];
   visibility?: Record<string, any>;
 }
@@ -119,9 +120,15 @@ interface BoardWiseApiClient {
   }): Promise<Record<string, any>>;
   verifyMagicLink(token: string): Promise<Record<string, any> | null>;
   logout(): Promise<Record<string, any> | null>;
-  getMlbBoard(targetDate?: string): Promise<BoardWiseBoardPayload>;
+  getMlbBoard(
+    targetDate?: string,
+    options?: { model?: string }
+  ): Promise<BoardWiseBoardPayload>;
   getNhlBoard(targetDate?: string): Promise<BoardWiseBoardPayload>;
-  getPerformanceFilters(sport?: string): Promise<BoardWisePerformanceFiltersPayload>;
+  getPerformanceFilters(
+    sport?: string,
+    options?: { model_family?: string }
+  ): Promise<BoardWisePerformanceFiltersPayload>;
   getPerformanceSummary(
     query: BoardWisePerformanceQuery
   ): Promise<BoardWisePerformanceSummaryPayload>;

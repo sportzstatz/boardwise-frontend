@@ -1,0 +1,93 @@
+[
+  {
+    "score": null,
+    "key": "unknown",
+    "label": "Unknown",
+    "status": "No Edge",
+    "rank": 0
+  },
+  {
+    "score": -1,
+    "key": "pass_lte_0",
+    "label": "<= 0 - No Edge",
+    "status": "No Edge",
+    "rank": 1
+  },
+  {
+    "score": 0,
+    "key": "pass_lte_0",
+    "label": "<= 0 - No Edge",
+    "status": "No Edge",
+    "rank": 1
+  },
+  {
+    "score": 2.99,
+    "key": "pass_0_3",
+    "label": "0-3 - Tracker",
+    "status": "Tracker",
+    "rank": 2
+  },
+  {
+    "score": 3,
+    "key": "pass_3_8",
+    "label": "3-8 - Lean",
+    "status": "Lean",
+    "rank": 3
+  },
+  {
+    "score": 7.99,
+    "key": "pass_3_8",
+    "label": "3-8 - Lean",
+    "status": "Lean",
+    "rank": 3
+  },
+  {
+    "score": 8,
+    "key": "pass_8_14",
+    "label": "8-14 - Playable",
+    "status": "Playable",
+    "rank": 4
+  },
+  {
+    "score": 13.99,
+    "key": "pass_8_14",
+    "label": "8-14 - Playable",
+    "status": "Playable",
+    "rank": 4
+  },
+  {
+    "score": 14,
+    "key": "medium_high_14_20",
+    "label": "14-20 - Strong",
+    "status": "Strong",
+    "rank": 5
+  },
+  {
+    "score": 19.99,
+    "key": "medium_high_14_20",
+    "label": "14-20 - Strong",
+    "status": "Strong",
+    "rank": 5
+  },
+  {
+    "score": 20,
+    "key": "high_20_25",
+    "label": "20-25 - Prime",
+    "status": "Prime",
+    "rank": 6
+  },
+  {
+    "score": 24.99,
+    "key": "high_20_25",
+    "label": "20-25 - Prime",
+    "status": "Prime",
+    "rank": 6
+  },
+  {
+    "score": 25,
+    "key": "elite_verify_25_plus",
+    "label": "25+ - Verify",
+    "status": "Verify",
+    "rank": 7
+  }
+]

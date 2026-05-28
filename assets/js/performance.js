@@ -14,6 +14,7 @@ const DEFAULT_SPORT = "mlb";
  *   settled_only?: boolean;
  *   start_date?: string;
  *   end_date?: string;
+ *   model_family?: string;
  * }} PerformanceFilters
  */
 
@@ -83,6 +84,24 @@ const WISE_TIER_META = {
   high_20_25: { tier: "Prime", range: "20-25" },
   elite_verify_25_plus: { tier: "Verify", range: "25+" },
 };
+
+const MODEL_FAMILY_LABELS = {
+  classic_mlb: "Classic MLB",
+  obsidian_steed: "Obsidian Steed",
+};
+
+function modelFamilyLabel(value) {
+  const key = String(value || "").trim();
+  return MODEL_FAMILY_LABELS[key] || key || "—";
+}
+
+function tierHealthStatus(group) {
+  const picks = Number(group && group.pick_count);
+  const clvCoverage = Number(group && group.clv_coverage);
+  if (!Number.isFinite(picks) || picks < 50) return "Small sample";
+  if (Number.isFinite(clvCoverage) && clvCoverage > 0 && clvCoverage < 0.6) return "Needs CLV";
+  return "Tracking";
+}
 
 function wiseStatusText(value) {
   const key = String(value || "").trim();
@@ -213,8 +232,8 @@ function initialSportFromUrl() {
   return raw || DEFAULT_SPORT;
 }
 
-async function fetchFilterOptions(sport) {
-  return window.BoardWiseApi.getPerformanceFilters(sport);
+async function fetchFilterOptions(sport, modelFamily = "") {
+  return window.BoardWiseApi.getPerformanceFilters(sport, { model_family: modelFamily || undefined });
 }
 
 const FILTER_KEYS = [
@@ -225,6 +244,7 @@ const FILTER_KEYS = [
   "model_probability_bucket",
   "wise_choice_bucket",
   "model_version",
+  "model_family",
   "prediction_mode",
   "start_date",
   "end_date",
@@ -240,6 +260,7 @@ const ALLOWED_GROUPS = new Set([
   "model_probability_bucket",
   "wise_choice_bucket",
   "model_version",
+  "model_family",
   "sport",
   "market",
   "book",
@@ -353,6 +374,7 @@ function applyFiltersToForm(filters) {
     model_probability_bucket: "f-prob-bucket",
     wise_choice_bucket: "f-wise-bucket",
     model_version: "f-model-version",
+    model_family: "f-model-family",
     prediction_mode: "f-mode",
     start_date: "f-start",
     end_date: "f-end",
@@ -384,6 +406,7 @@ function readFiltersFromForm() {
     model_probability_bucket: "f-prob-bucket",
     wise_choice_bucket: "f-wise-bucket",
     model_version: "f-model-version",
+    model_family: "f-model-family",
     prediction_mode: "f-mode",
     start_date: "f-start",
     end_date: "f-end",
@@ -530,6 +553,7 @@ function renderBreakdown(payload) {
       ? "(unknown)"
       : g.group_value;
     const tierMeta = isWiseTier ? wiseTierMetaFromGroup(g) : { tier: label, range: "—" };
+    const tierStatus = isWiseTier ? tierHealthStatus(g) : "—";
     const roi = g.roi === null || g.roi === undefined ? "N/A" : fmtPct(g.roi);
     const avgClv = (g.clv_coverage && Number(g.clv_coverage) > 0 && g.avg_clv_prob_delta !== null && g.avg_clv_prob_delta !== undefined)
       ? fmtDelta(g.avg_clv_prob_delta, { digits: 2, asPct: true })
@@ -537,6 +561,7 @@ function renderBreakdown(payload) {
     return `<tr>
       <td>${esc(tierMeta.tier)}</td>
       <td>${esc(tierMeta.range)}</td>
+      <td><span class="pill-tag">${esc(tierStatus)}</span></td>
       <td class="num">${esc(fmtNumber(g.pick_count))}</td>
       <td>${esc(g.record || "0-0-0")}</td>
       <td class="num">${esc(fmtUnits(g.units_won))}</td>
@@ -591,6 +616,7 @@ function renderPicks(payload) {
       : fmtDelta(p.clv_prob_delta, { digits: 2, asPct: true });
     return `<tr>
       <td>${esc(p.target_date || "")}</td>
+      <td>${esc(modelFamilyLabel(p.model_family))}</td>
       <td>${esc(game)}</td>
       <td>${esc(p.market_key || "")}</td>
       <td>${esc(selection)}</td>
@@ -971,7 +997,7 @@ function fillSelect(selectId, options, { keyField = null, labelField = null, cur
 
 async function loadFilters(filters, { preloaded = null } = {}) {
   try {
-    const data = preloaded || await fetchFilterOptions(filters.sport || DEFAULT_SPORT);
+    const data = preloaded || await fetchFilterOptions(filters.sport || DEFAULT_SPORT, filters.model_family || "");
     updateVisibilityConfig(data);
     setRuntimeVisibility(data.visibility);
     fillSelect("f-sport", visibilityConfig.publicSports, { currentValue: filters.sport || "" });
@@ -981,6 +1007,7 @@ async function loadFilters(filters, { preloaded = null } = {}) {
     fillSelect("f-prob-bucket", data.model_probability_buckets || [], { currentValue: filters.model_probability_bucket || "" });
     fillSelect("f-wise-bucket", data.wise_choice_buckets || [], { keyField: "key", labelField: "label", currentValue: filters.wise_choice_bucket || "" });
     fillSelect("f-model-version", data.model_versions || [], { currentValue: filters.model_version || "" });
+    fillSelect("f-model-family", data.model_families || [], { currentValue: filters.model_family || "" });
     fillSelect("f-mode", data.prediction_modes || [], { currentValue: filters.prediction_mode || "" });
     populateBookComparisonBooks(data.bookmakers || []);
   } catch (err) {
@@ -1098,7 +1125,8 @@ async function refresh(filters, { preloadedFilters = null } = {}) {
 async function init() {
   let preloadedFilters = null;
   try {
-    preloadedFilters = await fetchFilterOptions(initialSportFromUrl());
+    const params = new URLSearchParams(window.location.search);
+    preloadedFilters = await fetchFilterOptions(initialSportFromUrl(), (params.get("model_family") || "").trim());
     updateVisibilityConfig(preloadedFilters);
     setRuntimeVisibility(preloadedFilters.visibility);
   } catch (err) {
@@ -1129,6 +1157,14 @@ async function init() {
   const sportEl = document.getElementById("f-sport");
   if (sportEl) {
     sportEl.addEventListener("change", () => {
+      const next = readFiltersFromForm();
+      refresh(next);
+    });
+  }
+
+  const modelFamilyEl = document.getElementById("f-model-family");
+  if (modelFamilyEl) {
+    modelFamilyEl.addEventListener("change", () => {
       const next = readFiltersFromForm();
       refresh(next);
     });
