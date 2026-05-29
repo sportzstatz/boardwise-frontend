@@ -36,16 +36,28 @@ const MODEL_OPTIONS = [
   ["classic_mlb", "Classic MLB", "Legacy baseline"]
 ];
 
+const TRACKER_MARKET_LABELS = new Map([
+  ["first_inning_total", "1st Inning O/U"],
+  ["nrfi_yrfi", "NRFI/YRFI"],
+  ["first_inning_moneyline", "1st Inning Moneyline"],
+  ["first_inning_spread", "1st Inning Run Line"]
+]);
+const TRACKER_HELPER_TEXT = "Tracking-only market. Not included in official record or public performance.";
+const DEFAULT_PAGE_SUBTITLE = "Forecasts render from the BoardWise public API. When matched odds are present, each tile shows a best available bet card and market-level dropdowns with both sides of every market.";
+const TRACKER_PAGE_SUBTITLE = "Compare official MLB picks, market dropdowns, and tracking-only first-inning signals from the BoardWise public API.";
+
 const metaEl = document.getElementById("meta");
 const statusNoteEl = document.getElementById("status-note");
 const loadingEl = document.getElementById("loading");
 const gamesEl = document.getElementById("games");
 const errorEl = document.getElementById("error");
+const subtitleEl = document.getElementById("page-subtitle");
 const dateForm = /** @type {HTMLFormElement | null} */ (document.getElementById("date-form"));
 const dateInput = /** @type {HTMLInputElement | null} */ (document.getElementById("board-date"));
 const evFilters = document.getElementById("ev-filters");
 const probFilters = document.getElementById("prob-filters");
 const modelSelectorEl = document.getElementById("model-selector");
+const obsidianHeroEl = document.getElementById("obsidian-hero");
 
 function esc(value) {
   return String(value ?? "")
@@ -116,6 +128,113 @@ function selectedModelMetadata(payload = state.payload) {
     : {};
 }
 
+function getVisualBranding(payload = state.payload) {
+  const metadata = selectedModelMetadata(payload);
+  return metadata.visual_branding && typeof metadata.visual_branding === "object"
+    ? metadata.visual_branding
+    : {};
+}
+
+function getTrackerMarketMetadata(payload = state.payload) {
+  const metadata = selectedModelMetadata(payload);
+  return metadata.tracker_markets && typeof metadata.tracker_markets === "object"
+    ? metadata.tracker_markets
+    : {};
+}
+
+function trackerMarketLabelMap(payload = state.payload) {
+  const labels = new Map(TRACKER_MARKET_LABELS);
+  const markets = getTrackerMarketMetadata(payload).markets;
+  if (Array.isArray(markets)) {
+    for (const market of markets) {
+      if (market?.key && market?.label) labels.set(String(market.key), String(market.label));
+    }
+  }
+  return labels;
+}
+
+function trackerMarketLabel(market, payload = state.payload) {
+  const key = market?.key || market?.market_key || market?.market_key_canonical;
+  const labels = trackerMarketLabelMap(payload);
+  if (key && labels.has(String(key))) return labels.get(String(key));
+  return market?.label || market?.title || "Tracker";
+}
+
+function hasTrackerMarkets(payload = state.payload) {
+  const trackerMetadata = getTrackerMarketMetadata(payload);
+  return trackerMetadata.enabled === true && trackerMetadata.has_markets === true;
+}
+
+function shouldShowObsidianTreatment(payload = state.payload) {
+  const metadata = selectedModelMetadata(payload);
+  const branding = getVisualBranding(payload);
+  const games = Array.isArray(payload?.games) ? payload.games : [];
+
+  return (
+    metadata?.selected_model_family === "obsidian_steed" &&
+    metadata?.selected_model_available !== false &&
+    games.length > 0 &&
+    branding.family === "obsidian_steed" &&
+    branding.hero_enabled === true
+  );
+}
+
+function obsidianHeroCopy(payload = state.payload) {
+  const branding = getVisualBranding(payload);
+  const variant = branding.variant || "classic";
+  if (variant === "shadow") {
+    return [
+      "Obsidian Steed Shadow",
+      "Live tracking model under review before public grading."
+    ];
+  }
+  if (variant === "public") {
+    return [
+      "Obsidian Steed",
+      "Next-generation MLB model powering today's board."
+    ];
+  }
+  return ["", ""];
+}
+
+function renderObsidianHero(payload = state.payload) {
+  if (!obsidianHeroEl) return;
+  if (!shouldShowObsidianTreatment(payload)) {
+    obsidianHeroEl.hidden = true;
+    obsidianHeroEl.innerHTML = "";
+    obsidianHeroEl.removeAttribute("data-variant");
+    return;
+  }
+  const branding = getVisualBranding(payload);
+  const [title, copy] = obsidianHeroCopy(payload);
+  obsidianHeroEl.hidden = false;
+  obsidianHeroEl.dataset.variant = branding.variant || "shadow";
+  obsidianHeroEl.innerHTML = `
+    <div class="obsidian-hero-title">${esc(title)}</div>
+    <div class="obsidian-hero-copy">${esc(copy)}</div>
+  `;
+}
+
+function applyVisualTreatment(payload = state.payload) {
+  const enabled = shouldShowObsidianTreatment(payload);
+  document.body.classList.toggle("obsidian-treatment", enabled);
+  if (enabled) {
+    document.body.dataset.obsidianVariant = getVisualBranding(payload).variant || "shadow";
+  } else {
+    delete document.body.dataset.obsidianVariant;
+  }
+}
+
+function clearVisualTreatment() {
+  renderObsidianHero(null);
+  applyVisualTreatment(null);
+}
+
+function updatePageSubtitle(payload = state.payload) {
+  if (!subtitleEl) return;
+  subtitleEl.textContent = hasTrackerMarkets(payload) ? TRACKER_PAGE_SUBTITLE : DEFAULT_PAGE_SUBTITLE;
+}
+
 function modelAvailabilityMap(metadata = selectedModelMetadata()) {
   return new Map(
     (Array.isArray(metadata.available_model_families) ? metadata.available_model_families : [])
@@ -126,7 +245,8 @@ function modelAvailabilityMap(metadata = selectedModelMetadata()) {
 function shouldShowModelOption(key, metadata = selectedModelMetadata()) {
   const selected = metadata.selected_model_family || state.selectedModel || "classic_mlb";
   const item = modelAvailabilityMap(metadata).get(key);
-  return !(item?.status === "shadow" && key !== selected);
+  const visibilityStatus = item?.visibility_status || item?.status;
+  return !(visibilityStatus === "shadow" && key !== selected);
 }
 
 function formatCount(value) {
@@ -224,6 +344,8 @@ function setHidden(el, hidden) {
 }
 
 function showLoading() {
+  clearVisualTreatment();
+  updatePageSubtitle(null);
   setHidden(loadingEl, false);
   setHidden(errorEl, true);
   setHidden(gamesEl, true);
@@ -233,6 +355,8 @@ function showLoading() {
 }
 
 function showError(message) {
+  clearVisualTreatment();
+  updatePageSubtitle(null);
   setHidden(loadingEl, true);
   setHidden(gamesEl, true);
   if (errorEl) {
@@ -260,6 +384,7 @@ function topLevelCounts(payload) {
 function setPageMeta(payload, requestedDate) {
   const targetDate = payload.target_date || requestedDate || "-";
   document.title = `BoardWise MLB - ${targetDate}`;
+  updatePageSubtitle(payload);
   if (metaEl) {
     metaEl.innerHTML = topLevelCounts(payload)
       .map(([label, value]) => `<div class="pill"><strong>${esc(label)}</strong> ${esc(value)}</div>`)
@@ -282,10 +407,29 @@ function setStatusNote(payload) {
 
 function bestOption(game, variant = state.mode) {
   const options = game.best_card_options || {};
-  if (variant === "best_value") return options.best_value || options.highest_ev || null;
-  if (variant === "best_growth") return options.best_growth || options.wise_choice || options.best_value || options.highest_ev || null;
-  if (variant === "wise_choice") return options.wise_choice || options.best_value || options.highest_ev || null;
-  return options[variant] || options.best_value || options.highest_ev || (Array.isArray(game.recommendations) ? game.recommendations[0] : null);
+  const publicRecommendation = Array.isArray(game.recommendations)
+    ? game.recommendations.find((rec) => rec && typeof rec === "object" && !isTrackingOnlyOption(rec))
+    : null;
+  const publicOption = (option) => isTrackingOnlyOption(option) ? null : option;
+  if (variant === "best_value") return publicOption(options.best_value) || publicOption(options.highest_ev) || null;
+  if (variant === "best_growth") {
+    return publicOption(options.best_growth)
+      || publicOption(options.wise_choice)
+      || publicOption(options.best_value)
+      || publicOption(options.highest_ev)
+      || null;
+  }
+  if (variant === "wise_choice") {
+    return publicOption(options.wise_choice)
+      || publicOption(options.best_value)
+      || publicOption(options.highest_ev)
+      || null;
+  }
+  return publicOption(options[variant])
+    || publicOption(options.best_value)
+    || publicOption(options.highest_ev)
+    || publicRecommendation
+    || null;
 }
 
 function evBucket(game) {
@@ -314,13 +458,33 @@ function modeColor(game) {
   return evColor(game);
 }
 
+function obsidianQuickGuideItem(payload = state.payload) {
+  if (!shouldShowObsidianTreatment(payload)) return null;
+  const variant = getVisualBranding(payload).variant || "shadow";
+  if (variant === "public") {
+    return [
+      "Obsidian Steed",
+      "The selected MLB model powers this board, with official picks and tracker-only markets clearly separated."
+    ];
+  }
+  return [
+    "Obsidian Steed Shadow",
+    "A next-generation MLB model is visible for review while official performance remains separated from Classic public results."
+  ];
+}
+
 function renderQuickGuide() {
+  const trackerItem = hasTrackerMarkets()
+    ? [
+      "1st Inning Trackers",
+      "1st inning O/U and NRFI/YRFI are tracking-only model signals. They are not official picks and are not included in public performance."
+    ]
+    : null;
   const items = [
     ["Wise Choices™", "Signal buckets, not guarantees. Higher score does not automatically mean higher historical ROI."],
-    shouldShowModelOption("obsidian_steed")
-      ? ["Model Selector", "Compare Obsidian Steed with Classic MLB while the new model builds live history."]
-      : null,
+    obsidianQuickGuideItem(),
     ["Market Dropdowns", "Money Line, Run Line, and Total dropdowns show both sides of every market."],
+    trackerItem,
     ["Lineup Status", "Confirmed = official lineup; Projected = based on recent games."]
   ].filter(Boolean);
   const el = document.getElementById("quick-guide");
@@ -504,11 +668,16 @@ function renderBestCard(option, variant) {
 }
 
 function officialTierBadge(option, wise = optionWiseBucket(option)) {
+  if (isTrackingOnlyOption(option)) return "Tracking";
   const tier = wiseStatusText(wise.key || wise.status);
   if (tier === "Verify") return "Verify Line";
   if (option?.is_official && ["Strong", "Prime", "Playable"].includes(tier)) return `Official · ${tier}`;
   if (tier === "Lean") return option?.is_official ? "Official · Lean" : "Lean · Not Official";
   return tier;
+}
+
+function isTrackingOnlyOption(option) {
+  return Boolean(option && (option.tracking_only || option.is_tracking_only));
 }
 
 function scoreOrFloor(value) {
@@ -544,8 +713,10 @@ function compareBetItems(a, b) {
 function collectRecommendedBets(games) {
   const bets = [];
   for (const game of games) {
-    const recs = Array.isArray(game.recommendations) ? game.recommendations.filter((rec) => rec && typeof rec === "object") : [];
-    const official = recs.filter((rec) => rec.is_official);
+    const recs = Array.isArray(game.recommendations)
+      ? game.recommendations.filter((rec) => rec && typeof rec === "object" && !isTrackingOnlyOption(rec))
+      : [];
+    const official = recs.filter((rec) => rec.is_official && !isTrackingOnlyOption(rec));
     const source = official.length ? official : recs;
     if (!source.length) {
       const option = bestOption(game, state.mode);
@@ -607,15 +778,17 @@ function renderBetPill(item) {
 function renderOptionCard(option) {
   const color = safeColor(option.ev_rating_color || option.prob_rating_color, "#0f4c81");
   const classes = ["option-card"];
+  const trackingOnly = isTrackingOnlyOption(option);
+  const official = option.is_official && !trackingOnly;
   if (option.is_primary) classes.push("primary");
-  if (option.is_official) classes.push("official");
+  if (official) classes.push("official");
   return `
     <div class="${classes.join(" ")}">
       <div class="option-header">
         <span class="option-label">${esc(option.label || option.selection_text || "Option")}</span>
         <span style="display:flex;gap:6px;align-items:center">
           ${option.ev_rating ? `<span class="option-rating-badge rating-badge" title="Expected value rating" style="background:${color};font-size:10px;padding:3px 7px">EV: ${esc(option.ev_rating)}</span>` : ""}
-          ${option.is_official ? `<span class="option-badge official">Official</span>` : option.status_label ? `<span class="option-badge">${esc(option.status_label)}</span>` : ""}
+          ${trackingOnly ? `<span class="option-badge">Tracking</span>` : official ? `<span class="option-badge official">Official</span>` : option.status_label ? `<span class="option-badge">${esc(option.status_label)}</span>` : ""}
         </span>
       </div>
       <div class="option-meta">${esc([option.sportsbook, option.odds_text].filter(Boolean).join(" ") || "No book/odds listed")}</div>
@@ -632,11 +805,12 @@ function renderOptionCard(option) {
 
 function renderTrackerOutcome(outcome) {
   const label = outcome.label || outcome.side || "Tracker";
+  const badge = outcome.tracking_only === false ? "Tracker" : "Tracking Only";
   return `
     <div class="option-card tracker-option">
       <div class="option-header">
         <span class="option-label">${esc(label)}</span>
-        <span class="option-badge">${esc(outcome.tracking_only === false ? "Review" : "Tracking")}</span>
+        <span class="option-badge tracker-badge" title="${esc(TRACKER_HELPER_TEXT)}">${esc(badge)}</span>
       </div>
       <div class="option-meta">${esc([outcome.sportsbook, outcome.odds_text].filter(Boolean).join(" ") || "Tracker market")}</div>
       <div class="option-metrics">
@@ -650,18 +824,23 @@ function renderTrackerOutcome(outcome) {
 }
 
 function renderTrackerMarketDropdowns(game) {
+  if (!hasTrackerMarkets()) return "";
   const dropdowns = Array.isArray(game.tracker_market_dropdowns) ? game.tracker_market_dropdowns : [];
   if (!dropdowns.length) return "";
   return `<div class="dropdown-stack tracker-dropdown-stack">${dropdowns.map((market) => {
     const outcomes = Array.isArray(market.outcomes) ? market.outcomes : [];
+    const title = trackerMarketLabel(market);
     return `
       <details class="market-dropdown tracker-market-dropdown">
         <summary>
-          <span class="summary-label">${esc(market.title || market.market_key || "Tracker")}</span>
-          <span class="summary-center">${esc(market.tracking_only === false ? "" : "Tracking")}</span>
+          <span class="summary-label">${esc(title)}</span>
+          <span class="summary-center"><span class="option-badge tracker-badge" title="${esc(TRACKER_HELPER_TEXT)}">${esc(market.tracking_only === false ? "Tracker" : "Tracking Only")}</span></span>
           <span class="summary-icon"><span class="summary-icon-plus">+</span><span class="summary-icon-minus">−</span></span>
         </summary>
-        <div class="dropdown-body">${outcomes.map(renderTrackerOutcome).join("")}</div>
+        <div class="dropdown-body">
+          <div class="tracker-helper-line">${esc(TRACKER_HELPER_TEXT)}</div>
+          ${outcomes.map(renderTrackerOutcome).join("")}
+        </div>
       </details>
     `;
   }).join("")}</div>`;
@@ -798,6 +977,8 @@ async function loadBoard(targetDate) {
     setStatusNote(payload);
     renderQuickGuide();
     renderModelSelector();
+    renderObsidianHero(payload);
+    applyVisualTreatment(payload);
     renderBoard();
   } catch (error) {
     console.error(error);
@@ -827,6 +1008,9 @@ function init() {
 if (["", "localhost", "127.0.0.1"].includes(window.location.hostname)) {
   const testWindow = /** @type {Window & { __BoardWiseMlbTestHooks?: any }} */ (window);
   testWindow.__BoardWiseMlbTestHooks = Object.freeze({
+    getVisualBranding,
+    getTrackerMarketMetadata,
+    shouldShowObsidianTreatment,
     wiseBucketForScore,
     wiseStatusText
   });

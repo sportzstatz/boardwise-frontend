@@ -1,0 +1,221 @@
+{
+  "target_date": "2026-05-29",
+  "generated_at": "2026-05-29 12:00 PM CT",
+  "mode": "probable",
+  "game_count": 1,
+  "betting_game_count": 1,
+  "recommendation_count": 1,
+  "tracking_count": 4,
+  "first_inning_tracker_count": 4,
+  "books_seen": ["DraftKings", "FanDuel"],
+  "summary": {
+    "recommendation_count": 1,
+    "tracking_count": 4,
+    "first_inning_tracker_count": 4
+  },
+  "model_metadata": {
+    "default_model_family": "classic_mlb",
+    "selected_model_family": "classic_mlb",
+    "selected_model_available": true,
+    "model_family": "classic_mlb",
+    "model_display_name": "Classic MLB",
+    "model_version": "ensemble_probable_snapshot_v1",
+    "shadow_only": false,
+    "available_model_families": [
+      {
+        "key": "classic_mlb",
+        "label": "Classic MLB",
+        "available": true,
+        "visibility_status": "classic",
+        "status": "classic",
+        "badge": "Legacy baseline"
+      },
+      {
+        "key": "obsidian_steed",
+        "label": "Obsidian Steed",
+        "available": true,
+        "visibility_status": "shadow",
+        "status": "shadow",
+        "badge": "Shadow model"
+      }
+    ],
+    "visual_branding": {
+      "family": "classic_mlb",
+      "display_name": "Classic MLB",
+      "variant": "classic",
+      "hero_enabled": false,
+      "shadow_treatment_enabled": false,
+      "requires_games": true,
+      "public_enabled": false
+    },
+    "tracker_markets": {
+      "enabled": true,
+      "has_markets": true,
+      "public": false,
+      "status": "shadow_tracking",
+      "official_allowed": false,
+      "tracking_only": true,
+      "counts": {
+        "games_with_tracker_markets": 1,
+        "outcomes": 4,
+        "first_inning_outcomes": 4
+      },
+      "market_keys": ["first_inning_total", "nrfi_yrfi"],
+      "markets": [
+        {
+          "key": "first_inning_total",
+          "label": "1st Inning O/U",
+          "period": "first_inning",
+          "tracking_only": true,
+          "outcome_labels": ["Over", "Under"]
+        },
+        {
+          "key": "nrfi_yrfi",
+          "label": "NRFI/YRFI",
+          "period": "first_inning",
+          "tracking_only": true,
+          "outcome_labels": ["NRFI", "YRFI"]
+        }
+      ]
+    }
+  },
+  "games": [
+    {
+      "game_label": "Yankees at Red Sox",
+      "away_team": "New York Yankees",
+      "home_team": "Boston Red Sox",
+      "away_team_abbr": "NYY",
+      "home_team_abbr": "BOS",
+      "commence_time": "6:10 PM CT",
+      "venue": "Fenway Park",
+      "favorite_team": "Yankees",
+      "favorite_prob_text": "56.1%",
+      "away_pitcher": "Gerrit Cole",
+      "home_pitcher": "Brayan Bello",
+      "lineup_status_away": "confirmed",
+      "lineup_status_home": "confirmed",
+      "model_version": "ensemble_probable_snapshot_v1",
+      "recommendations": [
+        {
+          "selection_text": "Yankees Moneyline",
+          "label": "Yankees Moneyline",
+          "sportsbook": "FanDuel",
+          "odds_text": "-115",
+          "is_official": true,
+          "wise_choice_score": 17.1,
+          "wise_choice_bucket_key": "medium_high_14_20",
+          "wise_choice_bucket_label": "14-20 - Strong",
+          "wise_choice_status": "Strong",
+          "model_probability_text": "56.1%",
+          "market_probability_text": "53.5%",
+          "edge_text": "+2.6%",
+          "ev_text": "+0.049u",
+          "ev_rating": "Medium-High",
+          "ev_rating_color": "#669f2a"
+        }
+      ],
+      "best_card_options": {
+        "wise_choice": {
+          "selection_text": "Yankees Moneyline",
+          "label": "Yankees Moneyline",
+          "sportsbook": "FanDuel",
+          "odds_text": "-115",
+          "is_official": true,
+          "wise_choice_score": 17.1,
+          "wise_choice_bucket_key": "medium_high_14_20",
+          "wise_choice_bucket_label": "14-20 - Strong",
+          "wise_choice_status": "Strong",
+          "model_probability_text": "56.1%",
+          "market_probability_text": "53.5%",
+          "edge_text": "+2.6%",
+          "ev_text": "+0.049u",
+          "ev_rating": "Medium-High",
+          "ev_rating_color": "#669f2a"
+        }
+      },
+      "market_dropdowns": [
+        {
+          "market_key": "h2h",
+          "title": "Money Line",
+          "summary_center_text": "Yankees -115",
+          "ev_summary_color": "#669f2a",
+          "options": [
+            {
+              "label": "Yankees Moneyline",
+              "selection_text": "Yankees Moneyline",
+              "sportsbook": "FanDuel",
+              "odds_text": "-115",
+              "is_official": true,
+              "wise_choice_score": 17.1,
+              "wise_choice_bucket_key": "medium_high_14_20",
+              "wise_choice_bucket_label": "14-20 - Strong",
+              "wise_choice_status": "Strong",
+              "model_probability_text": "56.1%",
+              "market_probability_text": "53.5%",
+              "edge_text": "+2.6%",
+              "ev_text": "+0.049u",
+              "ev_rating": "Medium-High",
+              "ev_rating_color": "#669f2a"
+            }
+          ]
+        }
+      ],
+      "tracker_market_dropdowns": [
+        {
+          "market_key": "first_inning_total",
+          "title": "first_inning_total",
+          "tracking_only": true,
+          "outcomes": [
+            {
+              "side": "over",
+              "label": "Over 0.5",
+              "sportsbook": "DraftKings",
+              "odds_text": "-125",
+              "model_probability_text": "32.4%",
+              "market_probability_text": "55.6%",
+              "edge_text": "-23.2%",
+              "tracking_only": true
+            },
+            {
+              "side": "under",
+              "label": "Under 0.5",
+              "sportsbook": "FanDuel",
+              "odds_text": "+105",
+              "model_probability_text": "67.6%",
+              "market_probability_text": "48.8%",
+              "edge_text": "+18.8%",
+              "tracking_only": true
+            }
+          ]
+        },
+        {
+          "market_key": "nrfi_yrfi",
+          "title": "raw yes/no tracker",
+          "tracking_only": true,
+          "outcomes": [
+            {
+              "side": "nrfi",
+              "label": "NRFI",
+              "sportsbook": "FanDuel",
+              "odds_text": "+102",
+              "model_probability_text": "67.6%",
+              "market_probability_text": "49.5%",
+              "edge_text": "+18.1%",
+              "tracking_only": true
+            },
+            {
+              "side": "yrfi",
+              "label": "YRFI",
+              "sportsbook": "DraftKings",
+              "odds_text": "-118",
+              "model_probability_text": "32.4%",
+              "market_probability_text": "54.1%",
+              "edge_text": "-21.7%",
+              "tracking_only": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

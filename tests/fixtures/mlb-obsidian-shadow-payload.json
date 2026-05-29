@@ -1,0 +1,150 @@
+{
+  "target_date": "2026-05-29",
+  "generated_at": "2026-05-29 12:00 PM CT",
+  "mode": "probable",
+  "game_count": 1,
+  "betting_game_count": 1,
+  "recommendation_count": 1,
+  "tracking_count": 0,
+  "first_inning_tracker_count": 0,
+  "books_seen": ["DraftKings", "FanDuel"],
+  "summary": {
+    "recommendation_count": 1,
+    "tracking_count": 0,
+    "first_inning_tracker_count": 0
+  },
+  "model_metadata": {
+    "default_model_family": "classic_mlb",
+    "selected_model_family": "obsidian_steed",
+    "selected_model_available": true,
+    "model_family": "obsidian_steed",
+    "model_display_name": "Obsidian Steed",
+    "model_version": "obsidian_steed_shadow_snapshot_v1",
+    "shadow_only": true,
+    "available_model_families": [
+      {
+        "key": "obsidian_steed",
+        "label": "Obsidian Steed",
+        "available": true,
+        "visibility_status": "shadow",
+        "status": "shadow",
+        "badge": "Shadow model"
+      },
+      {
+        "key": "classic_mlb",
+        "label": "Classic MLB",
+        "available": true,
+        "visibility_status": "classic",
+        "status": "classic",
+        "badge": "Legacy baseline"
+      }
+    ],
+    "visual_branding": {
+      "family": "obsidian_steed",
+      "display_name": "Obsidian Steed",
+      "variant": "shadow",
+      "hero_enabled": true,
+      "shadow_treatment_enabled": true,
+      "requires_games": true,
+      "public_enabled": false
+    },
+    "tracker_markets": {
+      "enabled": false,
+      "has_markets": false,
+      "public": false,
+      "status": "disabled",
+      "official_allowed": false,
+      "tracking_only": true,
+      "counts": {
+        "games_with_tracker_markets": 0,
+        "outcomes": 0,
+        "first_inning_outcomes": 0
+      },
+      "market_keys": [],
+      "markets": []
+    }
+  },
+  "games": [
+    {
+      "game_label": "Dodgers at Padres",
+      "away_team": "Los Angeles Dodgers",
+      "home_team": "San Diego Padres",
+      "away_team_abbr": "LAD",
+      "home_team_abbr": "SD",
+      "commence_time": "8:40 PM CT",
+      "venue": "Petco Park",
+      "favorite_team": "Dodgers",
+      "favorite_prob_text": "55.8%",
+      "away_pitcher": "Tyler Glasnow",
+      "home_pitcher": "Yu Darvish",
+      "lineup_status_away": "confirmed",
+      "lineup_status_home": "projected",
+      "model_version": "obsidian_steed_shadow_snapshot_v1",
+      "recommendations": [
+        {
+          "selection_text": "Dodgers Moneyline",
+          "label": "Dodgers Moneyline",
+          "sportsbook": "FanDuel",
+          "odds_text": "-112",
+          "is_official": true,
+          "wise_choice_score": 16.2,
+          "wise_choice_bucket_key": "medium_high_14_20",
+          "wise_choice_bucket_label": "14-20 - Strong",
+          "wise_choice_status": "Strong",
+          "model_probability_text": "55.8%",
+          "market_probability_text": "52.8%",
+          "edge_text": "+3.0%",
+          "ev_text": "+0.057u",
+          "ev_rating": "Medium-High",
+          "ev_rating_color": "#669f2a"
+        }
+      ],
+      "best_card_options": {
+        "wise_choice": {
+          "selection_text": "Dodgers Moneyline",
+          "label": "Dodgers Moneyline",
+          "sportsbook": "FanDuel",
+          "odds_text": "-112",
+          "is_official": true,
+          "wise_choice_score": 16.2,
+          "wise_choice_bucket_key": "medium_high_14_20",
+          "wise_choice_bucket_label": "14-20 - Strong",
+          "wise_choice_status": "Strong",
+          "model_probability_text": "55.8%",
+          "market_probability_text": "52.8%",
+          "edge_text": "+3.0%",
+          "ev_text": "+0.057u",
+          "ev_rating": "Medium-High",
+          "ev_rating_color": "#669f2a"
+        }
+      },
+      "market_dropdowns": [
+        {
+          "market_key": "h2h",
+          "title": "Money Line",
+          "summary_center_text": "Dodgers -112",
+          "ev_summary_color": "#669f2a",
+          "options": [
+            {
+              "label": "Dodgers Moneyline",
+              "selection_text": "Dodgers Moneyline",
+              "sportsbook": "FanDuel",
+              "odds_text": "-112",
+              "is_official": true,
+              "wise_choice_score": 16.2,
+              "wise_choice_bucket_key": "medium_high_14_20",
+              "wise_choice_bucket_label": "14-20 - Strong",
+              "wise_choice_status": "Strong",
+              "model_probability_text": "55.8%",
+              "market_probability_text": "52.8%",
+              "edge_text": "+3.0%",
+              "ev_text": "+0.057u",
+              "ev_rating": "Medium-High",
+              "ev_rating_color": "#669f2a"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

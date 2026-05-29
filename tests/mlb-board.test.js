@@ -13,17 +13,58 @@ function installMlbDom() {
     <section id="loading"></section>
     <section id="games"></section>
     <section id="error"></section>
+    <div id="page-subtitle">Forecasts render from the BoardWise public API. When matched odds are present, each tile shows a best available bet card and market-level dropdowns with both sides of every market.</div>
     <form id="date-form"><input id="board-date" name="date" type="date"></form>
     <div id="ev-filters"></div>
     <div id="prob-filters"></div>
     <section id="quick-guide"></section>
+    <section id="obsidian-hero" hidden></section>
     <div id="model-selector" hidden></div>
     <div id="board-view-toggle"></div>
     <div id="best-card-toggle"></div>
   `;
 }
 
+function getObsidianHero() {
+  return /** @type {HTMLElement | null} */ (document.querySelector("#obsidian-hero"));
+}
+
 function payload(modelFamily = "obsidian_steed", overrides = {}) {
+  const visualBranding = overrides.visual_branding ?? (
+    modelFamily === "obsidian_steed"
+      ? {
+        family: "obsidian_steed",
+        display_name: "Obsidian Steed",
+        variant: "shadow",
+        hero_enabled: true,
+        shadow_treatment_enabled: true,
+        requires_games: true,
+        public_enabled: false,
+      }
+      : {
+        family: "classic_mlb",
+        display_name: "Classic MLB",
+        variant: "classic",
+        hero_enabled: false,
+        shadow_treatment_enabled: false,
+        requires_games: true,
+        public_enabled: false,
+      }
+  );
+  const trackerMarkets = overrides.tracker_markets ?? {
+    enabled: false,
+    has_markets: false,
+    public: false,
+    status: "disabled",
+    official_allowed: false,
+    tracking_only: true,
+    counts: {
+      games_with_tracker_markets: 0,
+      outcomes: 0,
+      first_inning_outcomes: 0,
+    },
+    markets: [],
+  };
   return {
     target_date: "2026-05-27",
     generated_at: "2026-05-27 12:00 PM",
@@ -40,6 +81,8 @@ function payload(modelFamily = "obsidian_steed", overrides = {}) {
         { key: "classic_mlb", label: "Classic MLB", available: true },
       ],
       selected_model_available: true,
+      visual_branding: visualBranding,
+      tracker_markets: trackerMarkets,
       model_versions: [],
     },
   };
@@ -57,6 +100,8 @@ afterEach(() => {
   delete window.BoardWiseApi;
   delete (/** @type {any} */ (window)).__BoardWiseMlbTestHooks;
   document.body.innerHTML = "";
+  document.body.className = "";
+  delete document.body.dataset.obsidianVariant;
   window.history.replaceState({}, "", "/");
 });
 
@@ -155,8 +200,13 @@ describe("mlb-board model selector", () => {
     const getMlbBoard = vi.fn().mockResolvedValue(
       payload("classic_mlb", {
         available_model_families: [
-          { key: "classic_mlb", label: "Classic MLB", status: "legacy_baseline" },
-          { key: "obsidian_steed", label: "Obsidian Steed", status: "shadow" },
+          { key: "classic_mlb", label: "Classic MLB", status: "classic" },
+          {
+            key: "obsidian_steed",
+            label: "Obsidian Steed",
+            status: "new_model",
+            visibility_status: "shadow",
+          },
         ],
       })
     );
@@ -167,6 +217,153 @@ describe("mlb-board model selector", () => {
     expect(document.querySelector('[data-model-family="classic_mlb"]')).not.toBeNull();
     expect(document.querySelector('[data-model-family="obsidian_steed"]')).toBeNull();
     expect(document.body.textContent).not.toContain("Obsidian Steed");
+  });
+
+  it("shows Obsidian shadow hero only when selected payload enables it", async () => {
+    window.history.replaceState({}, "", "/mlb/?model=obsidian_steed");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("obsidian_steed", {
+        game_count: 1,
+        games: [{ game_label: "Away at Home", model_version: "obsidian_steed_smoke_v1" }],
+        visual_branding: {
+          family: "obsidian_steed",
+          display_name: "Obsidian Steed",
+          variant: "shadow",
+          hero_enabled: true,
+          shadow_treatment_enabled: true,
+          requires_games: true,
+          public_enabled: false,
+        },
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getObsidianHero()?.hidden).toBe(false));
+
+    const hero = getObsidianHero();
+    expect(hero?.textContent).toContain("Obsidian Steed Shadow");
+    expect(hero?.textContent).toContain("Live tracking model under review before public grading.");
+    expect(hero?.textContent).not.toContain("Next-generation MLB model");
+    expect(document.body.classList.contains("obsidian-treatment")).toBe(true);
+    expect(document.body.dataset.obsidianVariant).toBe("shadow");
+  });
+
+  it("shows Obsidian public hero copy only for public variant", async () => {
+    window.history.replaceState({}, "", "/mlb/?model=obsidian_steed");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("obsidian_steed", {
+        game_count: 1,
+        games: [{ game_label: "Away at Home", model_version: "obsidian_steed_public_v1" }],
+        visual_branding: {
+          family: "obsidian_steed",
+          display_name: "Obsidian Steed",
+          variant: "public",
+          hero_enabled: true,
+          shadow_treatment_enabled: false,
+          requires_games: true,
+          public_enabled: true,
+        },
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getObsidianHero()?.hidden).toBe(false));
+
+    const hero = getObsidianHero();
+    expect(hero?.textContent).toContain("Obsidian Steed");
+    expect(hero?.textContent).toContain("Next-generation MLB model powering today's board.");
+    expect(hero?.textContent).not.toContain("Shadow");
+    expect(document.body.dataset.obsidianVariant).toBe("public");
+  });
+
+  it("does not show Obsidian hero or treatment for Classic", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        games: [{ game_label: "Away at Home", model_version: "ensemble_probable_v1" }],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(1));
+
+    expect(getObsidianHero()?.hidden).toBe(true);
+    expect(getObsidianHero()?.textContent).toBe("");
+    expect(document.body.classList.contains("obsidian-treatment")).toBe(false);
+    expect(document.body.dataset.obsidianVariant).toBeUndefined();
+  });
+
+  it("does not show Obsidian hero or treatment on empty Obsidian boards", async () => {
+    window.history.replaceState({}, "", "/mlb/?model=obsidian_steed");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("obsidian_steed", {
+        game_count: 0,
+        games: [],
+        visual_branding: {
+          family: "obsidian_steed",
+          display_name: "Obsidian Steed",
+          variant: "shadow",
+          hero_enabled: true,
+          shadow_treatment_enabled: true,
+          requires_games: true,
+          public_enabled: false,
+        },
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(1));
+
+    expect(getObsidianHero()?.hidden).toBe(true);
+    expect(document.body.classList.contains("obsidian-treatment")).toBe(false);
+    expect(document.body.textContent).not.toContain("Obsidian Steed Shadow");
+  });
+
+  it("does not show Obsidian treatment when metadata disables the hero", async () => {
+    window.history.replaceState({}, "", "/mlb/?model=obsidian_steed");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("obsidian_steed", {
+        game_count: 1,
+        games: [{ game_label: "Away at Home", model_version: "obsidian_steed_smoke_v1" }],
+        visual_branding: {
+          family: "obsidian_steed",
+          display_name: "Obsidian Steed",
+          variant: "shadow",
+          hero_enabled: false,
+          shadow_treatment_enabled: true,
+          requires_games: true,
+          public_enabled: false,
+        },
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(1));
+
+    expect(getObsidianHero()?.hidden).toBe(true);
+    expect(document.body.classList.contains("obsidian-treatment")).toBe(false);
+  });
+
+  it("keeps Classic quick guide and subtitle unchanged when trackers are absent", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        games: [{ game_label: "Away at Home", model_version: "ensemble_probable_v1" }],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(1));
+
+    expect(document.querySelector("#page-subtitle")?.textContent).toBe(
+      "Forecasts render from the BoardWise public API. When matched odds are present, each tile shows a best available bet card and market-level dropdowns with both sides of every market."
+    );
+    expect(document.querySelector("#quick-guide")?.textContent).toContain("Market Dropdowns");
+    expect(document.querySelector("#quick-guide")?.textContent).toContain("Money Line, Run Line, and Total dropdowns show both sides of every market.");
+    expect(document.querySelector("#quick-guide")?.textContent).not.toContain("1st Inning Trackers");
+    expect(document.querySelector("#quick-guide")?.textContent).not.toContain("Obsidian Steed");
   });
 
   it("does not style Verify as a strong card by default", async () => {
@@ -218,9 +415,40 @@ describe("mlb-board model selector", () => {
       wise_choice_status: "Playable",
       is_official: true,
     };
+    const trackingPick = {
+      selection_text: "YRFI",
+      label: "YRFI",
+      sportsbook: "BookT",
+      odds_text: "+100",
+      wise_choice_score: 12,
+      wise_choice_bucket_key: "pass_8_14",
+      wise_choice_bucket_label: "8-14 - Playable",
+      wise_choice_status: "Playable",
+      is_official: true,
+      tracking_only: true,
+    };
     const getMlbBoard = vi.fn().mockResolvedValue(
       payload("classic_mlb", {
         game_count: 1,
+        tracker_markets: {
+          enabled: true,
+          has_markets: true,
+          public: false,
+          status: "shadow_tracking",
+          official_allowed: false,
+          tracking_only: true,
+          counts: {
+            games_with_tracker_markets: 1,
+            outcomes: 6,
+            first_inning_outcomes: 6,
+          },
+          markets: [
+            { key: "first_inning_total", label: "1st Inning O/U", period: "first_inning", tracking_only: true },
+            { key: "nrfi_yrfi", label: "NRFI/YRFI", period: "first_inning", tracking_only: true },
+            { key: "first_inning_moneyline", label: "1st Inning Moneyline", period: "first_inning", tracking_only: true },
+            { key: "first_inning_spread", label: "1st Inning Run Line", period: "first_inning", tracking_only: true },
+          ],
+        },
         games: [
           {
             game_label: "Away at Home",
@@ -228,19 +456,19 @@ describe("mlb-board model selector", () => {
             venue: "Test Park",
             favorite_team: "Home",
             favorite_prob_text: "55.0%",
-            best_card_options: { wise_choice: officialPick },
-            recommendations: [officialPick],
+            best_card_options: { wise_choice: trackingPick, best_value: officialPick },
+            recommendations: [trackingPick, officialPick],
             market_dropdowns: [
               {
                 title: "Money Line",
                 market_key: "h2h",
-                options: [officialPick],
+                options: [trackingPick, officialPick],
               },
             ],
             tracker_market_dropdowns: [
               {
                 market_key: "first_inning_total",
-                title: "1st Inning Total",
+                title: "first_inning_total",
                 tracking_only: true,
                 outcomes: [
                   {
@@ -254,7 +482,7 @@ describe("mlb-board model selector", () => {
               },
               {
                 market_key: "nrfi_yrfi",
-                title: "NRFI/YRFI",
+                title: "raw yes/no tracker",
                 tracking_only: true,
                 outcomes: [
                   {
@@ -271,6 +499,32 @@ describe("mlb-board model selector", () => {
                   },
                 ],
               },
+              {
+                market_key: "first_inning_moneyline",
+                title: "raw first inning side",
+                tracking_only: true,
+                outcomes: [
+                  {
+                    side: "home",
+                    label: "Home 1st Inning",
+                    model_probability_text: "51.0%",
+                    tracking_only: true,
+                  },
+                ],
+              },
+              {
+                market_key: "first_inning_spread",
+                title: "raw first inning run line",
+                tracking_only: true,
+                outcomes: [
+                  {
+                    side: "home",
+                    label: "Home -0.5 1st",
+                    model_probability_text: "44.0%",
+                    tracking_only: true,
+                  },
+                ],
+              },
             ],
           },
         ],
@@ -280,13 +534,168 @@ describe("mlb-board model selector", () => {
     await loadMlbBoardScript(getMlbBoard);
     await vi.waitFor(() => expect(document.querySelector(".tracker-market-dropdown")).not.toBeNull());
 
-    expect(document.body.textContent).toContain("1st Inning Total");
+    expect(document.querySelector("#page-subtitle")?.textContent).toBe(
+      "Compare official MLB picks, market dropdowns, and tracking-only first-inning signals from the BoardWise public API."
+    );
+    expect(document.querySelector("#quick-guide")?.textContent).toContain("1st Inning Trackers");
+    expect(document.querySelector("#quick-guide")?.textContent).toContain("1st inning O/U and NRFI/YRFI are tracking-only model signals. They are not official picks and are not included in public performance.");
+    expect(document.body.textContent).toContain("Money Line");
+    expect(document.body.textContent).toContain("1st Inning O/U");
     expect(document.body.textContent).toContain("NRFI/YRFI");
+    expect(document.body.textContent).toContain("1st Inning Moneyline");
+    expect(document.body.textContent).toContain("1st Inning Run Line");
+    expect(document.body.textContent).not.toContain("first_inning_total");
+    expect(document.body.textContent).not.toContain("raw yes/no tracker");
     expect(document.body.textContent).toContain("Over 0.5");
     expect(document.body.textContent).toContain("YRFI");
+    expect(document.body.textContent).toContain("Tracking Only");
+    expect(document.body.textContent).toContain("Tracking-only market. Not included in official record or public performance.");
     expect(document.querySelector(".tracker-market-dropdown .option-badge.official")).toBeNull();
     expect(document.querySelector(".best-card")?.textContent).toContain("Home Moneyline");
     expect(document.querySelector(".best-card")?.textContent).not.toContain("YRFI");
+    const wiseChoiceButton = /** @type {HTMLElement | null} */ (document.querySelector('[data-best-card-sort="wise_choice"]'));
+    wiseChoiceButton?.click();
+    expect(document.querySelector(".bet-pill-list")?.textContent).toContain("Home Moneyline");
+    expect(document.querySelector(".bet-pill-list")?.textContent).not.toContain("YRFI");
+  });
+
+  it("does not render tracker dropdowns when tracker metadata is disabled", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        tracker_markets: {
+          enabled: false,
+          has_markets: true,
+          markets: [{ key: "first_inning_total", label: "1st Inning O/U" }],
+        },
+        games: [
+          {
+            game_label: "Away at Home",
+            market_dropdowns: [
+              {
+                title: "Total Runs",
+                market_key: "totals",
+                options: [{ label: "Over 8.5", odds_text: "-110", is_official: false }],
+              },
+            ],
+            tracker_market_dropdowns: [
+              {
+                market_key: "first_inning_total",
+                title: "first_inning_total",
+                tracking_only: true,
+                outcomes: [{ label: "Over 0.5", tracking_only: true }],
+              },
+            ],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tile")).not.toBeNull());
+
+    expect(document.querySelector(".tracker-market-dropdown")).toBeNull();
+    expect(document.body.textContent).toContain("Total Runs");
+    expect(document.body.textContent).not.toContain("1st Inning O/U");
+    expect(document.body.textContent).not.toContain("Over 0.5");
+  });
+
+  it("does not render tracker dropdowns when tracker metadata says no markets exist", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        tracker_markets: {
+          enabled: true,
+          has_markets: false,
+          markets: [{ key: "nrfi_yrfi", label: "NRFI/YRFI" }],
+        },
+        games: [
+          {
+            game_label: "Away at Home",
+            market_dropdowns: [
+              {
+                title: "Money Line",
+                market_key: "h2h",
+                options: [{ label: "Home Moneyline", odds_text: "-120", is_official: true }],
+              },
+            ],
+            tracker_market_dropdowns: [
+              {
+                market_key: "nrfi_yrfi",
+                title: "raw yes/no tracker",
+                tracking_only: true,
+                outcomes: [{ label: "YRFI", tracking_only: true }],
+              },
+            ],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tile")).not.toBeNull());
+
+    expect(document.querySelector(".tracker-market-dropdown")).toBeNull();
+    expect(document.querySelector("#quick-guide")?.textContent).not.toContain("1st Inning Trackers");
+    expect(document.body.textContent).toContain("Money Line");
+    expect(document.body.textContent).not.toContain("NRFI/YRFI");
+    expect(document.body.textContent).not.toContain("YRFI");
+  });
+
+  it("adds Obsidian shadow quick-guide copy only when the treatment is visible", async () => {
+    window.history.replaceState({}, "", "/mlb/?model=obsidian_steed");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("obsidian_steed", {
+        game_count: 1,
+        games: [{ game_label: "Away at Home", model_version: "obsidian_steed_smoke_v1" }],
+        visual_branding: {
+          family: "obsidian_steed",
+          display_name: "Obsidian Steed",
+          variant: "shadow",
+          hero_enabled: true,
+          shadow_treatment_enabled: true,
+          requires_games: true,
+          public_enabled: false,
+        },
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getObsidianHero()?.hidden).toBe(false));
+
+    const guideText = document.querySelector("#quick-guide")?.textContent;
+    expect(guideText).toContain("Obsidian Steed Shadow");
+    expect(guideText).toContain("A next-generation MLB model is visible for review while official performance remains separated from Classic public results.");
+    expect(guideText).not.toContain("The selected MLB model powers this board");
+  });
+
+  it("adds Obsidian public quick-guide copy only for public treatment", async () => {
+    window.history.replaceState({}, "", "/mlb/?model=obsidian_steed");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("obsidian_steed", {
+        game_count: 1,
+        games: [{ game_label: "Away at Home", model_version: "obsidian_steed_public_v1" }],
+        visual_branding: {
+          family: "obsidian_steed",
+          display_name: "Obsidian Steed",
+          variant: "public",
+          hero_enabled: true,
+          shadow_treatment_enabled: false,
+          requires_games: true,
+          public_enabled: true,
+        },
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getObsidianHero()?.hidden).toBe(false));
+
+    const guideText = document.querySelector("#quick-guide")?.textContent;
+    expect(guideText).toContain("Obsidian Steed");
+    expect(guideText).toContain("The selected MLB model powers this board, with official picks and tracker-only markets clearly separated.");
+    expect(guideText).not.toContain("A next-generation MLB model is visible");
   });
 
   it("matches Wise Choice boundary fixture labels", async () => {
