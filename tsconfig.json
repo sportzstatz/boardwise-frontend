@@ -16,6 +16,7 @@
     "assets/js/**/*.js",
     "scripts/**/*.mjs",
     "tests/**/*.js",
+    "playwright.a11y.config.js",
     "playwright.contract.config.js",
     "playwright.visual.config.js",
     "vite.config.js",

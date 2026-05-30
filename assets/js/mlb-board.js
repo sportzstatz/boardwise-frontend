@@ -45,6 +45,10 @@ const TRACKER_MARKET_LABELS = new Map([
 const TRACKER_HELPER_TEXT = "Tracking-only market. Not included in official record or public performance.";
 const DEFAULT_PAGE_SUBTITLE = "Forecasts render from the BoardWise public API. When matched odds are present, each tile shows a best available bet card and market-level dropdowns with both sides of every market.";
 const TRACKER_PAGE_SUBTITLE = "Compare official MLB picks, market dropdowns, and tracking-only first-inning signals from the BoardWise public API.";
+const SUMMARY_TEXT_COLOR_OVERRIDES = new Map([
+  ["#669f2a", "#4d7c0f"],
+  ["#86efac", "#156f3c"]
+]);
 
 const metaEl = document.getElementById("meta");
 const statusNoteEl = document.getElementById("status-note");
@@ -77,6 +81,11 @@ function safeColor(value, fallback = "#0f4c81") {
 
 function textColorFor(bgColor) {
   return String(bgColor || "").toLowerCase() === "#86efac" ? "#101828" : "#fff";
+}
+
+function summaryTextColor(value) {
+  const color = safeColor(value, "#0f4c81");
+  return SUMMARY_TEXT_COLOR_OVERRIDES.get(String(color).toLowerCase()) || color;
 }
 
 function wiseStatusText(value) {
@@ -153,6 +162,16 @@ function trackerMarketLabelMap(payload = state.payload) {
   return labels;
 }
 
+function advertisedTrackerMarketKeys(payload = state.payload) {
+  const markets = getTrackerMarketMetadata(payload).markets;
+  return new Set(
+    (Array.isArray(markets) ? markets : [])
+      .map((market) => market?.key)
+      .filter(Boolean)
+      .map(String)
+  );
+}
+
 function trackerMarketLabel(market, payload = state.payload) {
   const key = market?.key || market?.market_key || market?.market_key_canonical;
   const labels = trackerMarketLabelMap(payload);
@@ -210,7 +229,7 @@ function renderObsidianHero(payload = state.payload) {
   obsidianHeroEl.hidden = false;
   obsidianHeroEl.dataset.variant = branding.variant || "shadow";
   obsidianHeroEl.innerHTML = `
-    <div class="obsidian-hero-title">${esc(title)}</div>
+    <h2 id="obsidian-hero-title" class="obsidian-hero-title">${esc(title)}</h2>
     <div class="obsidian-hero-copy">${esc(copy)}</div>
   `;
 }
@@ -526,8 +545,10 @@ function renderModelSelector() {
   modelSelectorEl.hidden = false;
   modelSelectorEl.innerHTML = `
     <span class="model-selector-label">Model</span>
-    ${MODEL_OPTIONS.filter(([key]) => shouldShowModelOption(key, metadata)).map(([key, label, badge]) => {
+    ${MODEL_OPTIONS.filter(([key]) => shouldShowModelOption(key, metadata)).map(([key, fallbackLabel, fallbackBadge]) => {
       const item = available.get(key) || {};
+      const label = item.label || fallbackLabel;
+      const badge = item.badge || fallbackBadge;
       const active = key === selected;
       const disabled = metadataHasAvailability ? (!available.has(key) || item.available === false) : false;
       return `
@@ -825,7 +846,12 @@ function renderTrackerOutcome(outcome) {
 
 function renderTrackerMarketDropdowns(game) {
   if (!hasTrackerMarkets()) return "";
-  const dropdowns = Array.isArray(game.tracker_market_dropdowns) ? game.tracker_market_dropdowns : [];
+  const advertisedKeys = advertisedTrackerMarketKeys();
+  const dropdowns = (Array.isArray(game.tracker_market_dropdowns) ? game.tracker_market_dropdowns : [])
+    .filter((market) => {
+      const key = market?.market_key || market?.market_key_canonical || market?.key;
+      return key && advertisedKeys.has(String(key));
+    });
   if (!dropdowns.length) return "";
   return `<div class="dropdown-stack tracker-dropdown-stack">${dropdowns.map((market) => {
     const outcomes = Array.isArray(market.outcomes) ? market.outcomes : [];
@@ -852,7 +878,7 @@ function renderMarketDropdowns(game) {
     return `<div class="forecast-only-note">No market dropdowns are available for this game yet.</div>`;
   }
   return `<div class="dropdown-stack">${dropdowns.map((market) => {
-    const summaryColor = safeColor(state.mode === "best_value" ? market.ev_summary_color : market.ev_summary_color || market.prob_summary_color, "#0f4c81");
+    const summaryColor = summaryTextColor(state.mode === "best_value" ? market.ev_summary_color : market.ev_summary_color || market.prob_summary_color);
     const options = Array.isArray(market.options) ? market.options : [];
     return `
       <details class="market-dropdown">

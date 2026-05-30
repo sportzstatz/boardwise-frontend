@@ -82,6 +82,7 @@ jobs:
           npm run typecheck
           npm run test
           npm run test:contracts
+          npm run test:a11y
           npm run test:visual
           npm run build
           git diff --check

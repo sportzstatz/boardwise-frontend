@@ -18,7 +18,7 @@ function installMlbDom() {
     <div id="ev-filters"></div>
     <div id="prob-filters"></div>
     <section id="quick-guide"></section>
-    <section id="obsidian-hero" hidden></section>
+    <section id="obsidian-hero" aria-labelledby="obsidian-hero-title" hidden></section>
     <div id="model-selector" hidden></div>
     <div id="board-view-toggle"></div>
     <div id="best-card-toggle"></div>
@@ -172,6 +172,39 @@ describe("mlb-board model selector", () => {
     expect(new URL(window.location.href).searchParams.get("model")).toBeNull();
   });
 
+  it("uses API badge text in the model selector when available", async () => {
+    window.history.replaceState({}, "", "/mlb/?model=obsidian_steed");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("obsidian_steed", {
+        game_count: 1,
+        games: [{ game_label: "Away at Home", model_version: "obsidian_steed_smoke_v1" }],
+        available_model_families: [
+          {
+            key: "obsidian_steed",
+            label: "Obsidian Steed",
+            available: true,
+            visibility_status: "shadow",
+            badge: "Shadow model",
+          },
+          {
+            key: "classic_mlb",
+            label: "Classic MLB",
+            available: true,
+            visibility_status: "classic",
+            badge: "Legacy baseline",
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(1));
+
+    const obsidianButton = document.querySelector('[data-model-family="obsidian_steed"]');
+    expect(obsidianButton?.textContent).toContain("Shadow model");
+    expect(obsidianButton?.textContent).not.toContain("New model");
+  });
+
   it("fails closed when a model availability row is missing", async () => {
     window.history.replaceState({}, "", "/mlb/");
     const getMlbBoard = vi.fn().mockResolvedValue(
@@ -241,6 +274,8 @@ describe("mlb-board model selector", () => {
     await vi.waitFor(() => expect(getObsidianHero()?.hidden).toBe(false));
 
     const hero = getObsidianHero();
+    expect(hero?.getAttribute("aria-labelledby")).toBe("obsidian-hero-title");
+    expect(hero?.querySelector("h2#obsidian-hero-title")?.textContent).toBe("Obsidian Steed Shadow");
     expect(hero?.textContent).toContain("Obsidian Steed Shadow");
     expect(hero?.textContent).toContain("Live tracking model under review before public grading.");
     expect(hero?.textContent).not.toContain("Next-generation MLB model");
@@ -445,8 +480,6 @@ describe("mlb-board model selector", () => {
           markets: [
             { key: "first_inning_total", label: "1st Inning O/U", period: "first_inning", tracking_only: true },
             { key: "nrfi_yrfi", label: "NRFI/YRFI", period: "first_inning", tracking_only: true },
-            { key: "first_inning_moneyline", label: "1st Inning Moneyline", period: "first_inning", tracking_only: true },
-            { key: "first_inning_spread", label: "1st Inning Run Line", period: "first_inning", tracking_only: true },
           ],
         },
         games: [
@@ -542,8 +575,10 @@ describe("mlb-board model selector", () => {
     expect(document.body.textContent).toContain("Money Line");
     expect(document.body.textContent).toContain("1st Inning O/U");
     expect(document.body.textContent).toContain("NRFI/YRFI");
-    expect(document.body.textContent).toContain("1st Inning Moneyline");
-    expect(document.body.textContent).toContain("1st Inning Run Line");
+    expect(document.body.textContent).not.toContain("1st Inning Moneyline");
+    expect(document.body.textContent).not.toContain("1st Inning Run Line");
+    expect(document.body.textContent).not.toContain("Home 1st Inning");
+    expect(document.body.textContent).not.toContain("Home -0.5 1st");
     expect(document.body.textContent).not.toContain("first_inning_total");
     expect(document.body.textContent).not.toContain("raw yes/no tracker");
     expect(document.body.textContent).toContain("Over 0.5");

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MLB Forecast and Betting Board</title>
-  <meta name="description" content="Live MLB forecast and betting board from the BoardWise public API.">
+  <meta name="description" content="Live MLB board with official picks, market dropdowns, and tracking-only first-inning signals when available.">
   <style>
     :root {
       --bg: #f7f7f5;
@@ -28,6 +28,7 @@
     .pill, .nav-link { border: 1px solid var(--line); background: var(--panel); padding: 8px 12px; border-radius: 999px; font-size: 13px; text-decoration: none; color: var(--muted); }
     .nav-link { color: var(--ink); font-weight: 700; }
     .nav-link.disabled { color: var(--muted); cursor: not-allowed; }
+    .nav-link:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid #fdb022; outline-offset: 3px; }
     .date-form { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }
     .date-form input[type=date] { border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; font-size: 13px; background: var(--panel); }
     .date-form button { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; }
@@ -41,7 +42,7 @@
     .model-selector-button .model-tag { border: 1px solid currentColor; border-radius: 999px; padding: 2px 6px; font-size: 10px; font-weight: 800; opacity: .82; }
     .obsidian-hero { display: grid; gap: 6px; margin: 2px 0 18px; padding: 18px 20px; border: 1px solid #111827; border-left: 6px solid #111827; border-radius: 14px; background: #f9fafb; color: var(--ink); box-shadow: 0 12px 28px rgba(17, 24, 39, 0.10); }
     .obsidian-hero[hidden] { display: none; }
-    .obsidian-hero-title { font-size: clamp(22px, 3vw, 34px); line-height: 1.05; font-weight: 900; }
+    .obsidian-hero-title { margin: 0; font-size: clamp(22px, 3vw, 34px); line-height: 1.05; font-weight: 900; }
     .obsidian-hero-copy { color: var(--muted); font-size: 15px; line-height: 1.45; max-width: 68ch; }
     body.obsidian-treatment .tile { border-color: rgba(17, 24, 39, 0.18); border-left-color: #111827; box-shadow: 0 16px 32px rgba(17, 24, 39, 0.14); }
     body.obsidian-treatment .tile.strong { border-left-color: #111827; }
@@ -80,6 +81,7 @@
     .dropdown-stack { display: grid; gap: 10px; }
     .market-dropdown { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fcfcfd; }
     .market-dropdown summary { list-style: none; cursor: pointer; padding: 12px 14px; display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; font-weight: 700; }
+    .market-dropdown summary:focus-visible { background: var(--accent-soft); }
     .market-dropdown summary::-webkit-details-marker { display: none; }
     .summary-label { font-weight: 700; font-size: 14px; white-space: nowrap; }
     .summary-center { text-align: center; color: var(--ink); font-weight: 600; font-size: 14px; }
@@ -148,7 +150,7 @@
     </section>
 
     <section id="quick-guide" class="quick-guide"></section>
-    <section id="obsidian-hero" class="obsidian-hero" hidden></section>
+    <section id="obsidian-hero" class="obsidian-hero" aria-labelledby="obsidian-hero-title" hidden></section>
 
     <div id="model-selector" class="model-selector" hidden></div>
     <div id="board-view-toggle" class="board-view-toggle" style="display:none"></div>
