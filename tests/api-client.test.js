@@ -54,6 +54,18 @@ describe("api-client", () => {
     );
   });
 
+  it("keeps MLB board transport on the public v1 contract", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ games: [] })));
+
+    const api = await loadApiClient();
+    const endpointText = Object.values(api.endpoints).join(" ");
+
+    expect(api.endpoints.mlbBoardCurrent).toBe("/api/v1/boards/mlb/current");
+    expect(api.endpoints.mlbBoardDate).toBe("/api/v1/boards/mlb/");
+    expect(endpointText).not.toContain("/board/payload");
+    expect(endpointText).not.toContain("/api/mlb/board");
+  });
+
   it("serializes the MLB model selector", async () => {
     const fetch = vi.fn().mockResolvedValue(jsonResponse({ games: [] }));
     vi.stubGlobal("fetch", fetch);

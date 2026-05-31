@@ -124,6 +124,76 @@ jobs:
             playwright-report
           if-no-files-found: ignore
 
+  visual-snapshots:
+    name: boardwise-frontend / visual-snapshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run visual snapshot tests
+        run: npm run test:visual
+
+      - name: Upload Playwright visual results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-visual-results
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+
+  accessibility-tests:
+    name: boardwise-frontend / accessibility-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run accessibility tests
+        run: npm run test:a11y
+
+      - name: Upload Playwright accessibility results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-accessibility-results
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+
   build:
     name: boardwise-frontend / build
     runs-on: ubuntu-latest
