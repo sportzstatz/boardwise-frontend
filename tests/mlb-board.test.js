@@ -474,11 +474,11 @@ describe("mlb-board model selector", () => {
           tracking_only: true,
           counts: {
             games_with_tracker_markets: 1,
-            outcomes: 6,
-            first_inning_outcomes: 6,
+            outcomes: 2,
+            first_inning_outcomes: 2,
           },
+          market_keys: ["nrfi_yrfi"],
           markets: [
-            { key: "first_inning_total", label: "1st Inning O/U", period: "first_inning", tracking_only: true },
             { key: "nrfi_yrfi", label: "NRFI/YRFI", period: "first_inning", tracking_only: true },
           ],
         },
@@ -567,13 +567,14 @@ describe("mlb-board model selector", () => {
     await loadMlbBoardScript(getMlbBoard);
     await vi.waitFor(() => expect(document.querySelector(".tracker-market-dropdown")).not.toBeNull());
 
+    expect(document.querySelectorAll(".tracker-market-dropdown")).toHaveLength(1);
     expect(document.querySelector("#page-subtitle")?.textContent).toBe(
       "Compare official MLB picks, market dropdowns, and tracking-only first-inning signals from the BoardWise public API."
     );
     expect(document.querySelector("#quick-guide")?.textContent).toContain("1st Inning Trackers");
-    expect(document.querySelector("#quick-guide")?.textContent).toContain("1st inning O/U and NRFI/YRFI are tracking-only model signals. They are not official picks and are not included in public performance.");
+    expect(document.querySelector("#quick-guide")?.textContent).toContain("NRFI/YRFI is a tracking-only first-inning model signal. It is not an official pick and is not included in public performance.");
     expect(document.body.textContent).toContain("Money Line");
-    expect(document.body.textContent).toContain("1st Inning O/U");
+    expect(document.body.textContent).not.toContain("1st Inning O/U");
     expect(document.body.textContent).toContain("NRFI/YRFI");
     expect(document.body.textContent).not.toContain("1st Inning Moneyline");
     expect(document.body.textContent).not.toContain("1st Inning Run Line");
@@ -581,8 +582,9 @@ describe("mlb-board model selector", () => {
     expect(document.body.textContent).not.toContain("Home -0.5 1st");
     expect(document.body.textContent).not.toContain("first_inning_total");
     expect(document.body.textContent).not.toContain("raw yes/no tracker");
-    expect(document.body.textContent).toContain("Over 0.5");
+    expect(document.body.textContent).not.toContain("Over 0.5");
     expect(document.body.textContent).toContain("YRFI");
+    expect(document.body.textContent).toContain("NRFI");
     expect(document.body.textContent).toContain("Tracking Only");
     expect(document.body.textContent).toContain("Tracking-only market. Not included in official record or public performance.");
     expect(document.querySelector(".tracker-market-dropdown .option-badge.official")).toBeNull();
@@ -634,6 +636,47 @@ describe("mlb-board model selector", () => {
     expect(document.body.textContent).toContain("Total Runs");
     expect(document.body.textContent).not.toContain("1st Inning O/U");
     expect(document.body.textContent).not.toContain("Over 0.5");
+  });
+
+  it("does not render first-inning O/U even if an old payload advertises it", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        tracker_markets: {
+          enabled: true,
+          has_markets: true,
+          market_keys: ["first_inning_total"],
+          markets: [{ key: "first_inning_total", label: "1st Inning O/U" }],
+        },
+        games: [
+          {
+            game_label: "Away at Home",
+            market_dropdowns: [],
+            tracker_market_dropdowns: [
+              {
+                market_key: "first_inning_total",
+                title: "first_inning_total",
+                tracking_only: true,
+                outcomes: [
+                  { label: "Over 0.5", tracking_only: true },
+                  { label: "Under 0.5", tracking_only: true },
+                ],
+              },
+            ],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tile")).not.toBeNull());
+
+    expect(document.querySelector(".tracker-market-dropdown")).toBeNull();
+    expect(document.querySelector("#quick-guide")?.textContent).not.toContain("1st Inning Trackers");
+    expect(document.body.textContent).not.toContain("1st Inning O/U");
+    expect(document.body.textContent).not.toContain("Over 0.5");
+    expect(document.body.textContent).not.toContain("Under 0.5");
   });
 
   it("does not render tracker dropdowns when tracker metadata says no markets exist", async () => {

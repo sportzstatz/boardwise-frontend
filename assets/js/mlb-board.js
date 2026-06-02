@@ -42,6 +42,7 @@ const TRACKER_MARKET_LABELS = new Map([
   ["first_inning_moneyline", "1st Inning Moneyline"],
   ["first_inning_spread", "1st Inning Run Line"]
 ]);
+const PUBLIC_TRACKER_MARKET_KEYS = new Set(["nrfi_yrfi"]);
 const TRACKER_HELPER_TEXT = "Tracking-only market. Not included in official record or public performance.";
 const DEFAULT_PAGE_SUBTITLE = "Forecasts render from the BoardWise public API. When matched odds are present, each tile shows a best available bet card and market-level dropdowns with both sides of every market.";
 const TRACKER_PAGE_SUBTITLE = "Compare official MLB picks, market dropdowns, and tracking-only first-inning signals from the BoardWise public API.";
@@ -163,12 +164,21 @@ function trackerMarketLabelMap(payload = state.payload) {
 }
 
 function advertisedTrackerMarketKeys(payload = state.payload) {
-  const markets = getTrackerMarketMetadata(payload).markets;
+  const trackerMetadata = getTrackerMarketMetadata(payload);
+  const markets = trackerMetadata.markets;
+  const marketKeys = trackerMetadata.market_keys;
+  const keys = [];
+  if (Array.isArray(marketKeys)) {
+    keys.push(...marketKeys);
+  }
+  if (Array.isArray(markets)) {
+    keys.push(...markets.map((market) => market?.key));
+  }
   return new Set(
-    (Array.isArray(markets) ? markets : [])
-      .map((market) => market?.key)
+    keys
       .filter(Boolean)
       .map(String)
+      .filter((key) => PUBLIC_TRACKER_MARKET_KEYS.has(key))
   );
 }
 
@@ -181,7 +191,11 @@ function trackerMarketLabel(market, payload = state.payload) {
 
 function hasTrackerMarkets(payload = state.payload) {
   const trackerMetadata = getTrackerMarketMetadata(payload);
-  return trackerMetadata.enabled === true && trackerMetadata.has_markets === true;
+  return (
+    trackerMetadata.enabled === true
+    && trackerMetadata.has_markets === true
+    && advertisedTrackerMarketKeys(payload).size > 0
+  );
 }
 
 function shouldShowObsidianTreatment(payload = state.payload) {
@@ -496,7 +510,7 @@ function renderQuickGuide() {
   const trackerItem = hasTrackerMarkets()
     ? [
       "1st Inning Trackers",
-      "1st inning O/U and NRFI/YRFI are tracking-only model signals. They are not official picks and are not included in public performance."
+      "NRFI/YRFI is a tracking-only first-inning model signal. It is not an official pick and is not included in public performance."
     ]
     : null;
   const items = [
