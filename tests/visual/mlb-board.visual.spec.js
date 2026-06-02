@@ -103,11 +103,11 @@ test.describe("MLB board visual baselines", () => {
   test("Tracker-market-present", async ({ page }) => {
     await renderBoard(page, await fixture("mlb-tracker-market-present-payload.json"));
 
-    await expect(page.locator(".tracker-market-dropdown")).toHaveCount(2);
+    await expect(page.locator(".tracker-market-dropdown")).toHaveCount(1);
     await page.locator(".tracker-market-dropdown").evaluateAll((dropdowns) => {
       for (const dropdown of dropdowns) dropdown.setAttribute("open", "");
     });
-    await expect(page.locator(".tracker-market-dropdown .summary-label", { hasText: "1st Inning O/U" })).toBeVisible();
+    await expect(page.locator(".tracker-market-dropdown .summary-label", { hasText: "1st Inning O/U" })).toHaveCount(0);
     await expect(page.locator(".tracker-market-dropdown .summary-label", { hasText: "NRFI/YRFI" })).toBeVisible();
     await expect(page.getByText("Tracking Only").first()).toBeVisible();
     await expect(page.getByText("Tracking-only market. Not included in official record or public performance.").first()).toBeVisible();
