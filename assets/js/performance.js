@@ -20,6 +20,8 @@ const PERFORMANCE_SCOPE_OPTIONS = [
  *   performance_scope?: string;
  *   official_only?: boolean;
  *   settled_only?: boolean;
+ *   market_key?: string;
+ *   market_keys?: string;
  *   start_date?: string;
  *   end_date?: string;
  *   model_family?: string;
@@ -114,6 +116,27 @@ function normalisePerformanceScope(value) {
   const key = String(value || DEFAULT_PERFORMANCE_SCOPE).trim().toLowerCase();
   if (["tracking", "tracker", "beta", "shadow"].includes(key)) return TRACKING_PERFORMANCE_SCOPE;
   return DEFAULT_PERFORMANCE_SCOPE;
+}
+
+function marketKeyList(value) {
+  const seen = new Set();
+  const out = [];
+  for (const part of String(value || "").split(",")) {
+    const key = part.trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+}
+
+function normaliseMarketKeys(value) {
+  return marketKeyList(value).join(",");
+}
+
+function marketLabel(key) {
+  const value = String(key || "").trim();
+  return MARKET_LABELS[value] || value;
 }
 
 function selectedPerformanceScope() {
@@ -268,6 +291,7 @@ async function fetchFilterOptions(sport, modelFamily = "", performanceScope = DE
 const FILTER_KEYS = [
   "performance_scope",
   "sport",
+  "market_keys",
   "market_key",
   "bookmaker_key",
   "confidence_bucket",
@@ -319,6 +343,9 @@ const els = {
   bookCmpSummary: elementById("book-comparison-summary"),
   bookCmpBooks: elementById("book-cmp-books"),
   bookCmpSame: inputById("book-cmp-same"),
+  marketToggle: elementById("f-market-toggle"),
+  marketMenu: elementById("f-market-menu"),
+  marketInput: inputById("f-market"),
 };
 
 function esc(value) {
@@ -370,6 +397,8 @@ function readFilters() {
   if (!("official_only" in out)) out.official_only = true;
   if (!("settled_only" in out)) out.settled_only = true;
   out.performance_scope = normalisePerformanceScope(out.performance_scope);
+  out.market_keys = normaliseMarketKeys(out.market_keys || out.market_key || "");
+  delete out.market_key;
   if (out.performance_scope === TRACKING_PERFORMANCE_SCOPE) {
     out.model_family = TRACKING_MODEL_FAMILY;
   } else if (out.model_family === TRACKING_MODEL_FAMILY) {
@@ -386,7 +415,17 @@ function readFilters() {
 
 function writeFiltersToUrl(filters) {
   const url = new URL(window.location.href);
+  const normalizedMarketKeys = normaliseMarketKeys(filters.market_keys || filters.market_key || "");
   for (const key of FILTER_KEYS) {
+    if (key === "market_key") {
+      url.searchParams.delete("market_key");
+      continue;
+    }
+    if (key === "market_keys") {
+      if (normalizedMarketKeys) url.searchParams.set("market_keys", normalizedMarketKeys);
+      else url.searchParams.delete("market_keys");
+      continue;
+    }
     if (key === "performance_scope" && normalisePerformanceScope(filters[key]) === DEFAULT_PERFORMANCE_SCOPE) {
       url.searchParams.delete(key);
       continue;
@@ -410,7 +449,6 @@ function applyFiltersToForm(filters) {
   const map = {
     performance_scope: "f-performance-scope",
     sport: "f-sport",
-    market_key: "f-market",
     bookmaker_key: "f-book",
     confidence_bucket: "f-confidence",
     model_probability_bucket: "f-prob-bucket",
@@ -427,6 +465,7 @@ function applyFiltersToForm(filters) {
     const el = fieldById(id);
     if (el) el.value = filters[key] || "";
   }
+  setMarketSelections(filters.market_keys || filters.market_key || "");
   const settledEl = inputById("f-settled");
   if (settledEl) settledEl.checked = filters.settled_only !== false;
   if (els.groupBy) {
@@ -441,7 +480,6 @@ function readFiltersFromForm() {
   const map = {
     performance_scope: "f-performance-scope",
     sport: "f-sport",
-    market_key: "f-market",
     bookmaker_key: "f-book",
     confidence_bucket: "f-confidence",
     model_probability_bucket: "f-prob-bucket",
@@ -459,6 +497,7 @@ function readFiltersFromForm() {
     const v = (field?.value || "").trim();
     if (v) out[key] = v;
   }
+  out.market_keys = normaliseMarketKeys(els.marketInput?.value || "");
   out.performance_scope = normalisePerformanceScope(out.performance_scope);
   if (out.performance_scope === TRACKING_PERFORMANCE_SCOPE) {
     out.model_family = TRACKING_MODEL_FAMILY;
@@ -478,7 +517,13 @@ function readFiltersFromForm() {
 
 function buildQuery(filters, { includeSettled = true, overrides = {} } = {}) {
   const params = new URLSearchParams();
+  const normalizedMarketKeys = normaliseMarketKeys(filters.market_keys || filters.market_key || "");
   for (const key of FILTER_KEYS) {
+    if (key === "market_key") continue;
+    if (key === "market_keys") {
+      if (normalizedMarketKeys) params.set("market_keys", normalizedMarketKeys);
+      continue;
+    }
     if (filters[key]) params.set(key, filters[key]);
   }
   const scope = normalisePerformanceScope(filters.performance_scope);
@@ -1061,8 +1106,67 @@ function scopeOptionsFromPayload(data) {
 function marketOptions(markets) {
   return (markets || []).map((key) => ({
     key,
-    label: MARKET_LABELS[key] || key,
+    label: marketLabel(key),
   }));
+}
+
+function setMarketMenuOpen(open) {
+  if (!els.marketToggle || !els.marketMenu) return;
+  els.marketToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  setHidden(els.marketMenu, !open);
+}
+
+function selectedMarketCheckboxKeys() {
+  if (!els.marketMenu) return [];
+  return Array.from(els.marketMenu.querySelectorAll("input[type='checkbox']"))
+    .filter((input) => input instanceof HTMLInputElement && input.checked)
+    .map((input) => input instanceof HTMLInputElement ? input.value : "")
+    .filter(Boolean);
+}
+
+function marketSummaryText(keys) {
+  const selected = marketKeyList(keys);
+  if (selected.length === 0) return "All markets";
+  if (selected.length === 1) return marketLabel(selected[0]);
+  return `${selected.length} markets selected`;
+}
+
+function setMarketSelections(keys) {
+  const selected = new Set(marketKeyList(keys));
+  if (els.marketMenu) {
+    for (const input of els.marketMenu.querySelectorAll("input[type='checkbox']")) {
+      if (input instanceof HTMLInputElement) input.checked = selected.has(input.value);
+    }
+  }
+  const csv = Array.from(selected).join(",");
+  if (els.marketInput) els.marketInput.value = csv;
+  if (els.marketToggle) els.marketToggle.textContent = marketSummaryText(csv);
+}
+
+function renderMarketCheckboxes(markets, selectedKeys = "") {
+  if (!els.marketMenu) return normaliseMarketKeys(selectedKeys);
+  const options = marketOptions(markets);
+  const allowed = new Set(options.map((opt) => opt.key));
+  const selected = marketKeyList(selectedKeys).filter((key) => allowed.has(key));
+  if (!options.length) {
+    els.marketMenu.innerHTML = '<div class="market-empty">No markets</div>';
+    setMarketSelections("");
+    return "";
+  }
+  els.marketMenu.innerHTML = options.map((opt) => {
+    const checked = selected.includes(opt.key) ? " checked" : "";
+    return (
+      `<label><input type="checkbox" value="${esc(opt.key)}"${checked}>` +
+      `<span>${esc(opt.label)}</span></label>`
+    );
+  }).join("");
+  for (const input of els.marketMenu.querySelectorAll("input[type='checkbox']")) {
+    input.addEventListener("change", () => {
+      setMarketSelections(selectedMarketCheckboxKeys().join(","));
+    });
+  }
+  setMarketSelections(selected.join(","));
+  return normaliseMarketKeys(selected.join(","));
 }
 
 async function loadFilters(filters, { preloaded = null } = {}) {
@@ -1076,7 +1180,7 @@ async function loadFilters(filters, { preloaded = null } = {}) {
     setRuntimeVisibility(data.visibility);
     fillSelect("f-performance-scope", scopeOptionsFromPayload(data), { keyField: "key", labelField: "label", currentValue: normalisePerformanceScope(filters.performance_scope) });
     fillSelect("f-sport", visibilityConfig.publicSports, { currentValue: filters.sport || "" });
-    fillSelect("f-market", marketOptions(data.markets || []), { keyField: "key", labelField: "label", currentValue: filters.market_key || "" });
+    filters.market_keys = renderMarketCheckboxes(data.markets || [], filters.market_keys || filters.market_key || "");
     fillSelect("f-book", data.bookmakers || [], { keyField: "key", labelField: "title", currentValue: filters.bookmaker_key || "" });
     fillSelect("f-confidence", data.confidence_buckets || [], { keyField: "key", labelField: "label", currentValue: filters.confidence_bucket || "" });
     fillSelect("f-prob-bucket", data.model_probability_buckets || [], { currentValue: filters.model_probability_bucket || "" });
@@ -1259,6 +1363,25 @@ async function init() {
       refresh(next);
     });
   }
+
+  if (els.marketToggle) {
+    els.marketToggle.addEventListener("click", () => {
+      const expanded = els.marketToggle?.getAttribute("aria-expanded") === "true";
+      setMarketMenuOpen(!expanded);
+    });
+  }
+
+  document.addEventListener("click", (ev) => {
+    if (!els.marketToggle || !els.marketMenu) return;
+    const target = ev.target;
+    if (!(target instanceof Node)) return;
+    if (els.marketToggle.contains(target) || els.marketMenu.contains(target)) return;
+    setMarketMenuOpen(false);
+  });
+
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") setMarketMenuOpen(false);
+  });
 
   const modelFamilyEl = document.getElementById("f-model-family");
   if (modelFamilyEl) {
