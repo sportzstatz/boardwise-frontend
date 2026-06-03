@@ -206,6 +206,27 @@ describe("performance page", () => {
     expect(document.querySelector("#f-market-toggle")?.textContent).toBe("2 markets selected");
   });
 
+  it("auto-applies market checkbox changes", async () => {
+    window.history.replaceState({}, "", "/performance/");
+    installPerformanceDom();
+    const calls = [];
+    installMockApi(calls);
+
+    await import("../assets/js/performance.js");
+    await vi.waitFor(() => expect(window.BoardWiseApi.getPerformanceSummary).toHaveBeenCalled());
+
+    const initialSummaryCount = calls.filter(([name]) => name === "summary").length;
+    setMarketChecked("h2h", true);
+
+    await vi.waitFor(() => {
+      expect(calls.filter(([name]) => name === "summary").length).toBeGreaterThan(initialSummaryCount);
+    });
+
+    expect(lastQuery(calls, "summary").get("market_keys")).toBe("h2h");
+    expect(window.location.search).toContain("market_keys=h2h");
+    expect(document.querySelector("#f-market-toggle")?.textContent).toBe("Money Line");
+  });
+
   it("supports tracking selections that pair NRFI/YRFI with full-game markets", async () => {
     window.history.replaceState({}, "", "/performance/?performance_scope=tracking");
     installPerformanceDom();

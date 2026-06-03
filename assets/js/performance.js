@@ -1163,6 +1163,9 @@ function renderMarketCheckboxes(markets, selectedKeys = "") {
   for (const input of els.marketMenu.querySelectorAll("input[type='checkbox']")) {
     input.addEventListener("change", () => {
       setMarketSelections(selectedMarketCheckboxKeys().join(","));
+      if (els.form) {
+        els.form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      }
     });
   }
   setMarketSelections(selected.join(","));
