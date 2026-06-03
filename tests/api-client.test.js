@@ -158,17 +158,21 @@ describe("api-client", () => {
     expect(url.searchParams.has("empty")).toBe(false);
   });
 
-  it("serializes the performance model family filter", async () => {
+  it("serializes the performance model family and scope filters", async () => {
     const fetch = vi.fn().mockResolvedValue(jsonResponse({ sports: [] }));
     vi.stubGlobal("fetch", fetch);
 
     const api = await loadApiClient();
-    await api.getPerformanceFilters("mlb", { model_family: "obsidian_steed" });
+    await api.getPerformanceFilters("mlb", {
+      model_family: "obsidian_steed",
+      performance_scope: "tracking",
+    });
 
     const url = new URL(fetch.mock.calls[0][0]);
     expect(url.pathname).toBe("/api/v1/performance/filters");
     expect(url.searchParams.get("sport")).toBe("mlb");
     expect(url.searchParams.get("model_family")).toBe("obsidian_steed");
+    expect(url.searchParams.get("performance_scope")).toBe("tracking");
   });
 
   it("throws BoardWiseApiError for non-2xx responses", async () => {

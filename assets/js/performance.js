@@ -6,10 +6,18 @@ const MIN_VISIBLE_DATE = "2026-04-29";
 // Default sport when the user lands on /performance/ with no sport filter set
 // in the URL.
 const DEFAULT_SPORT = "mlb";
+const DEFAULT_PERFORMANCE_SCOPE = "official";
+const TRACKING_PERFORMANCE_SCOPE = "tracking";
+const TRACKING_MODEL_FAMILY = "obsidian_steed";
+const PERFORMANCE_SCOPE_OPTIONS = [
+  { key: "official", label: "Official" },
+  { key: "tracking", label: "Tracking" },
+];
 
 /**
  * @typedef {Record<string, string | boolean | undefined> & {
  *   sport?: string;
+ *   performance_scope?: string;
  *   official_only?: boolean;
  *   settled_only?: boolean;
  *   start_date?: string;
@@ -90,9 +98,27 @@ const MODEL_FAMILY_LABELS = {
   obsidian_steed: "Obsidian Steed",
 };
 
+const MARKET_LABELS = {
+  h2h: "Money Line",
+  spreads: "Run Line / Spread",
+  totals: "Total",
+  nrfi_yrfi: "NRFI/YRFI",
+};
+
 function modelFamilyLabel(value) {
   const key = String(value || "").trim();
   return MODEL_FAMILY_LABELS[key] || key || "—";
+}
+
+function normalisePerformanceScope(value) {
+  const key = String(value || DEFAULT_PERFORMANCE_SCOPE).trim().toLowerCase();
+  if (["tracking", "tracker", "beta", "shadow"].includes(key)) return TRACKING_PERFORMANCE_SCOPE;
+  return DEFAULT_PERFORMANCE_SCOPE;
+}
+
+function selectedPerformanceScope() {
+  const scopeEl = fieldById("f-performance-scope");
+  return normalisePerformanceScope(scopeEl?.value || DEFAULT_PERFORMANCE_SCOPE);
 }
 
 function tierHealthStatus(group) {
@@ -232,11 +258,15 @@ function initialSportFromUrl() {
   return raw || DEFAULT_SPORT;
 }
 
-async function fetchFilterOptions(sport, modelFamily = "") {
-  return window.BoardWiseApi.getPerformanceFilters(sport, { model_family: modelFamily || undefined });
+async function fetchFilterOptions(sport, modelFamily = "", performanceScope = DEFAULT_PERFORMANCE_SCOPE) {
+  return window.BoardWiseApi.getPerformanceFilters(sport, {
+    model_family: modelFamily || undefined,
+    performance_scope: normalisePerformanceScope(performanceScope),
+  });
 }
 
 const FILTER_KEYS = [
+  "performance_scope",
   "sport",
   "market_key",
   "bookmaker_key",
@@ -339,6 +369,13 @@ function readFilters() {
   // defaults
   if (!("official_only" in out)) out.official_only = true;
   if (!("settled_only" in out)) out.settled_only = true;
+  out.performance_scope = normalisePerformanceScope(out.performance_scope);
+  if (out.performance_scope === TRACKING_PERFORMANCE_SCOPE) {
+    out.model_family = TRACKING_MODEL_FAMILY;
+  } else if (out.model_family === TRACKING_MODEL_FAMILY) {
+    delete out.model_family;
+  }
+  out.official_only = out.performance_scope === TRACKING_PERFORMANCE_SCOPE ? false : true;
   // Default sport when none was supplied in the URL.
   if (!params.has("sport") && !out.sport) out.sport = DEFAULT_SPORT;
   // Clamp any user-supplied dates up to the visible-history floor.
@@ -350,6 +387,10 @@ function readFilters() {
 function writeFiltersToUrl(filters) {
   const url = new URL(window.location.href);
   for (const key of FILTER_KEYS) {
+    if (key === "performance_scope" && normalisePerformanceScope(filters[key]) === DEFAULT_PERFORMANCE_SCOPE) {
+      url.searchParams.delete(key);
+      continue;
+    }
     if (filters[key]) url.searchParams.set(key, filters[key]);
     else url.searchParams.delete(key);
   }
@@ -367,6 +408,7 @@ function writeFiltersToUrl(filters) {
 
 function applyFiltersToForm(filters) {
   const map = {
+    performance_scope: "f-performance-scope",
     sport: "f-sport",
     market_key: "f-market",
     bookmaker_key: "f-book",
@@ -385,9 +427,7 @@ function applyFiltersToForm(filters) {
     const el = fieldById(id);
     if (el) el.value = filters[key] || "";
   }
-  const officialEl = inputById("f-official");
   const settledEl = inputById("f-settled");
-  if (officialEl) officialEl.checked = filters.official_only !== false;
   if (settledEl) settledEl.checked = filters.settled_only !== false;
   if (els.groupBy) {
     els.groupBy.value = ALLOWED_GROUPS.has(filters[GROUP_KEY])
@@ -399,6 +439,7 @@ function applyFiltersToForm(filters) {
 function readFiltersFromForm() {
   const out = /** @type {PerformanceFilters} */ ({});
   const map = {
+    performance_scope: "f-performance-scope",
     sport: "f-sport",
     market_key: "f-market",
     bookmaker_key: "f-book",
@@ -418,7 +459,13 @@ function readFiltersFromForm() {
     const v = (field?.value || "").trim();
     if (v) out[key] = v;
   }
-  out.official_only = inputById("f-official")?.checked ?? true;
+  out.performance_scope = normalisePerformanceScope(out.performance_scope);
+  if (out.performance_scope === TRACKING_PERFORMANCE_SCOPE) {
+    out.model_family = TRACKING_MODEL_FAMILY;
+  } else if (out.model_family === TRACKING_MODEL_FAMILY) {
+    delete out.model_family;
+  }
+  out.official_only = out.performance_scope === TRACKING_PERFORMANCE_SCOPE ? false : true;
   out.settled_only = inputById("f-settled")?.checked ?? true;
   out[GROUP_KEY] = els.groupBy?.value || DEFAULT_GROUP;
   if (out.start_date && !isIsoDate(out.start_date)) delete out.start_date;
@@ -434,7 +481,9 @@ function buildQuery(filters, { includeSettled = true, overrides = {} } = {}) {
   for (const key of FILTER_KEYS) {
     if (filters[key]) params.set(key, filters[key]);
   }
-  params.set("official_only", filters.official_only === false ? "false" : "true");
+  const scope = normalisePerformanceScope(filters.performance_scope);
+  params.set("performance_scope", scope);
+  params.set("official_only", scope === TRACKING_PERFORMANCE_SCOPE || filters.official_only === false ? "false" : "true");
   if (includeSettled) {
     params.set("settled_only", filters.settled_only === false ? "false" : "true");
   } else {
@@ -502,11 +551,15 @@ function renderSummary(summary) {
     : Number(summary.roi) > 0 ? "positive" : Number(summary.roi) < 0 ? "negative" : "";
 
   if (settled === 0) {
+    const scope = selectedPerformanceScope();
+    const historyLabel = scope === TRACKING_PERFORMANCE_SCOPE
+      ? "settled beta tracking results"
+      : "settled official pick history";
     setHidden(els.kpiGrid, true);
     setHidden(els.emptySummary, false);
     els.emptySummary.innerHTML =
       "Performance tracking is not populated yet for these filters. " +
-      "The board can show picks, but record / ROI / CLV require settled official pick history. " +
+      `The board can show picks, but record / ROI / CLV require ${esc(historyLabel)}. ` +
       `<br><span class="pill-tag">${esc(fmtNumber(pending))} pending pick${pending === 1 ? "" : "s"}</span>`;
     return;
   }
@@ -895,7 +948,9 @@ function buildBookComparisonQuery(filters) {
     if (key === "bookmaker_key") continue;
     if (filters[key]) params.set(key, filters[key]);
   }
-  params.set("official_only", filters.official_only === false ? "false" : "true");
+  const scope = normalisePerformanceScope(filters.performance_scope);
+  params.set("performance_scope", scope);
+  params.set("official_only", scope === TRACKING_PERFORMANCE_SCOPE || filters.official_only === false ? "false" : "true");
   params.set("settled_only", filters.settled_only === false ? "false" : "true");
   const books = getSelectedBookKeys();
   if (books.length) params.set("pricing_bookmaker_keys", books.join(","));
@@ -995,13 +1050,33 @@ function fillSelect(selectId, options, { keyField = null, labelField = null, cur
   if (currentValue && seen.has(currentValue)) sel.value = currentValue;
 }
 
+function scopeOptionsFromPayload(data) {
+  const allowed = Array.isArray(data && data.performance_scopes)
+    ? data.performance_scopes
+    : PERFORMANCE_SCOPE_OPTIONS.map((item) => item.key);
+  const allowedSet = new Set(allowed.map((item) => normalisePerformanceScope(item)));
+  return PERFORMANCE_SCOPE_OPTIONS.filter((item) => allowedSet.has(item.key));
+}
+
+function marketOptions(markets) {
+  return (markets || []).map((key) => ({
+    key,
+    label: MARKET_LABELS[key] || key,
+  }));
+}
+
 async function loadFilters(filters, { preloaded = null } = {}) {
   try {
-    const data = preloaded || await fetchFilterOptions(filters.sport || DEFAULT_SPORT, filters.model_family || "");
+    const data = preloaded || await fetchFilterOptions(
+      filters.sport || DEFAULT_SPORT,
+      filters.model_family || "",
+      filters.performance_scope || DEFAULT_PERFORMANCE_SCOPE
+    );
     updateVisibilityConfig(data);
     setRuntimeVisibility(data.visibility);
+    fillSelect("f-performance-scope", scopeOptionsFromPayload(data), { keyField: "key", labelField: "label", currentValue: normalisePerformanceScope(filters.performance_scope) });
     fillSelect("f-sport", visibilityConfig.publicSports, { currentValue: filters.sport || "" });
-    fillSelect("f-market", data.markets || [], { currentValue: filters.market_key || "" });
+    fillSelect("f-market", marketOptions(data.markets || []), { keyField: "key", labelField: "label", currentValue: filters.market_key || "" });
     fillSelect("f-book", data.bookmakers || [], { keyField: "key", labelField: "title", currentValue: filters.bookmaker_key || "" });
     fillSelect("f-confidence", data.confidence_buckets || [], { keyField: "key", labelField: "label", currentValue: filters.confidence_bucket || "" });
     fillSelect("f-prob-bucket", data.model_probability_buckets || [], { currentValue: filters.model_probability_bucket || "" });
@@ -1106,6 +1181,12 @@ async function loadAll(filters) {
 
 async function refresh(filters, { preloadedFilters = null } = {}) {
   const normalized = { ...filters };
+  normalized.performance_scope = normalisePerformanceScope(normalized.performance_scope);
+  if (normalized.performance_scope === TRACKING_PERFORMANCE_SCOPE) {
+    normalized.model_family = TRACKING_MODEL_FAMILY;
+  } else if (normalized.model_family === TRACKING_MODEL_FAMILY) {
+    delete normalized.model_family;
+  }
   normalized.start_date = clampStartDate(normalized.start_date, normalized.sport || "");
   if (normalized.end_date) normalized.end_date = clampEndDate(normalized.end_date, normalized.sport || "");
 
@@ -1126,7 +1207,15 @@ async function init() {
   let preloadedFilters = null;
   try {
     const params = new URLSearchParams(window.location.search);
-    preloadedFilters = await fetchFilterOptions(initialSportFromUrl(), (params.get("model_family") || "").trim());
+    const initialScope = normalisePerformanceScope(params.get("performance_scope"));
+    const initialModelFamily = initialScope === TRACKING_PERFORMANCE_SCOPE
+      ? TRACKING_MODEL_FAMILY
+      : (params.get("model_family") || "").trim();
+    preloadedFilters = await fetchFilterOptions(
+      initialSportFromUrl(),
+      initialModelFamily,
+      initialScope
+    );
     updateVisibilityConfig(preloadedFilters);
     setRuntimeVisibility(preloadedFilters.visibility);
   } catch (err) {
@@ -1146,6 +1235,7 @@ async function init() {
     const next = {
       official_only: true,
       settled_only: true,
+      performance_scope: DEFAULT_PERFORMANCE_SCOPE,
       [GROUP_KEY]: DEFAULT_GROUP,
       sport: DEFAULT_SPORT,
     };
@@ -1157,6 +1247,14 @@ async function init() {
   const sportEl = document.getElementById("f-sport");
   if (sportEl) {
     sportEl.addEventListener("change", () => {
+      const next = readFiltersFromForm();
+      refresh(next);
+    });
+  }
+
+  const scopeEl = document.getElementById("f-performance-scope");
+  if (scopeEl) {
+    scopeEl.addEventListener("change", () => {
       const next = readFiltersFromForm();
       refresh(next);
     });
