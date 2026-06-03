@@ -35,8 +35,18 @@
     .filters { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 18px; max-width: 100%; min-width: 0; }
     .filters legend { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 0 6px; }
     .filter-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; min-width: 0; max-width: 100%; }
-    .filter-grid label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; min-width: 0; max-width: 100%; }
-    .filter-grid input, .filter-grid select { display: block; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; background: #fcfcfd; color: var(--ink); width: 100%; max-width: 100%; min-width: 0; inline-size: 100%; max-inline-size: 100%; box-sizing: border-box; }
+    .filter-grid label, .filter-field { display: grid; gap: 4px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; min-width: 0; max-width: 100%; }
+    .filter-label { display: block; }
+    .filter-grid input, .filter-grid select, .market-menu-button { display: block; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; background: #fcfcfd; color: var(--ink); width: 100%; max-width: 100%; min-width: 0; inline-size: 100%; max-inline-size: 100%; box-sizing: border-box; }
+    .market-menu-wrap { position: relative; min-width: 0; }
+    .market-menu-button { cursor: pointer; text-align: left; text-transform: none; letter-spacing: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 38px; }
+    .market-menu-button::after { content: "v"; color: var(--muted); font-size: 12px; }
+    .market-menu-button[aria-expanded="true"]::after { content: "^"; }
+    .market-checkbox-menu { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; right: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 8px; text-transform: none; letter-spacing: 0; color: var(--ink); }
+    .market-checkbox-menu label { display: flex; align-items: center; gap: 8px; padding: 7px 6px; border-radius: 8px; font-size: 13px; color: var(--ink); text-transform: none; letter-spacing: 0; cursor: pointer; }
+    .market-checkbox-menu label:hover { background: var(--accent-soft); }
+    .market-checkbox-menu input { width: auto; inline-size: auto; min-width: 0; margin: 0; }
+    .market-empty { padding: 8px 6px; color: var(--muted); font-size: 13px; }
     /* iOS Safari treats <input type="date"> as a fixed-width control by default and will overflow narrow grid cells. Force it to behave like every other input. */
     .filter-grid input[type="date"] { -webkit-appearance: none; appearance: none; text-align: left; }
     .filter-grid input[type="date"]::-webkit-date-and-time-value { text-align: left; min-width: 0; }
@@ -173,9 +183,14 @@
         <label>Sport
           <select id="f-sport" name="sport"><option value="">All</option></select>
         </label>
-        <label>Market
-          <select id="f-market" name="market_key"><option value="">All</option></select>
-        </label>
+        <div class="filter-field">
+          <span class="filter-label">Market</span>
+          <div class="market-menu-wrap">
+            <button id="f-market-toggle" class="market-menu-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="f-market-menu">All markets</button>
+            <div id="f-market-menu" class="market-checkbox-menu" role="group" aria-label="Market" hidden></div>
+            <input id="f-market" name="market_keys" type="hidden">
+          </div>
+        </div>
         <label>Selected book
           <select id="f-book" name="bookmaker_key"><option value="">All</option></select>
         </label>

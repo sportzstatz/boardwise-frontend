@@ -8,7 +8,9 @@ function installPerformanceDom() {
         <option value="tracking">Tracking</option>
       </select>
       <select id="f-sport" name="sport"></select>
-      <select id="f-market" name="market_key"></select>
+      <button id="f-market-toggle" type="button" aria-expanded="false" aria-controls="f-market-menu">All markets</button>
+      <div id="f-market-menu" hidden></div>
+      <input id="f-market" name="market_keys" type="hidden">
       <select id="f-book" name="bookmaker_key"></select>
       <select id="f-confidence" name="confidence_bucket"></select>
       <select id="f-prob-bucket" name="model_probability_bucket"></select>
@@ -78,6 +80,48 @@ function emptySummary() {
   };
 }
 
+function installMockApi(calls) {
+  window.BoardWiseApi = /** @type {any} */ ({
+    getPerformanceFilters: vi.fn().mockResolvedValue(filtersPayload()),
+    getPerformanceSummary: vi.fn((query) => {
+      calls.push(["summary", query]);
+      return Promise.resolve({ summary: emptySummary(), visibility: filtersPayload().visibility });
+    }),
+    getPerformanceBreakdown: vi.fn((query) => {
+      calls.push(["breakdown", query]);
+      return Promise.resolve({ group_by: "wise_choice_bucket", groups: [], visibility: filtersPayload().visibility });
+    }),
+    getPerformancePicks: vi.fn((query) => {
+      calls.push(["picks", query]);
+      return Promise.resolve({ picks: [], visibility: filtersPayload().visibility });
+    }),
+    getPerformanceBookComparison: vi.fn((query) => {
+      calls.push(["book", query]);
+      return Promise.resolve({ rows: [], visibility: filtersPayload().visibility });
+    }),
+  });
+}
+
+function checkedMarketValues() {
+  return Array.from(document.querySelectorAll("#f-market-menu input[type='checkbox']"))
+    .filter((el) => el instanceof HTMLInputElement && el.checked)
+    .map((el) => el instanceof HTMLInputElement ? el.value : "");
+}
+
+function setMarketChecked(value, checked = true) {
+  const input = /** @type {HTMLInputElement | null} */ (
+    document.querySelector(`#f-market-menu input[value="${value}"]`)
+  );
+  expect(input).not.toBeNull();
+  input.checked = checked;
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function lastQuery(calls, name) {
+  const matches = calls.filter(([callName]) => callName === name);
+  return new URLSearchParams(matches[matches.length - 1][1]);
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.resetModules();
@@ -96,25 +140,7 @@ describe("performance page", () => {
     installPerformanceDom();
 
     const calls = [];
-    window.BoardWiseApi = /** @type {any} */ ({
-      getPerformanceFilters: vi.fn().mockResolvedValue(filtersPayload()),
-      getPerformanceSummary: vi.fn((query) => {
-        calls.push(["summary", query]);
-        return Promise.resolve({ summary: emptySummary(), visibility: filtersPayload().visibility });
-      }),
-      getPerformanceBreakdown: vi.fn((query) => {
-        calls.push(["breakdown", query]);
-        return Promise.resolve({ group_by: "wise_choice_bucket", groups: [], visibility: filtersPayload().visibility });
-      }),
-      getPerformancePicks: vi.fn((query) => {
-        calls.push(["picks", query]);
-        return Promise.resolve({ picks: [], visibility: filtersPayload().visibility });
-      }),
-      getPerformanceBookComparison: vi.fn((query) => {
-        calls.push(["book", query]);
-        return Promise.resolve({ rows: [], visibility: filtersPayload().visibility });
-      }),
-    });
+    installMockApi(calls);
 
     await import("../assets/js/performance.js");
 
@@ -133,7 +159,97 @@ describe("performance page", () => {
     expect(summaryQs.get("model_family")).toBe("obsidian_steed");
     expect(summaryQs.get("official_only")).toBe("false");
     expect(/** @type {HTMLSelectElement | null} */ (document.querySelector("#f-performance-scope"))?.value).toBe("tracking");
-    expect(document.querySelector("#f-market")?.textContent).toContain("NRFI/YRFI");
-    expect(document.querySelector("#f-market")?.textContent).not.toContain("first_inning_total");
+    expect(document.querySelector("#f-market-menu")?.textContent).toContain("NRFI/YRFI");
+    expect(document.querySelector("#f-market-menu")?.textContent).not.toContain("first_inning_total");
+  });
+
+  it("hydrates old market_key URLs into the multi-market checkbox state", async () => {
+    window.history.replaceState({}, "", "/performance/?market_key=h2h");
+    installPerformanceDom();
+    const calls = [];
+    installMockApi(calls);
+
+    await import("../assets/js/performance.js");
+
+    await vi.waitFor(() => expect(window.BoardWiseApi.getPerformanceSummary).toHaveBeenCalled());
+
+    expect(checkedMarketValues()).toEqual(["h2h"]);
+    expect(/** @type {HTMLInputElement | null} */ (document.querySelector("#f-market"))?.value).toBe("h2h");
+    expect(window.location.search).toContain("market_keys=h2h");
+    expect(window.location.search).not.toContain("market_key=");
+    expect(lastQuery(calls, "summary").get("market_keys")).toBe("h2h");
+  });
+
+  it("sends paired markets to every performance data request", async () => {
+    window.history.replaceState({}, "", "/performance/");
+    installPerformanceDom();
+    const calls = [];
+    installMockApi(calls);
+
+    await import("../assets/js/performance.js");
+    await vi.waitFor(() => expect(window.BoardWiseApi.getPerformanceSummary).toHaveBeenCalled());
+
+    const initialSummaryCount = calls.filter(([name]) => name === "summary").length;
+    setMarketChecked("h2h", true);
+    setMarketChecked("totals", true);
+    document.querySelector("#filter-form").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+
+    await vi.waitFor(() => {
+      expect(calls.filter(([name]) => name === "summary").length).toBeGreaterThan(initialSummaryCount);
+    });
+
+    for (const endpoint of ["summary", "breakdown", "picks", "book"]) {
+      const qs = lastQuery(calls, endpoint);
+      expect(qs.get("market_keys")).toBe("h2h,totals");
+      expect(qs.get("market_key")).toBeNull();
+    }
+    expect(document.querySelector("#f-market-toggle")?.textContent).toBe("2 markets selected");
+  });
+
+  it("supports tracking selections that pair NRFI/YRFI with full-game markets", async () => {
+    window.history.replaceState({}, "", "/performance/?performance_scope=tracking");
+    installPerformanceDom();
+    const calls = [];
+    installMockApi(calls);
+
+    await import("../assets/js/performance.js");
+    await vi.waitFor(() => expect(window.BoardWiseApi.getPerformanceSummary).toHaveBeenCalled());
+
+    const initialSummaryCount = calls.filter(([name]) => name === "summary").length;
+    setMarketChecked("nrfi_yrfi", true);
+    setMarketChecked("h2h", true);
+    document.querySelector("#filter-form").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+
+    await vi.waitFor(() => {
+      expect(calls.filter(([name]) => name === "summary").length).toBeGreaterThan(initialSummaryCount);
+    });
+
+    const qs = lastQuery(calls, "summary");
+    expect(qs.get("performance_scope")).toBe("tracking");
+    expect(qs.get("model_family")).toBe("obsidian_steed");
+    expect(qs.get("market_keys")).toBe("h2h,nrfi_yrfi");
+  });
+
+  it("reset clears market selections back to all markets", async () => {
+    window.history.replaceState({}, "", "/performance/?market_keys=h2h,totals");
+    installPerformanceDom();
+    const calls = [];
+    installMockApi(calls);
+
+    await import("../assets/js/performance.js");
+    await vi.waitFor(() => expect(window.BoardWiseApi.getPerformanceSummary).toHaveBeenCalled());
+
+    expect(checkedMarketValues()).toEqual(["h2h", "totals"]);
+    const initialSummaryCount = calls.filter(([name]) => name === "summary").length;
+    document.querySelector("#reset-filters").dispatchEvent(new Event("click", { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(calls.filter(([name]) => name === "summary").length).toBeGreaterThan(initialSummaryCount);
+    });
+
+    expect(checkedMarketValues()).toEqual([]);
+    expect(/** @type {HTMLInputElement | null} */ (document.querySelector("#f-market"))?.value).toBe("");
+    expect(document.querySelector("#f-market-toggle")?.textContent).toBe("All markets");
+    expect(window.location.search).not.toContain("market_keys=");
   });
 });
