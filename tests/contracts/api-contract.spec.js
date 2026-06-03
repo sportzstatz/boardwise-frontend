@@ -92,7 +92,37 @@ test.describe("BoardWise public API contract", () => {
     expectArray(body.wise_choice_buckets, "filters.wise_choice_buckets");
     expectArray(body.model_versions, "filters.model_versions");
     expectArray(body.prediction_modes, "filters.prediction_modes");
+    if ("performance_scopes" in body) {
+      expectArray(body.performance_scopes, "filters.performance_scopes");
+    }
     expectVisibilityIfPresent(body, "performance filters");
+  });
+
+  test("GET /api/v1/performance/filters supports tracking scope contract", async ({
+    request,
+  }) => {
+    const response = await request.get(
+      `/api/v1/performance/filters?sport=mlb&performance_scope=tracking`
+    );
+    const body = await expectJsonResponse(response, "tracking performance filters");
+
+    expectArray(body.markets, "tracking filters.markets");
+    if ("performance_scopes" in body) {
+      expectArray(body.performance_scopes, "tracking filters.performance_scopes");
+      expect(body.performance_scopes).toContain("official");
+      expect(body.performance_scopes).toContain("tracking");
+    }
+    expectVisibilityIfPresent(body, "tracking performance filters");
+
+    if (body.markets.length > 0) {
+      // The live API may not expose the tracking scope yet while frontend PR
+      // checks run. Once API is deployed, tracking filters should include
+      // NRFI/YRFI and continue hiding the internal first-inning total market.
+      if ("performance_scopes" in body) {
+        expect(body.markets).toContain("nrfi_yrfi");
+      }
+      expect(body.markets).not.toContain("first_inning_total");
+    }
   });
 
   test("GET /api/v1/performance/summary returns KPI contract", async ({
@@ -112,6 +142,26 @@ test.describe("BoardWise public API contract", () => {
     if (body.summary.record !== null && body.summary.record !== undefined) {
       expectString(body.summary.record, "summary.record");
     }
+  });
+
+  test("GET /api/v1/performance/summary supports tracking KPI contract", async ({
+    request,
+  }) => {
+    const response = await request.get(
+      `/api/v1/performance/summary?${performanceQuery({
+        performance_scope: "tracking",
+        model_family: "obsidian_steed",
+        official_only: "false",
+        settled_only: "false",
+      })}`
+    );
+    const body = await expectJsonResponse(response, "tracking performance summary");
+
+    expectPlainObject(body.summary, "tracking summary.summary");
+    expectNumberLike(body.summary.pick_count, "tracking summary.pick_count");
+    expectNumberLike(body.summary.settled_count, "tracking summary.settled_count");
+    expectNumberLike(body.summary.pending_count, "tracking summary.pending_count");
+    expectVisibilityIfPresent(body, "tracking performance summary");
   });
 
   test("GET /api/v1/performance/breakdown returns grouped-row contract", async ({

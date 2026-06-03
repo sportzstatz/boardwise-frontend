@@ -208,11 +208,11 @@
 
     /**
      * @param {string} [sport]
-     * @param {{ model_family?: string }} [options]
+     * @param {{ model_family?: string, performance_scope?: string }} [options]
      */
     getPerformanceFilters(sport, options = {}) {
-      const query = sport || options.model_family
-        ? { sport, model_family: options.model_family }
+      const query = sport || options.model_family || options.performance_scope
+        ? { sport, model_family: options.model_family, performance_scope: options.performance_scope }
         : undefined;
       return jsonRequest(ENDPOINTS.performanceFilters, {
         query,

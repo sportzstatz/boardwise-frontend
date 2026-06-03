@@ -127,7 +127,7 @@ interface BoardWiseApiClient {
   getNhlBoard(targetDate?: string): Promise<BoardWiseBoardPayload>;
   getPerformanceFilters(
     sport?: string,
-    options?: { model_family?: string }
+    options?: { model_family?: string; performance_scope?: string }
   ): Promise<BoardWisePerformanceFiltersPayload>;
   getPerformanceSummary(
     query: BoardWisePerformanceQuery

@@ -148,7 +148,7 @@
         <a class="nav-link" href="/account/" data-auth-authenticated data-auth-label>Account</a>
       </div>
       <h1>Performance &amp; ROI</h1>
-      <div class="subtitle">Record, units, ROI, and closing-line value (CLV) for published BoardWise picks. Pending picks count toward volume but never inflate ROI.</div>
+      <div class="subtitle">Record, units, ROI, and closing-line value (CLV) for official BoardWise picks and beta tracking models. Pending picks count toward volume but never inflate ROI.</div>
     </section>
 
     <section class="section chart-section" id="chart-section">
@@ -164,6 +164,12 @@
 
     <form id="filter-form" class="filters" autocomplete="off">
       <div class="filter-grid">
+        <label>Performance type
+          <select id="f-performance-scope" name="performance_scope">
+            <option value="official">Official</option>
+            <option value="tracking">Tracking</option>
+          </select>
+        </label>
         <label>Sport
           <select id="f-sport" name="sport"><option value="">All</option></select>
         </label>
@@ -205,7 +211,6 @@
         </label>
       </div>
       <div class="filter-row-actions">
-        <label class="checkbox"><input id="f-official" name="official_only" type="checkbox" checked> Official only</label>
         <label class="checkbox"><input id="f-settled" name="settled_only" type="checkbox" checked> Settled only (KPIs)</label>
         <button type="submit">Apply filters</button>
         <button type="button" id="reset-filters" class="secondary">Reset</button>
