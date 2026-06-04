@@ -92,7 +92,7 @@ test.describe("MLB board visual baselines", () => {
 
     await expect(page.locator("#obsidian-hero")).toBeVisible();
     await expect(page.locator("#obsidian-hero")).toContainText("Obsidian Steed");
-    await expect(page.locator("#obsidian-hero")).toContainText("Next-generation MLB model powering today's board.");
+    await expect(page.locator("#obsidian-hero")).not.toContainText("Next-generation MLB model powering today's board.");
     await expect(page.locator("body")).toHaveClass(/obsidian-treatment/);
     await expect(page.locator("body")).toHaveAttribute("data-obsidian-variant", "public");
     await expect(page.locator("body")).not.toContainText("Obsidian Steed Shadow");

@@ -306,7 +306,8 @@ describe("mlb-board model selector", () => {
 
     const hero = getObsidianHero();
     expect(hero?.textContent).toContain("Obsidian Steed");
-    expect(hero?.textContent).toContain("Next-generation MLB model powering today's board.");
+    expect(hero?.textContent).not.toContain("Next-generation MLB model powering today's board.");
+    expect(hero?.querySelector(".obsidian-hero-copy")).toBeNull();
     expect(hero?.textContent).not.toContain("Shadow");
     expect(document.body.dataset.obsidianVariant).toBe("public");
   });

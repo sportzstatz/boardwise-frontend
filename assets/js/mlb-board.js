@@ -224,7 +224,7 @@ function obsidianHeroCopy(payload = state.payload) {
   if (variant === "public") {
     return [
       "Obsidian Steed",
-      "Next-generation MLB model powering today's board."
+      ""
     ];
   }
   return ["", ""];
@@ -242,9 +242,10 @@ function renderObsidianHero(payload = state.payload) {
   const [title, copy] = obsidianHeroCopy(payload);
   obsidianHeroEl.hidden = false;
   obsidianHeroEl.dataset.variant = branding.variant || "shadow";
+  const copyHtml = copy ? `<div class="obsidian-hero-copy">${esc(copy)}</div>` : "";
   obsidianHeroEl.innerHTML = `
     <h2 id="obsidian-hero-title" class="obsidian-hero-title">${esc(title)}</h2>
-    <div class="obsidian-hero-copy">${esc(copy)}</div>
+    ${copyHtml}
   `;
 }
 
