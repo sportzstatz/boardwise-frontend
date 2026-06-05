@@ -92,12 +92,14 @@ async function loadMlbBoardScript(getMlbBoard) {
   vi.resetModules();
   installMlbDom();
   window.BoardWiseApi = /** @type {any} */ ({ getMlbBoard });
+  await import("../assets/js/wise-choice.js");
   await import("../assets/js/mlb-board.js");
 }
 
 afterEach(() => {
   vi.unstubAllGlobals();
   delete window.BoardWiseApi;
+  delete window.BoardWiseWiseChoice;
   delete (/** @type {any} */ (window)).__BoardWiseMlbTestHooks;
   document.body.innerHTML = "";
   document.body.className = "";
@@ -595,6 +597,75 @@ describe("mlb-board model selector", () => {
     wiseChoiceButton?.click();
     expect(document.querySelector(".bet-pill-list")?.textContent).toContain("Home Moneyline");
     expect(document.querySelector(".bet-pill-list")?.textContent).not.toContain("YRFI");
+  });
+
+  it("renders full-board Wise Choice from an official recommendation when the explicit card is absent", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const officialPick = {
+      selection_text: "Away Moneyline",
+      label: "Away Moneyline",
+      sportsbook: "BookA",
+      odds_text: "+115",
+      wise_choice_score: 16,
+      wise_choice_bucket_key: "medium_high_14_20",
+      wise_choice_bucket_label: "14-20 - Strong",
+      wise_choice_status: "Strong",
+      is_official: true,
+    };
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        games: [
+          {
+            game_label: "Away at Home",
+            commence_time: "7:05 PM",
+            venue: "Test Park",
+            favorite_team: "Away",
+            favorite_prob_text: "54.0%",
+            best_card_options: {},
+            recommendations: [officialPick],
+            market_dropdowns: [],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".best-card")).not.toBeNull());
+
+    const bestCardText = document.querySelector(".best-card")?.textContent || "";
+    expect(bestCardText).toContain("Wise Choices");
+    expect(bestCardText).toContain("Away Moneyline");
+    expect(bestCardText).toContain("BookA");
+    expect(bestCardText).toContain("+115");
+    expect(bestCardText).toContain("Official");
+    expect(bestCardText).not.toContain("No best-bet recommendation");
+  });
+
+  it("keeps no-recommendation full-board games in the graceful no-pick state", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        games: [
+          {
+            game_label: "Away at Home",
+            best_card_options: {},
+            recommendations: [],
+            market_dropdowns: [],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tile")).not.toBeNull());
+
+    const bodyText = document.body.textContent || "";
+    expect(bodyText).toContain("No best-bet recommendation is available for this sort.");
+    expect(bodyText).not.toContain("undefined");
+    expect(bodyText).not.toContain("null");
+    expect(bodyText).not.toContain("[object Object]");
   });
 
   it("does not render tracker dropdowns when tracker metadata is disabled", async () => {

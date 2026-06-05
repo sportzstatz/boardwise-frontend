@@ -229,11 +229,31 @@ function setStatusNote(payload) {
   statusNoteEl.textContent = notes.join(" ");
 }
 
+function gameLabel(game) {
+  return game.game_label || `${game.away_team || "Away"} at ${game.home_team || "Home"}`;
+}
+
+function wiseChoiceOptions() {
+  return {
+    excludeTrackingOnly: false,
+    mode: state.mode,
+    gameLabelForGame: gameLabel
+  };
+}
+
+function wiseChoiceHelper() {
+  return window.BoardWiseWiseChoice || null;
+}
+
 function bestOption(game, variant = state.mode) {
   const options = game.best_card_options || {};
   if (variant === "best_value") return options.best_value || options.highest_ev || null;
   if (variant === "best_growth") return options.best_growth || options.wise_choice || options.best_value || options.highest_ev || null;
-  if (variant === "wise_choice") return options.wise_choice || options.best_value || options.highest_ev || null;
+  if (variant === "wise_choice") {
+    const helper = wiseChoiceHelper();
+    if (helper) return helper.selectWiseChoiceForGame(game, state.payload || {}, wiseChoiceOptions());
+    return options.wise_choice || options.best_value || options.highest_ev || null;
+  }
   return options[variant] || options.best_value || options.highest_ev || (Array.isArray(game.recommendations) ? game.recommendations[0] : null);
 }
 
@@ -330,7 +350,8 @@ function renderFilters() {
 }
 
 function metric(label, value) {
-  return `<div class="metric-bubble"><div class="m-label">${esc(label)}</div><div class="m-value">${esc(value || "-")}</div></div>`;
+  const displayValue = value === null || value === undefined || value === "" ? "-" : value;
+  return `<div class="metric-bubble"><div class="m-label">${esc(label)}</div><div class="m-value">${esc(displayValue)}</div></div>`;
 }
 
 function renderTeams(game) {
@@ -422,6 +443,9 @@ function compareBetItems(a, b) {
 }
 
 function collectRecommendedBets(games) {
+  const helper = wiseChoiceHelper();
+  if (helper) return helper.collectRecommendedBets(games, state.payload || {}, wiseChoiceOptions());
+
   const bets = [];
   for (const game of games) {
     const recs = Array.isArray(game.recommendations) ? game.recommendations.filter((rec) => rec && typeof rec === "object") : [];
@@ -435,7 +459,7 @@ function collectRecommendedBets(games) {
       bets.push({
         game,
         option,
-        gameLabel: game.game_label || `${game.away_team || "Away"} at ${game.home_team || "Home"}`
+        gameLabel: gameLabel(game)
       });
     }
   }

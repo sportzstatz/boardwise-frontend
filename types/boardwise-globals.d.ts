@@ -143,10 +143,49 @@ interface BoardWiseApiClient {
   ): Promise<BoardWisePerformanceBookComparisonPayload>;
 }
 
+interface BoardWiseWiseChoiceCandidate {
+  [key: string]: any;
+  selection_text?: string;
+  label?: string;
+  sportsbook?: string;
+  odds_text?: string;
+  is_official?: boolean;
+}
+
+interface BoardWiseWiseChoiceBetItem {
+  game: any;
+  option: BoardWiseWiseChoiceCandidate;
+  gameLabel: string;
+}
+
+interface BoardWiseWiseChoiceOptions {
+  excludeTrackingOnly?: boolean;
+  mode?: string;
+  gameLabelForGame?: (game: any) => string;
+}
+
+interface BoardWiseWiseChoiceApi {
+  isPublicCandidate(
+    candidate: unknown,
+    options?: BoardWiseWiseChoiceOptions
+  ): boolean;
+  selectWiseChoiceForGame(
+    game: any,
+    boardPayload?: BoardWiseBoardPayload,
+    options?: BoardWiseWiseChoiceOptions
+  ): BoardWiseWiseChoiceCandidate | null;
+  collectRecommendedBets(
+    games: any[],
+    boardPayload?: BoardWiseBoardPayload,
+    options?: BoardWiseWiseChoiceOptions
+  ): BoardWiseWiseChoiceBetItem[];
+}
+
 interface Window {
   BOARDWISE_API_BASE?: string;
   BoardWiseApi?: BoardWiseApiClient;
   BoardWiseAuth?: BoardWiseAuthApi;
   BoardWiseGates?: BoardWiseGatesApi;
+  BoardWiseWiseChoice?: BoardWiseWiseChoiceApi;
   turnstile?: TurnstileApi;
 }
