@@ -1,88 +1,98 @@
 # Agent Instructions for `boardwise-frontend`
 
-`boardwise-frontend` is the source for the BoardWise static product
-UI deployed to **Cloudflare Pages** at `https://useboardwise.com`.
-There is no server runtime and no Docker. Pushes to `main` (subject
-to branch protection) trigger a Cloudflare Pages deploy.
+## What This Repo Is
 
-This file is the agent-tool-agnostic entry point. The Copilot-specific
-restatement at `.github/copilot-instructions.md` must remain
-consistent with this file.
+`boardwise-frontend` is the static frontend for BoardWise. It contains public
+HTML, CSS, JavaScript, tests, and build tooling for the browser experience.
+There is no app server runtime in this repo.
 
-## Always do this first
+Production deployment details live in the approved private operations runbook.
+Do not add hostnames, IP addresses, SSH targets, deploy checkout paths,
+production env-file locations, provider account/tunnel/zone details, internal
+admin/operator URLs, or credentials to public repo docs.
+
+## Default Behavior
+
+- Branch from `origin/main` for implementation work.
+- Treat merges to `main` as production-affecting unless the task says
+  otherwise.
+- Do not mutate hosting configuration, deploy hooks, DNS/routing, or provider
+  settings unless explicitly authorized.
+- Keep changes scoped to the requested user-facing behavior.
+- For docs-only changes, do not run the full frontend suite unless runtime files
+  change or the task explicitly asks for it.
+
+## Public Documentation Hygiene
+
+Public docs may describe repo-local development, validation, user-facing
+contracts, and security expectations. They must not disclose production
+hostnames, IPs, SSH targets, deploy paths, production env locations, provider
+account/tunnel/zone details, internal admin/operator URLs, or secrets. Use the
+approved private operations runbook for production topology.
+
+If an actual secret is discovered, stop normal work immediately. Report only the
+secret category, do not paste the value, and recommend revocation/rotation plus
+history cleanup as a separate incident-response action.
+
+## Secrets Policy
+
+Never commit `.env`, `.dev.vars`, hosting-provider API tokens or deploy hooks,
+GitHub PATs, browser storage, cookies, passwords, private keys, or any
+credential value. Static assets are public by definition; do not embed secrets
+in HTML, JavaScript, CSS, or generated assets.
+
+## Code Style
+
+- Prefer the existing static-page structure and shared JS helpers.
+- Keep browser API calls centralized through the existing API client patterns.
+- Preserve public page URLs and user-visible contracts unless explicitly
+  changing them.
+- Avoid introducing runtime dependencies or server-side behavior without a
+  specific task.
+
+## Build And Test
+
+Common local validation commands:
 
 ```bash
-git status -sb
-git remote -v
-git fetch --prune origin
-git branch --show-current
-git log --oneline -5
+npm run lint
+npm run typecheck
+npm run test
+npm run test:contracts
+npm run test:a11y
+npm run test:visual
+npm run build
 ```
 
-If `git status -sb` is not clean and you did not author the dirty
-state, stop and ask.
+Local preview:
 
-## Branching
+```bash
+npm run preview
+```
 
-- Feature branch from `origin/main`. Convention: `<prefix>/<topic>`.
-- Never edit `main` directly without explicit authorization.
-- Never `git push --force` or rewrite published history without
-  explicit authorization.
-- `main` is **branch-protected**: PR required, no force-push, no
-  delete (see `sportzstatz/boardwise-ops` →
-  `docs/branch-protection-status.md`).
-- Merging to `main` triggers a Cloudflare Pages deploy. Treat each
-  merge as a production deploy.
+For docs-only changes, prefer:
 
-## Secrets
+```bash
+git diff --check
+```
 
-- Never commit `.env`, `.dev.vars`, Cloudflare API tokens,
-  Cloudflare Pages deploy hooks, GitHub PATs, or any credential
-  value.
-- Static assets are public by definition — do not embed secrets in
-  HTML/JS/CSS.
-- Use `<REDACTED>` placeholders in examples.
+and targeted scans for accidentally introduced secrets or operational topology.
 
-## Build / test / runtime
+## Runtime Boundary
 
-- This repo currently ships static HTML/CSS/JS plus Cloudflare
-  `_headers`. There is no Node build step at the repo root today.
-- Local preview: any static file server pointed at the repo root
-  (e.g. `python3 -m http.server 8080`) is sufficient.
-- Validation before merge:
-  - Open the touched page locally and visually confirm.
-  - For API-consuming pages, hit `https://api.useboardwise.com/healthz`
-    and `/api/v1/boards/mlb/current` and confirm the page renders the
-    expected `target_date` / `mode` / `game_count`.
-  - Check Cloudflare cache headers (`cf-cache-status`) if cache
-    behavior was touched — coordinate via `sportzstatz/boardwise-ops`
-    → `runbooks/cloudflare-tunnel-verification.md` and the cache
-    asset rule in repo memory.
+This repo ships static browser assets through the approved static hosting
+pipeline. Production hosting, routing, provider settings, cache behavior, and
+deployment smoke checks belong in private operations documentation.
 
-## Production mutation rules
+Documentation-only changes do not require a frontend redeploy.
 
-- Merging to `main` deploys to `useboardwise.com`. Do not merge
-  without explicit authorization.
-- Do not change `_headers`, redirect rules, or CORS-relevant behavior
-  without coordinating with `boardwise-api` (the
-  `BOARDWISE_FRONTEND_*` permitted-origins list lives in `main.py`
-  there).
+## Final Response Shape
 
-## Cross-repo runbooks
+For completed tasks, report:
 
-For runbooks that involve this repo, see
-`sportzstatz/boardwise-ops`:
-
-- `runbooks/cloudflare-tunnel-verification.md`
-- `runbooks/security-redaction-rules.md`
-- `docs/branch-protection-status.md`
-
-## Final response shape
-
-For each completed task, the agent's final message should list:
-
-1. Branch and commit SHA(s).
-2. Files changed with workspace-relative paths.
-3. Validation run (local preview + relevant API smoke if applicable).
-4. PR URL if any.
-5. Anything intentionally left as a template / not executed.
+1. Branch and commit SHA(s), if created.
+2. Files changed, using repo-relative paths.
+3. Validation run.
+4. PR URL, if opened.
+5. Deployment impact.
+6. Anything intentionally not executed.
