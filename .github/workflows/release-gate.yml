@@ -43,6 +43,16 @@ jobs:
       name: ${{ inputs.environment }}
 
     steps:
+      - name: Validate release inputs
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$EXPECTED_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "expected_sha must be a full 40-character commit SHA" >&2
+            exit 1
+          fi
+
       - name: Checkout expected commit
         uses: actions/checkout@v6
         with:
@@ -50,18 +60,22 @@ jobs:
           fetch-depth: 0
 
       - name: Verify checked out SHA
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
         run: |
           set -euo pipefail
           actual="$(git rev-parse HEAD)"
-          echo "Expected: ${{ inputs.expected_sha }}"
-          echo "Actual:   ${actual}"
-          test "${actual}" = "${{ inputs.expected_sha }}"
+          printf 'Expected: %s\n' "$EXPECTED_SHA"
+          printf 'Actual:   %s\n' "$actual"
+          test "$actual" = "$EXPECTED_SHA"
 
       - name: Verify commit is reachable from main
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
         run: |
           set -euo pipefail
           git fetch origin main --quiet
-          git merge-base --is-ancestor "${{ inputs.expected_sha }}" origin/main
+          git merge-base --is-ancestor "$EXPECTED_SHA" origin/main
 
       - name: Set up Node
         uses: actions/setup-node@v6
@@ -98,14 +112,20 @@ jobs:
           test -f dist/assets/js/performance.js
 
       - name: Release handoff
+        env:
+          RELEASE_ENV: ${{ inputs.environment }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          RELEASE_NOTES: ${{ inputs.notes }}
         run: |
-          cat > release-handoff.md <<'EOF'
-          # boardwise-frontend release handoff
-
-          Environment: ${{ inputs.environment }}
-          Commit: ${{ inputs.expected_sha }}
-          Notes: ${{ inputs.notes }}
-
+          set -euo pipefail
+          {
+            printf '# boardwise-frontend release handoff\n\n'
+            printf 'Environment: %s\n' "$RELEASE_ENV"
+            printf 'Commit: %s\n' "$EXPECTED_SHA"
+            printf 'Notes:\n'
+            printf '%s\n' "$RELEASE_NOTES" | sed 's/^/> /'
+            printf '\n'
+            cat <<'STATIC_RELEASE_HANDOFF'
           ## Required smoke
 
           - Cloudflare Pages deploy commit matches expected SHA.
@@ -117,9 +137,13 @@ jobs:
           - No BoardWiseApi undefined errors.
           - No /api/v1/operator calls.
           - No X-BoardWise-Operator-Key header.
-          EOF
+          STATIC_RELEASE_HANDOFF
+          } > release-handoff.md
 
+          token="$(uuidgen 2>/dev/null || openssl rand -hex 16)"
+          echo "::stop-commands::$token"
           cat release-handoff.md
+          echo "::$token::"
 
       - name: Upload release handoff
         uses: actions/upload-artifact@v7
