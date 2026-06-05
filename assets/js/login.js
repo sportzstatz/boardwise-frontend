@@ -1,6 +1,7 @@
 (function () {
   const form = /** @type {HTMLFormElement | null} */ (document.getElementById("login-form"));
   const msg = document.getElementById("login-message");
+  const DEFAULT_RETURN_TO = "/account/";
 
   function setMessage(text, kind = "info") {
     if (!msg) return;
@@ -9,12 +10,41 @@
     msg.removeAttribute("hidden");
   }
 
+  function hasControlCharacter(value) {
+    return Array.from(value).some((char) => {
+      const code = char.charCodeAt(0);
+      return code < 32 || code === 127;
+    });
+  }
+
   function safeReturnTo(value) {
     const raw = String(value || "").trim();
-    if (raw.startsWith("/") && !raw.startsWith("//") && !raw.includes("\\")) {
-      return raw;
+    if (!raw || raw.includes("\\") || hasControlCharacter(raw)) return DEFAULT_RETURN_TO;
+    if (raw.startsWith("/")) return safePath(raw);
+
+    try {
+      const parsed = new URL(raw);
+      if (parsed.origin !== window.location.origin) return DEFAULT_RETURN_TO;
+      return safePath(`${parsed.pathname}${parsed.search}${parsed.hash}`);
+    } catch (_err) {
+      return DEFAULT_RETURN_TO;
     }
-    return "/account/";
+  }
+
+  function safePath(value) {
+    if (!value.startsWith("/") || value.startsWith("//")) return DEFAULT_RETURN_TO;
+    if (value.includes("\\") || hasControlCharacter(value)) return DEFAULT_RETURN_TO;
+    return value;
+  }
+
+  function safeAssign(destination) {
+    const safeDestination = safeReturnTo(destination);
+    const target = new URL(safeDestination, window.location.origin);
+    if (target.origin !== window.location.origin) {
+      window.location.assign(DEFAULT_RETURN_TO);
+      return;
+    }
+    window.location.assign(`${target.pathname}${target.search}${target.hash}`);
   }
 
   function scrubTokenFromUrl() {
@@ -22,10 +52,10 @@
     current.searchParams.delete("token");
 
     const returnTo = safeReturnTo(
-      current.searchParams.get("return_to") || "/account/"
+      current.searchParams.get("return_to") || DEFAULT_RETURN_TO
     );
     current.search = "";
-    if (returnTo !== "/account/") {
+    if (returnTo !== DEFAULT_RETURN_TO) {
       current.searchParams.set("return_to", returnTo);
     }
 
@@ -34,7 +64,7 @@
   }
 
   function returnToFromParams(params) {
-    return safeReturnTo(params.get("return_to") || "/account/");
+    return safeReturnTo(params.get("return_to") || DEFAULT_RETURN_TO);
   }
 
   function returnToFromUrl() {
@@ -73,7 +103,7 @@
     setMessage("Signing you in…");
     try {
       await window.BoardWiseApi.verifyMagicLink(token);
-      window.location.assign(destination);
+      safeAssign(destination);
       return true;
     } catch (err) {
       if (isApiError(err)) {

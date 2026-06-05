@@ -55,6 +55,16 @@ async function settle() {
   }
 }
 
+function encodedReturnTo(value) {
+  return `/login/?return_to=${encodeURIComponent(value)}`;
+}
+
+function expectSameOriginPath(destination, expectedPath) {
+  const target = new URL(destination, window.location.origin);
+  expect(target.origin).toBe(window.location.origin);
+  expect(`${target.pathname}${target.search}${target.hash}`).toBe(expectedPath);
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   delete window.BoardWiseApi;
@@ -112,6 +122,54 @@ describe("login", () => {
       return_to: "/performance/",
       turnstile_token: "test-token",
     });
+  });
+
+  it.each([
+    ["https://evil.example/phish"],
+    ["http://evil.example/phish"],
+    ["//evil.example/phish"],
+    ["/\\evil.example/phish"],
+    ["/\\\\evil.example/phish"],
+    ["\\evil.example/phish"],
+    ["javascript:alert(1)"],
+    ["data:text/html,<script>alert(1)</script>"],
+    ["/account/\r\nLocation:https://evil.example"],
+  ])("sanitizes unsafe return_to before magic-link start: %s", async (returnTo) => {
+    const fetch = vi.fn().mockResolvedValue(
+      jsonResponse({ ok: true, message: "Sent" })
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    const { form, email } = await loadLoginScript({
+      url: encodedReturnTo(returnTo),
+    });
+    email.value = "founder@example.test";
+    submit(form);
+    await settle();
+
+    const request = fetch.mock.calls[0][1];
+    const body = JSON.parse(String(request.body));
+    expect(body.return_to).toBe("/account/");
+    expectSameOriginPath(body.return_to, "/account/");
+  });
+
+  it("normalizes same-origin absolute return_to before magic-link start", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      jsonResponse({ ok: true, message: "Sent" })
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    const { form, email } = await loadLoginScript({
+      url: encodedReturnTo(`${window.location.origin}/performance/?x=1#plans`),
+    });
+    email.value = "founder@example.test";
+    submit(form);
+    await settle();
+
+    const request = fetch.mock.calls[0][1];
+    const body = JSON.parse(String(request.body));
+    expect(body.return_to).toBe("/performance/?x=1#plans");
+    expectSameOriginPath(body.return_to, "/performance/?x=1#plans");
   });
 
   it("resets the form and Turnstile after a successful request", async () => {
@@ -179,5 +237,25 @@ describe("login", () => {
       "That sign-in link is invalid or expired. Request a new link."
     );
     expect(message.textContent).not.toContain("human check");
+  });
+
+  it("scrubs unsafe return_to while removing a failed magic-link token", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      jsonResponse({ detail: "invalid" }, { status: 400, statusText: "Bad Request" })
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    await loadLoginScript({
+      turnstileValue: null,
+      url: `/login/?token=magic-token&return_to=${encodeURIComponent(
+        "/\\evil.example/phish"
+      )}`,
+    });
+    await settle();
+
+    expect(window.location.pathname).toBe("/login/");
+    expect(window.location.search).toBe("");
+    expect(window.location.href).not.toContain("evil.example");
+    expect(window.location.href).not.toContain("token=");
   });
 });
