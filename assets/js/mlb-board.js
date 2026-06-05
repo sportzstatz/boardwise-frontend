@@ -439,6 +439,22 @@ function setStatusNote(payload) {
   statusNoteEl.textContent = notes.join(" ");
 }
 
+function gameLabel(game) {
+  return game.game_label || `${game.away_team || "Away"} at ${game.home_team || "Home"}`;
+}
+
+function wiseChoiceOptions() {
+  return {
+    excludeTrackingOnly: true,
+    mode: state.mode,
+    gameLabelForGame: gameLabel
+  };
+}
+
+function wiseChoiceHelper() {
+  return window.BoardWiseWiseChoice || null;
+}
+
 function bestOption(game, variant = state.mode) {
   const options = game.best_card_options || {};
   const publicRecommendation = Array.isArray(game.recommendations)
@@ -454,6 +470,8 @@ function bestOption(game, variant = state.mode) {
       || null;
   }
   if (variant === "wise_choice") {
+    const helper = wiseChoiceHelper();
+    if (helper) return helper.selectWiseChoiceForGame(game, state.payload || {}, wiseChoiceOptions());
     return publicOption(options.wise_choice)
       || publicOption(options.best_value)
       || publicOption(options.highest_ev)
@@ -648,7 +666,8 @@ function renderPitchers(game) {
 }
 
 function metric(label, value) {
-  return `<div class="metric-bubble"><div class="m-label">${esc(label)}</div><div class="m-value">${esc(value || "-")}</div></div>`;
+  const displayValue = value === null || value === undefined || value === "" ? "-" : value;
+  return `<div class="metric-bubble"><div class="m-label">${esc(label)}</div><div class="m-value">${esc(displayValue)}</div></div>`;
 }
 
 function formatProbability(value) {
@@ -747,6 +766,9 @@ function compareBetItems(a, b) {
 }
 
 function collectRecommendedBets(games) {
+  const helper = wiseChoiceHelper();
+  if (helper) return helper.collectRecommendedBets(games, state.payload || {}, wiseChoiceOptions());
+
   const bets = [];
   for (const game of games) {
     const recs = Array.isArray(game.recommendations)
@@ -762,7 +784,7 @@ function collectRecommendedBets(games) {
       bets.push({
         game,
         option,
-        gameLabel: game.game_label || `${game.away_team || "Away"} at ${game.home_team || "Home"}`
+        gameLabel: gameLabel(game)
       });
     }
   }
