@@ -35,7 +35,9 @@ describe("auth-state", () => {
 
     expect(state.authenticated).toBe(false);
     expect(state.plan).toBe("guest");
-    expect(state.features.mlb_board_basic).toBe(true);
+    expect(state.features.mlb_board_basic).toBe(false);
+    expect(state.features.nhl_board_basic).toBe(false);
+    expect(state.features.performance_summary).toBe(false);
     expect(state.features.performance_picks).toBe(false);
     expect(auth.displayName(state)).toBe("Sign in");
   });
@@ -63,7 +65,7 @@ describe("auth-state", () => {
 
     expect(state.authenticated).toBe(true);
     expect(state.plan).toBe("founder_beta");
-    expect(state.features.mlb_board_basic).toBe(true);
+    expect(state.features.mlb_board_basic).toBe(false);
     expect(state.features.performance_picks).toBe(true);
     expect(auth.hasFeature(state, "performance_picks")).toBe(true);
     expect(auth.displayName(state)).toBe("Founder");

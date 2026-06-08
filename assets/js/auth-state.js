@@ -1,10 +1,10 @@
 (function () {
   const PUBLIC_FEATURES = {
     account_profile: false,
-    mlb_board_basic: true,
+    mlb_board_basic: false,
     mlb_board_advanced: false,
-    nhl_board_basic: true,
-    performance_summary: true,
+    nhl_board_basic: false,
+    performance_summary: false,
     performance_breakdown: false,
     performance_picks: false,
     performance_book_comparison: false,
