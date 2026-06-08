@@ -41,6 +41,11 @@
       setHidden(el, !auth.authenticated);
     });
 
+    root.querySelectorAll("[data-feature-visible]").forEach((el) => {
+      const featureKey = el.getAttribute("data-feature-visible") || "";
+      setHidden(el, !window.BoardWiseAuth.hasFeature(auth, featureKey));
+    });
+
     root.querySelectorAll("[data-required-feature]").forEach((el) => {
       const featureKey = el.getAttribute("data-required-feature") || "";
       const allowed = window.BoardWiseAuth.hasFeature(auth, featureKey);
