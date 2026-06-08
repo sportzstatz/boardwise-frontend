@@ -4,6 +4,7 @@ import {
   expectArray,
   expectBoolean,
   expectJsonResponse,
+  expectNoOperatorLeak,
   expectNumberLike,
   expectPlainObject,
   expectString,
@@ -19,6 +20,31 @@ function performanceQuery(overrides = {}) {
     settled_only: "false",
     ...overrides,
   }).toString();
+}
+
+async function expectAdminOnlyPerformanceResponse(response, label) {
+  expect(response.status(), `${label} status`).toBe(401);
+
+  const contentType = response.headers()["content-type"] || "";
+  expect(
+    contentType,
+    `${label} should return JSON content-type`
+  ).toContain("application/json");
+
+  expect(response.headers()["cache-control"], `${label} cache-control`).toBe(
+    "private, no-store, max-age=0"
+  );
+
+  const body = await response.json();
+  expectPlainObject(body, label);
+  expectPlainObject(body.detail, `${label}.detail`);
+  expect(body.detail.error, `${label}.detail.error`).toBe(
+    "authentication_required"
+  );
+  expect(body.detail.required_feature, `${label}.detail.required_feature`).toBe(
+    "internal_admin"
+  );
+  expectNoOperatorLeak(body, label);
 }
 
 test.describe("BoardWise public API contract", () => {
@@ -74,77 +100,37 @@ test.describe("BoardWise public API contract", () => {
     });
   }
 
-  test("GET /api/v1/performance/filters returns dropdown/filter contract", async ({
+  test("GET /api/v1/performance/filters requires admin auth", async ({
     request,
   }) => {
     const response = await request.get(
       `/api/v1/performance/filters?sport=${SPORT}`
     );
-    const body = await expectJsonResponse(response, "performance filters");
-
-    expectArray(body.markets, "filters.markets");
-    expectArray(body.bookmakers, "filters.bookmakers");
-    expectArray(body.confidence_buckets, "filters.confidence_buckets");
-    expectArray(
-      body.model_probability_buckets,
-      "filters.model_probability_buckets"
-    );
-    expectArray(body.wise_choice_buckets, "filters.wise_choice_buckets");
-    expectArray(body.model_versions, "filters.model_versions");
-    expectArray(body.prediction_modes, "filters.prediction_modes");
-    if ("performance_scopes" in body) {
-      expectArray(body.performance_scopes, "filters.performance_scopes");
-    }
-    expectVisibilityIfPresent(body, "performance filters");
+    await expectAdminOnlyPerformanceResponse(response, "performance filters");
   });
 
-  test("GET /api/v1/performance/filters supports tracking scope contract", async ({
+  test("GET /api/v1/performance/filters tracking scope requires admin auth", async ({
     request,
   }) => {
     const response = await request.get(
       `/api/v1/performance/filters?sport=mlb&performance_scope=tracking`
     );
-    const body = await expectJsonResponse(response, "tracking performance filters");
-
-    expectArray(body.markets, "tracking filters.markets");
-    if ("performance_scopes" in body) {
-      expectArray(body.performance_scopes, "tracking filters.performance_scopes");
-      expect(body.performance_scopes).toContain("official");
-      expect(body.performance_scopes).toContain("tracking");
-    }
-    expectVisibilityIfPresent(body, "tracking performance filters");
-
-    if (body.markets.length > 0) {
-      // The live API may not expose the tracking scope yet while frontend PR
-      // checks run. Once API is deployed, tracking filters should include
-      // NRFI/YRFI and continue hiding the internal first-inning total market.
-      if ("performance_scopes" in body) {
-        expect(body.markets).toContain("nrfi_yrfi");
-      }
-      expect(body.markets).not.toContain("first_inning_total");
-    }
+    await expectAdminOnlyPerformanceResponse(
+      response,
+      "tracking performance filters"
+    );
   });
 
-  test("GET /api/v1/performance/summary returns KPI contract", async ({
+  test("GET /api/v1/performance/summary requires admin auth", async ({
     request,
   }) => {
     const response = await request.get(
       `/api/v1/performance/summary?${performanceQuery()}`
     );
-    const body = await expectJsonResponse(response, "performance summary");
-
-    expectPlainObject(body.summary, "summary.summary");
-    expectNumberLike(body.summary.pick_count, "summary.pick_count");
-    expectNumberLike(body.summary.settled_count, "summary.settled_count");
-    expectNumberLike(body.summary.pending_count, "summary.pending_count");
-    expectVisibilityIfPresent(body, "performance summary");
-
-    if (body.summary.record !== null && body.summary.record !== undefined) {
-      expectString(body.summary.record, "summary.record");
-    }
+    await expectAdminOnlyPerformanceResponse(response, "performance summary");
   });
 
-  test("GET /api/v1/performance/summary supports tracking KPI contract", async ({
+  test("GET /api/v1/performance/summary tracking scope requires admin auth", async ({
     request,
   }) => {
     const response = await request.get(
@@ -155,16 +141,13 @@ test.describe("BoardWise public API contract", () => {
         settled_only: "false",
       })}`
     );
-    const body = await expectJsonResponse(response, "tracking performance summary");
-
-    expectPlainObject(body.summary, "tracking summary.summary");
-    expectNumberLike(body.summary.pick_count, "tracking summary.pick_count");
-    expectNumberLike(body.summary.settled_count, "tracking summary.settled_count");
-    expectNumberLike(body.summary.pending_count, "tracking summary.pending_count");
-    expectVisibilityIfPresent(body, "tracking performance summary");
+    await expectAdminOnlyPerformanceResponse(
+      response,
+      "tracking performance summary"
+    );
   });
 
-  test("GET /api/v1/performance/breakdown returns grouped-row contract", async ({
+  test("GET /api/v1/performance/breakdown requires admin auth", async ({
     request,
   }) => {
     const qs = performanceQuery({
@@ -173,24 +156,10 @@ test.describe("BoardWise public API contract", () => {
     });
 
     const response = await request.get(`/api/v1/performance/breakdown?${qs}`);
-    const body = await expectJsonResponse(response, "performance breakdown");
-
-    expectString(body.group_by, "breakdown.group_by");
-    expectArray(body.groups, "breakdown.groups");
-    expectVisibilityIfPresent(body, "performance breakdown");
-
-    if (body.groups.length > 0) {
-      const row = body.groups[0];
-      expectPlainObject(row, "breakdown.groups[0]");
-      expectNumberLike(row.pick_count, "breakdown.groups[0].pick_count");
-
-      if (row.record !== null && row.record !== undefined) {
-        expectString(row.record, "breakdown.groups[0].record");
-      }
-    }
+    await expectAdminOnlyPerformanceResponse(response, "performance breakdown");
   });
 
-  test("GET /api/v1/performance/picks returns recent-picks contract", async ({
+  test("GET /api/v1/performance/picks requires admin auth", async ({
     request,
   }) => {
     const qs = performanceQuery({
@@ -201,26 +170,10 @@ test.describe("BoardWise public API contract", () => {
     });
 
     const response = await request.get(`/api/v1/performance/picks?${qs}`);
-    const body = await expectJsonResponse(response, "performance picks");
-
-    expectArray(body.picks, "picks.picks");
-    expectVisibilityIfPresent(body, "performance picks");
-
-    if (body.picks.length > 0) {
-      const pick = body.picks[0];
-      expectPlainObject(pick, "picks.picks[0]");
-
-      if (pick.target_date !== null && pick.target_date !== undefined) {
-        expectString(pick.target_date, "picks.picks[0].target_date");
-      }
-
-      if (pick.market_key !== null && pick.market_key !== undefined) {
-        expectString(pick.market_key, "picks.picks[0].market_key");
-      }
-    }
+    await expectAdminOnlyPerformanceResponse(response, "performance picks");
   });
 
-  test("GET /api/v1/performance/book-comparison returns book-comparison contract", async ({
+  test("GET /api/v1/performance/book-comparison requires admin auth", async ({
     request,
   }) => {
     const qs = performanceQuery({
@@ -231,36 +184,6 @@ test.describe("BoardWise public API contract", () => {
     const response = await request.get(
       `/api/v1/performance/book-comparison?${qs}`
     );
-    const body = await expectJsonResponse(response, "book comparison");
-
-    expectArray(body.rows, "bookComparison.rows");
-    expectString(body.comparison_mode, "bookComparison.comparison_mode");
-    expectVisibilityIfPresent(body, "book comparison");
-
-    if (
-      body.common_pick_count !== null &&
-      body.common_pick_count !== undefined
-    ) {
-      expectNumberLike(
-        body.common_pick_count,
-        "bookComparison.common_pick_count"
-      );
-    }
-
-    if (body.rows.length > 0) {
-      const row = body.rows[0];
-      expectPlainObject(row, "bookComparison.rows[0]");
-      expectNumberLike(row.pick_count, "bookComparison.rows[0].pick_count");
-
-      if (
-        row.pricing_bookmaker_key !== null &&
-        row.pricing_bookmaker_key !== undefined
-      ) {
-        expectString(
-          row.pricing_bookmaker_key,
-          "bookComparison.rows[0].pricing_bookmaker_key"
-        );
-      }
-    }
+    await expectAdminOnlyPerformanceResponse(response, "book comparison");
   });
 });
