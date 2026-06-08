@@ -50,7 +50,10 @@ describe("api-client", () => {
 
     expect(fetch).toHaveBeenCalledWith(
       `${DEFAULT_API_BASE}/api/v1/boards/mlb/current`,
-      expect.any(Object)
+      expect.objectContaining({
+        credentials: "include",
+        cache: "no-store",
+      })
     );
   });
 

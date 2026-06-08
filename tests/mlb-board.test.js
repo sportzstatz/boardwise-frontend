@@ -73,6 +73,7 @@ function payload(modelFamily = "obsidian_steed", overrides = {}) {
     recommendation_count: 0,
     books_seen: [],
     games: overrides.games || [],
+    access: overrides.access,
     model_metadata: {
       default_model_family: "classic_mlb",
       selected_model_family: modelFamily,
@@ -85,6 +86,24 @@ function payload(modelFamily = "obsidian_steed", overrides = {}) {
       tracker_markets: trackerMarkets,
       model_versions: [],
     },
+  };
+}
+
+function previewGame(id, label) {
+  return {
+    game_pk: id,
+    game_label: label,
+    away_team_abbr: "AWY",
+    home_team_abbr: "HOM",
+    away_pitcher: "Away Starter",
+    home_pitcher: "Home Starter",
+    lineup_status_away: "projected",
+    lineup_status_home: "confirmed",
+    commence_time: "Wed 7:10 PM CT",
+    venue: "Test Park",
+    favorite_team: "Home",
+    favorite_prob_text: "56.0%",
+    board_state_label: "Board Live",
   };
 }
 
@@ -108,6 +127,62 @@ afterEach(() => {
 });
 
 describe("mlb-board model selector", () => {
+  it("renders free preview payloads as two sanitized cards", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 2,
+        access: {
+          level: "preview",
+          preview: true,
+          full_access: false,
+          max_preview_games: 2,
+          preview_game_count: 2,
+          required_feature: "mlb_board_advanced",
+          upgrade_path: "/pricing/",
+        },
+        games: [
+          previewGame(1, "One at Home"),
+          previewGame(2, "Two at Home"),
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+
+    await vi.waitFor(() => expect(document.querySelectorAll(".preview-tile").length).toBe(2));
+    expect(document.querySelector("#games")?.textContent).toContain("Full MLB board requires Pro access");
+    expect(document.querySelector("#games")?.textContent).toContain("your 2 MLB cards for today");
+    expect(/** @type {HTMLElement | null} */ (document.querySelector("#model-selector"))?.hidden).toBe(true);
+    expect(/** @type {HTMLElement | null} */ (document.querySelector("#best-card-toggle"))?.style.display).toBe("none");
+  });
+
+  it("shows sign-in copy for unauthenticated MLB access", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = Object.assign(new Error("401 Unauthorized"), { status: 401 });
+    const getMlbBoard = vi.fn().mockRejectedValue(error);
+
+    await loadMlbBoardScript(getMlbBoard);
+
+    await vi.waitFor(() => {
+      expect(document.querySelector("#error")?.textContent).toContain("Sign in to view the MLB board");
+    });
+  });
+
+  it("shows pro-access copy for paid-only MLB views", async () => {
+    window.history.replaceState({}, "", "/mlb/?date=2026-05-27");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = Object.assign(new Error("403 Forbidden"), { status: 403 });
+    const getMlbBoard = vi.fn().mockRejectedValue(error);
+
+    await loadMlbBoardScript(getMlbBoard);
+
+    await vi.waitFor(() => {
+      expect(document.querySelector("#error")?.textContent).toContain("requires Pro access");
+    });
+  });
+
   it("uses the model URL state when loading the board", async () => {
     window.history.replaceState({}, "", "/mlb/?model=obsidian_steed");
     const getMlbBoard = vi.fn().mockResolvedValue(payload("obsidian_steed"));
