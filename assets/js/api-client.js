@@ -216,6 +216,8 @@
         : undefined;
       return jsonRequest(ENDPOINTS.performanceFilters, {
         query,
+        credentials: "include",
+        cache: "no-store",
       });
     },
 
@@ -223,28 +225,44 @@
      * @param {ApiQuery} query
      */
     getPerformanceSummary(query) {
-      return jsonRequest(ENDPOINTS.performanceSummary, { query });
+      return jsonRequest(ENDPOINTS.performanceSummary, {
+        query,
+        credentials: "include",
+        cache: "no-store",
+      });
     },
 
     /**
      * @param {ApiQuery} query
      */
     getPerformanceBreakdown(query) {
-      return jsonRequest(ENDPOINTS.performanceBreakdown, { query });
+      return jsonRequest(ENDPOINTS.performanceBreakdown, {
+        query,
+        credentials: "include",
+        cache: "no-store",
+      });
     },
 
     /**
      * @param {ApiQuery} query
      */
     getPerformancePicks(query) {
-      return jsonRequest(ENDPOINTS.performancePicks, { query });
+      return jsonRequest(ENDPOINTS.performancePicks, {
+        query,
+        credentials: "include",
+        cache: "no-store",
+      });
     },
 
     /**
      * @param {ApiQuery} query
      */
     getPerformanceBookComparison(query) {
-      return jsonRequest(ENDPOINTS.performanceBookComparison, { query });
+      return jsonRequest(ENDPOINTS.performanceBookComparison, {
+        query,
+        credentials: "include",
+        cache: "no-store",
+      });
     },
   });
 

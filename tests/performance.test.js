@@ -102,6 +102,17 @@ function installMockApi(calls) {
   });
 }
 
+function installDeniedPerformanceApi(status = 401) {
+  const error = Object.assign(new Error(`${status} denied`), { status });
+  window.BoardWiseApi = /** @type {any} */ ({
+    getPerformanceFilters: vi.fn().mockRejectedValue(error),
+    getPerformanceSummary: vi.fn(),
+    getPerformanceBreakdown: vi.fn(),
+    getPerformancePicks: vi.fn(),
+    getPerformanceBookComparison: vi.fn(),
+  });
+}
+
 function checkedMarketValues() {
   return Array.from(document.querySelectorAll("#f-market-menu input[type='checkbox']"))
     .filter((el) => el instanceof HTMLInputElement && el.checked)
@@ -131,6 +142,22 @@ afterEach(() => {
 });
 
 describe("performance page", () => {
+  it("shows a clean admin sign-in state when performance is denied", async () => {
+    window.history.replaceState({}, "", "/performance/");
+    installPerformanceDom();
+    installDeniedPerformanceApi(401);
+
+    await import("../assets/js/performance.js");
+
+    await vi.waitFor(() => {
+      expect(document.querySelector("#error")?.textContent).toContain(
+        "Sign in with an admin account"
+      );
+    });
+    expect(window.BoardWiseApi.getPerformanceSummary).not.toHaveBeenCalled();
+    expect(document.querySelector("#loading")?.hasAttribute("hidden")).toBe(true);
+  });
+
   it("loads tracking performance as Obsidian beta rows", async () => {
     window.history.replaceState(
       {},

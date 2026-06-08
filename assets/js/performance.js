@@ -375,6 +375,27 @@ function clearError() {
   setHidden(els.error, true);
 }
 
+function isAccessDeniedError(err) {
+  return Boolean(err && (err.status === 401 || err.status === 403));
+}
+
+function showAccessDenied(err) {
+  const message = err && err.status === 401
+    ? "Sign in with an admin account to view performance."
+    : "Performance is available to admin accounts only.";
+  showError(message);
+  setHidden(els.kpiGrid, true);
+  setHidden(els.emptySummary, false);
+  if (els.emptySummary) els.emptySummary.textContent = message;
+  setHidden(els.breakdownEmpty, false);
+  if (els.breakdownEmpty) els.breakdownEmpty.textContent = message;
+  setHidden(els.picksEmpty, false);
+  if (els.picksEmpty) els.picksEmpty.textContent = message;
+  setHidden(els.chartEmpty, false);
+  if (els.chartEmpty) els.chartEmpty.textContent = message;
+  if (els.chartMeta) els.chartMeta.textContent = "Access required";
+}
+
 function isIsoDate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
@@ -1192,8 +1213,14 @@ async function loadFilters(filters, { preloaded = null } = {}) {
     fillSelect("f-model-family", data.model_families || [], { currentValue: filters.model_family || "" });
     fillSelect("f-mode", data.prediction_modes || [], { currentValue: filters.prediction_mode || "" });
     populateBookComparisonBooks(data.bookmakers || []);
+    return true;
   } catch (err) {
+    if (isAccessDeniedError(err)) {
+      showAccessDenied(err);
+      return false;
+    }
     showError(`Failed to load filter options: ${err.message}`);
+    return false;
   }
 }
 
@@ -1237,6 +1264,13 @@ async function loadAll(filters) {
       settle(window.BoardWiseApi.getPerformancePicks(picksQs)),
       settle(window.BoardWiseApi.getPerformanceBreakdown(chartQs)),
     ]);
+    const denied = [summaryR, breakdownR, picksR, chartR].find(
+      (result) => !result.ok && isAccessDeniedError(result.error)
+    );
+    if (denied) {
+      showAccessDenied(denied.error);
+      return;
+    }
 
     const safeRender = (label, fn) => {
       try { fn(); } catch (err) { anyFailed = true; firstErr = firstErr || `${label}: ${err.message}`; }
@@ -1250,7 +1284,7 @@ async function loadAll(filters) {
       // Make sure stale KPIs cannot remain on a failed summary fetch.
       setHidden(els.kpiGrid, true);
       setHidden(els.emptySummary, false);
-      els.emptySummary.textContent = "Could not load summary for these filters.";
+      if (els.emptySummary) els.emptySummary.textContent = "Could not load summary for these filters.";
     }
 
     if (breakdownR.ok) {
@@ -1274,7 +1308,7 @@ async function loadAll(filters) {
       anyFailed = true; firstErr = firstErr || `chart: ${chartR.error.message}`;
       if (els.chartMeta) els.chartMeta.textContent = "Failed to load";
       setHidden(els.chartEmpty, false);
-      els.chartEmpty.textContent = "Could not load the cumulative units chart.";
+      if (els.chartEmpty) els.chartEmpty.textContent = "Could not load the cumulative units chart.";
     }
 
     if (anyFailed) showError(`Failed to load performance data (${firstErr}).`);
@@ -1299,7 +1333,11 @@ async function refresh(filters, { preloadedFilters = null } = {}) {
 
   applyFiltersToForm(normalized);
   writeFiltersToUrl(normalized);
-  await loadFilters(normalized, { preloaded: preloadedFilters });
+  const filtersLoaded = await loadFilters(normalized, { preloaded: preloadedFilters });
+  if (!filtersLoaded) {
+    setHidden(els.loading, true);
+    return;
+  }
 
   // Re-clamp after loadFilters in case backend metadata changed because sport changed.
   normalized.start_date = clampStartDate(normalized.start_date, normalized.sport || "");
@@ -1326,6 +1364,11 @@ async function init() {
     updateVisibilityConfig(preloadedFilters);
     setRuntimeVisibility(preloadedFilters.visibility);
   } catch (err) {
+    if (isAccessDeniedError(err)) {
+      showAccessDenied(err);
+      setHidden(els.loading, true);
+      return;
+    }
     showError(`Failed to load performance visibility settings: ${err.message}`);
   }
 

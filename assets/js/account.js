@@ -24,8 +24,12 @@
       actions.innerHTML = '<a class="button primary" href="/login/">Sign in</a><a class="button" href="/pricing/">Join beta</a>';
     } else {
       const name = window.BoardWiseAuth.displayName(state);
+      const hasPerformance = window.BoardWiseAuth.hasFeature(state, 'performance_summary');
       status.textContent = `Signed in as ${name}. Plan: ${state.plan}.`;
-      actions.innerHTML = '<a class="button" href="/performance/">Open performance</a><button id="logout-button" class="button" type="button">Sign out</button>';
+      const actionLinks = [];
+      if (hasPerformance) actionLinks.push('<a class="button" href="/performance/">Open performance</a>');
+      actionLinks.push('<button id="logout-button" class="button" type="button">Sign out</button>');
+      actions.innerHTML = actionLinks.join('');
       const logout = document.getElementById('logout-button');
       if (logout) {
         logout.addEventListener('click', async () => {

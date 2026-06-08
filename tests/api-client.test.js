@@ -150,6 +150,12 @@ describe("api-client", () => {
     });
 
     const url = new URL(fetch.mock.calls[0][0]);
+    expect(fetch.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        credentials: "include",
+        cache: "no-store",
+      })
+    );
     expect(url.pathname).toBe("/api/v1/performance/summary");
     expect(url.searchParams.get("sport")).toBe("mlb");
     expect(url.searchParams.get("official_only")).toBe("true");
@@ -169,6 +175,12 @@ describe("api-client", () => {
     });
 
     const url = new URL(fetch.mock.calls[0][0]);
+    expect(fetch.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        credentials: "include",
+        cache: "no-store",
+      })
+    );
     expect(url.pathname).toBe("/api/v1/performance/filters");
     expect(url.searchParams.get("sport")).toBe("mlb");
     expect(url.searchParams.get("model_family")).toBe("obsidian_steed");
