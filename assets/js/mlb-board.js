@@ -198,6 +198,17 @@ function hasTrackerMarkets(payload = state.payload) {
   );
 }
 
+function accessLevel(payload = state.payload) {
+  const access = payload && payload.access && typeof payload.access === "object"
+    ? payload.access
+    : {};
+  return String(access.level || (access.preview ? "preview" : "full"));
+}
+
+function isPreviewPayload(payload = state.payload) {
+  return accessLevel(payload) === "preview";
+}
+
 function shouldShowObsidianTreatment(payload = state.payload) {
   const metadata = selectedModelMetadata(payload);
   const branding = getVisualBranding(payload);
@@ -552,6 +563,11 @@ function renderQuickGuide() {
 function renderToggleButtons() {
   const el = document.getElementById("best-card-toggle");
   if (!el) return;
+  if (isPreviewPayload()) {
+    el.style.display = "none";
+    el.innerHTML = "";
+    return;
+  }
   el.style.display = "";
   el.innerHTML = BEST_CARD_MODES.map(([key, label]) => `
     <button class="toggle-btn ${state.mode === key ? "active" : ""}" data-best-card-sort="${esc(key)}" title="${key === "wise_choice" ? "Official picks that pass BoardWise risk filters, ranked by safest-edge score. Safest Edge = Kelly Score × Model Probability" : ""}">${esc(label)}</button>
@@ -568,6 +584,11 @@ function renderToggleButtons() {
 
 function renderModelSelector() {
   if (!modelSelectorEl) return;
+  if (isPreviewPayload()) {
+    modelSelectorEl.hidden = true;
+    modelSelectorEl.innerHTML = "";
+    return;
+  }
   const metadata = selectedModelMetadata();
   const selected = metadata.selected_model_family || state.selectedModel || "classic_mlb";
   const metadataHasAvailability = Array.isArray(metadata.available_model_families);
@@ -611,6 +632,11 @@ function renderModelSelector() {
 }
 
 function renderFilters() {
+  if (isPreviewPayload()) {
+    if (probFilters) probFilters.style.display = "none";
+    if (evFilters) evFilters.style.display = "none";
+    return;
+  }
   if (state.mode === "full_board") {
     if (probFilters) probFilters.style.display = "none";
     if (evFilters) evFilters.style.display = "none";
@@ -1001,6 +1027,39 @@ function renderGame(game, variant = state.mode) {
   `;
 }
 
+function renderPreviewGame(game) {
+  return `
+    <article class="tile preview-tile">
+      <div class="tile-top">
+        <div>
+          <div class="game-label">${esc(game.game_label || `${game.away_team || "Away"} at ${game.home_team || "Home"}`)}</div>
+          <div class="game-time">${esc(game.commence_time || "Time not listed")}</div>
+          <div class="venue-text">${esc(game.venue || "Venue not listed")}</div>
+          ${game.board_state_label ? `<div class="state-badge">${esc(game.board_state_label)}</div>` : ""}
+          ${game.board_state_note ? `<div class="venue-text">${esc(game.board_state_note)}</div>` : ""}
+        </div>
+        <div class="favorite-badge">${esc(game.favorite_team || "Favorite")}<br>${esc(game.favorite_prob_text || "")}</div>
+      </div>
+      ${renderPitchers(game)}
+      <div class="forecast-only-note">Preview card</div>
+    </article>
+  `;
+}
+
+function renderPreviewUpgradeCard(payload = state.payload) {
+  const access = payload && payload.access && typeof payload.access === "object"
+    ? payload.access
+    : {};
+  const href = access.upgrade_path || "/pricing/";
+  return `
+    <article class="empty-state">
+      <strong>Full MLB board requires Pro access.</strong>
+      <div style="margin-top:6px">The preview shows your ${esc(access.max_preview_games || 2)} MLB cards for today.</div>
+      <a class="button primary" href="${esc(href)}" style="margin-top:12px;display:inline-flex">Upgrade</a>
+    </article>
+  `;
+}
+
 function renderBoard() {
   if (!state.payload) return;
   const viewToggle = document.getElementById("board-view-toggle");
@@ -1010,6 +1069,13 @@ function renderBoard() {
   const games = Array.isArray(state.payload.games) ? state.payload.games : [];
   if (!gamesEl) return;
   gamesEl.hidden = false;
+  if (isPreviewPayload()) {
+    gamesEl.className = "tile-list";
+    gamesEl.innerHTML = games.length
+      ? `${games.map(renderPreviewGame).join("")}${renderPreviewUpgradeCard()}`
+      : renderPreviewUpgradeCard();
+    return;
+  }
   if (state.mode !== "full_board") {
     gamesEl.className = "bet-pill-list";
     const filteredBets = collectRecommendedBets(games).filter(betPassesFilter);
@@ -1025,6 +1091,19 @@ function renderBoard() {
     : `<article class="empty-state">No games match this filter.</article>`;
 }
 
+function showAccessError(error) {
+  const status = Number(error && error.status);
+  if (status === 401) {
+    showError("Sign in to view the MLB board.");
+    return;
+  }
+  if (status === 403) {
+    showError("This MLB board view requires Pro access.");
+    return;
+  }
+  showError("Could not load the MLB board right now. Please try again in a moment.");
+}
+
 async function loadBoard(targetDate) {
   showLoading();
   try {
@@ -1038,6 +1117,7 @@ async function loadBoard(targetDate) {
     setHidden(errorEl, true);
     setPageMeta(payload, targetDate);
     setStatusNote(payload);
+    if (isPreviewPayload(payload)) state.mode = "full_board";
     renderQuickGuide();
     renderModelSelector();
     renderObsidianHero(payload);
@@ -1045,7 +1125,7 @@ async function loadBoard(targetDate) {
     renderBoard();
   } catch (error) {
     console.error(error);
-    showError("Could not load the MLB board right now. Please try again in a moment.");
+    showAccessError(error);
   }
 }
 

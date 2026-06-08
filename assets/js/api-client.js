@@ -193,7 +193,11 @@
     getMlbBoard(targetDate, options = {}) {
       return jsonRequest(
         boardPath(ENDPOINTS.mlbBoardDate, targetDate, ENDPOINTS.mlbBoardCurrent),
-        { query: options.model ? { model: options.model } : undefined }
+        {
+          query: options.model ? { model: options.model } : undefined,
+          credentials: "include",
+          cache: "no-store",
+        }
       );
     },
 

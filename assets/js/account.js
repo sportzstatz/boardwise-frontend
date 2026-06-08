@@ -24,9 +24,13 @@
       actions.innerHTML = '<a class="button primary" href="/login/">Sign in</a><a class="button" href="/pricing/">Join beta</a>';
     } else {
       const name = window.BoardWiseAuth.displayName(state);
+      const hasMlbBasic = window.BoardWiseAuth.hasFeature(state, 'mlb_board_basic');
+      const hasMlbAdvanced = window.BoardWiseAuth.hasFeature(state, 'mlb_board_advanced');
       const hasPerformance = window.BoardWiseAuth.hasFeature(state, 'performance_summary');
-      status.textContent = `Signed in as ${name}. Plan: ${state.plan}.`;
+      const mlbAccess = hasMlbAdvanced ? 'full MLB board' : hasMlbBasic ? 'MLB preview' : 'no board access';
+      status.textContent = `Signed in as ${name}. Plan: ${state.plan}. Access: ${mlbAccess}.`;
       const actionLinks = [];
+      if (hasMlbBasic) actionLinks.push('<a class="button" href="/mlb/">Open MLB board</a>');
       if (hasPerformance) actionLinks.push('<a class="button" href="/performance/">Open performance</a>');
       actionLinks.push('<button id="logout-button" class="button" type="button">Sign out</button>');
       actions.innerHTML = actionLinks.join('');

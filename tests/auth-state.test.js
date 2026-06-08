@@ -54,6 +54,7 @@ describe("auth-state", () => {
           },
           plan: "founder_beta",
           features: {
+            mlb_board_basic: true,
             performance_picks: true
           }
         })
@@ -65,7 +66,7 @@ describe("auth-state", () => {
 
     expect(state.authenticated).toBe(true);
     expect(state.plan).toBe("founder_beta");
-    expect(state.features.mlb_board_basic).toBe(false);
+    expect(state.features.mlb_board_basic).toBe(true);
     expect(state.features.performance_picks).toBe(true);
     expect(auth.hasFeature(state, "performance_picks")).toBe(true);
     expect(auth.displayName(state)).toBe("Founder");
