@@ -16,7 +16,10 @@ export default defineConfig({
         mlb: resolve(root, "mlb/index.html"),
         nhl: resolve(root, "nhl/index.html"),
         performance: resolve(root, "performance/index.html"),
-        pricing: resolve(root, "pricing/index.html")
+        pricing: resolve(root, "pricing/index.html"),
+        privacy: resolve(root, "privacy/index.html"),
+        responsibleGaming: resolve(root, "responsible-gaming/index.html"),
+        terms: resolve(root, "terms/index.html")
       }
     }
   }
