@@ -78,6 +78,25 @@
     return input ? String(input.value || "").trim() : "";
   }
 
+  function turnstileEnabled() {
+    const raw = /** @type {{ BOARDWISE_TURNSTILE_ENABLED?: unknown }} */ (
+      window
+    ).BOARDWISE_TURNSTILE_ENABLED;
+    if (raw === false || raw === 0) return false;
+    if (typeof raw === "string") {
+      return !["0", "false", "off", "no"].includes(raw.trim().toLowerCase());
+    }
+    if (raw === true || raw === 1) return true;
+    return Boolean(document.querySelector(".cf-turnstile"));
+  }
+
+  function configureTurnstileVisibility() {
+    if (turnstileEnabled()) return;
+    document.querySelectorAll(".cf-turnstile").forEach((el) => {
+      el.setAttribute("hidden", "");
+    });
+  }
+
   function resetTurnstile() {
     if (window.turnstile && typeof window.turnstile.reset === "function") {
       window.turnstile.reset();
@@ -127,23 +146,25 @@
     const email = emailInput ? String(emailInput.value || "").trim() : "";
     if (!email) return;
 
-    const token = turnstileToken();
-    if (!token) {
+    const needsTurnstile = turnstileEnabled();
+    const token = needsTurnstile ? turnstileToken() : "";
+    if (needsTurnstile && !token) {
       setMessage("Complete the human check, then try again.", "error");
       return;
     }
 
     setMessage("Sending sign-in link…");
     try {
-      const body = await window.BoardWiseApi.startMagicLink({
+      const requestBody = {
         email,
         return_to: returnToFromUrl(),
-        turnstile_token: token,
-      });
+      };
+      if (needsTurnstile) requestBody.turnstile_token = token;
+      const body = await window.BoardWiseApi.startMagicLink(requestBody);
       setMessage(
         body && body.message
           ? String(body.message)
-          : "If that email can sign in, a link has been sent."
+          : "If that email can sign in or create an account, a link has been sent."
       );
       if (form) form.reset();
       resetTurnstile();
@@ -153,6 +174,7 @@
     }
   }
 
+  configureTurnstileVisibility();
   verifyTokenIfPresent().then((handled) => {
     if (!handled && form) form.addEventListener("submit", startLogin);
     if (window.BoardWiseGates) window.BoardWiseGates.applyFeatureGates();

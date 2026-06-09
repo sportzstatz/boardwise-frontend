@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const API_BASE = "https://api.example.test";
 
 async function loadLoginScript({
+  turnstileEnabled = true,
   turnstileValue = "test-token",
   url = "/login/",
 } = {}) {
@@ -10,6 +11,9 @@ async function loadLoginScript({
   delete window.BoardWiseApi;
   window.history.pushState({}, "", url);
   window.BOARDWISE_API_BASE = API_BASE;
+  /** @type {{ BOARDWISE_TURNSTILE_ENABLED?: boolean }} */ (
+    window
+  ).BOARDWISE_TURNSTILE_ENABLED = turnstileEnabled;
 
   document.body.innerHTML = `
     <form id="login-form" class="auth-form">
@@ -20,7 +24,7 @@ async function loadLoginScript({
           ? ""
           : `<input name="cf-turnstile-response" value="${turnstileValue}">`
       }
-      <button class="button primary" type="submit">Send sign-in link</button>
+      <button class="button primary" type="submit">Send email link</button>
     </form>
     <p id="login-message" hidden></p>
   `;
@@ -69,6 +73,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
   delete window.BoardWiseApi;
   delete window.BOARDWISE_API_BASE;
+  delete /** @type {{ BOARDWISE_TURNSTILE_ENABLED?: boolean }} */ (
+    window
+  ).BOARDWISE_TURNSTILE_ENABLED;
   delete window.turnstile;
   document.body.innerHTML = "";
   window.history.pushState({}, "", "/");
@@ -88,6 +95,30 @@ describe("login", () => {
     expect(message.textContent).toBe("Complete the human check, then try again.");
     expect(message.dataset.kind).toBe("error");
     expect(message.hasAttribute("hidden")).toBe(false);
+  });
+
+  it("does not require Turnstile or send a token when Turnstile is disabled", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      jsonResponse({ ok: true, message: "Sent" })
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    const { form, email, message } = await loadLoginScript({
+      turnstileEnabled: false,
+      turnstileValue: "",
+    });
+    email.value = "newuser@example.test";
+    submit(form);
+    await settle();
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const request = fetch.mock.calls[0][1];
+    const body = JSON.parse(String(request.body));
+    expect(body).toEqual({
+      email: "newuser@example.test",
+      return_to: "/account/",
+    });
+    expect(message.textContent).toBe("Sent");
   });
 
   it("sends the Turnstile token in the magic-link start request", async () => {
