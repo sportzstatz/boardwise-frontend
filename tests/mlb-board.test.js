@@ -304,7 +304,7 @@ describe("mlb-board model selector", () => {
             label: "Obsidian Steed",
             available: true,
             visibility_status: "shadow",
-            badge: "Shadow model",
+            badge: "Registry badge X1",
           },
           {
             key: "classic_mlb",
@@ -321,11 +321,12 @@ describe("mlb-board model selector", () => {
     await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(1));
 
     const obsidianButton = document.querySelector('[data-model-family="obsidian_steed"]');
-    expect(obsidianButton?.textContent).toContain("Shadow model");
-    expect(obsidianButton?.textContent).not.toContain("New model");
+    expect(obsidianButton?.textContent).toContain("Registry badge X1");
+    const badgeTags = obsidianButton?.querySelectorAll(".model-tag") ?? [];
+    expect([...badgeTags].map((tag) => tag.textContent)).toEqual(["Registry badge X1"]);
   });
 
-  it("fails closed when a model availability row is missing", async () => {
+  it("renders only the model families the API advertises", async () => {
     window.history.replaceState({}, "", "/mlb/");
     const getMlbBoard = vi.fn().mockResolvedValue(
       payload("classic_mlb", {
@@ -338,14 +339,118 @@ describe("mlb-board model selector", () => {
     await loadMlbBoardScript(getMlbBoard);
     await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(1));
 
-    const obsidianButton = /** @type {HTMLButtonElement} */ (
-      document.querySelector('[data-model-family="obsidian_steed"]')
-    );
-    expect(obsidianButton.disabled).toBe(true);
-    obsidianButton.click();
-
-    expect(getMlbBoard).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('[data-model-family="obsidian_steed"]')).toBeNull();
+    expect(document.querySelectorAll("#model-selector [data-model-family]")).toHaveLength(1);
+    expect(document.querySelector('[data-model-family="classic_mlb"]')).not.toBeNull();
     expect(new URL(window.location.href).searchParams.get("model")).toBeNull();
+  });
+
+  it("hides the model selector when the API advertises no model families", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", { available_model_families: [] })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(1));
+
+    const selector = /** @type {HTMLElement | null} */ (document.querySelector("#model-selector"));
+    expect(selector?.hidden).toBe(true);
+    expect(selector?.innerHTML).toBe("");
+  });
+
+  it("renders a novel model family straight from API metadata", async () => {
+    window.history.replaceState({}, "", "/mlb/?model=thunder_tusk");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("thunder_tusk", {
+        game_count: 1,
+        games: [{ game_label: "Away at Home", model_version: "thunder_tusk_smoke_v1" }],
+        visual_branding: {
+          family: "thunder_tusk",
+          display_name: "Thunder Tusk",
+          variant: "shadow",
+          hero_enabled: false,
+          shadow_treatment_enabled: false,
+          requires_games: true,
+          public_enabled: false,
+        },
+        available_model_families: [
+          {
+            key: "thunder_tusk",
+            label: "Thunder Tusk",
+            available: true,
+            visibility_status: "shadow",
+            status: "shadow",
+            badge: "Simulation engine",
+          },
+          { key: "classic_mlb", label: "Classic MLB", available: true, visibility_status: "classic", badge: "Legacy baseline" },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(1));
+
+    expect(getMlbBoard).toHaveBeenCalledWith("", { model: "thunder_tusk" });
+    const buttons = document.querySelectorAll("#model-selector [data-model-family]");
+    expect([...buttons].map((button) => button.getAttribute("data-model-family"))).toEqual([
+      "thunder_tusk",
+      "classic_mlb",
+    ]);
+    const novelButton = document.querySelector('[data-model-family="thunder_tusk"]');
+    expect(novelButton?.classList.contains("active")).toBe(true);
+    expect(novelButton?.textContent).toContain("Thunder Tusk");
+    expect(novelButton?.textContent).toContain("Simulation engine");
+    expect(new URL(window.location.href).searchParams.get("model")).toBe("thunder_tusk");
+  });
+
+  it("falls back to the default board once when the API rejects the model param", async () => {
+    window.history.replaceState({}, "", "/mlb/?model=not_a_real_model");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const badRequest = Object.assign(new Error("400 Bad Request"), { status: 400 });
+    const getMlbBoard = vi
+      .fn()
+      .mockRejectedValueOnce(badRequest)
+      .mockResolvedValueOnce(payload("classic_mlb"));
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(2));
+
+    expect(getMlbBoard).toHaveBeenNthCalledWith(1, "", { model: "not_a_real_model" });
+    expect(getMlbBoard).toHaveBeenNthCalledWith(2, "", { model: undefined });
+    expect(new URL(window.location.href).searchParams.get("model")).toBeNull();
+    expect(document.querySelector(".model-selector-button.active")?.textContent).toContain("Classic MLB");
+  });
+
+  it("does not loop when the model fallback also fails", async () => {
+    window.history.replaceState({}, "", "/mlb/?model=not_a_real_model");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const badRequest = Object.assign(new Error("400 Bad Request"), { status: 400 });
+    const getMlbBoard = vi.fn().mockRejectedValue(badRequest);
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => {
+      expect(document.querySelector("#error")?.textContent).toContain("Could not load the MLB board");
+    });
+
+    expect(getMlbBoard).toHaveBeenCalledTimes(2);
+  });
+
+  it("normalizes the URL when the API resolves a family the metadata does not list", async () => {
+    window.history.replaceState({}, "", "/mlb/?model=retired_family");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        available_model_families: [
+          { key: "classic_mlb", label: "Classic MLB", available: true },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(1));
+
+    expect(getMlbBoard).toHaveBeenCalledWith("", { model: "retired_family" });
+    expect(new URL(window.location.href).searchParams.get("model")).toBe("classic_mlb");
   });
 
   it("hides shadow-only model options from the public Classic page", async () => {
