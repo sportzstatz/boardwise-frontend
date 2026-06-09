@@ -1046,11 +1046,18 @@ function renderPreviewGame(game) {
   `;
 }
 
+function safePreviewUpgradePath(value) {
+  if (typeof value !== "string") return "/pricing/";
+  const path = value.trim();
+  if (!path.startsWith("/") || path.startsWith("//")) return "/pricing/";
+  return path;
+}
+
 function renderPreviewUpgradeCard(payload = state.payload) {
   const access = payload && payload.access && typeof payload.access === "object"
     ? payload.access
     : {};
-  const href = access.upgrade_path || "/pricing/";
+  const href = safePreviewUpgradePath(access.upgrade_path);
   return `
     <article class="empty-state">
       <strong>Full MLB board requires Pro access.</strong>
