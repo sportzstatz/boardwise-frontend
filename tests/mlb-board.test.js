@@ -153,8 +153,51 @@ describe("mlb-board model selector", () => {
     await vi.waitFor(() => expect(document.querySelectorAll(".preview-tile").length).toBe(2));
     expect(document.querySelector("#games")?.textContent).toContain("Full MLB board requires Pro access");
     expect(document.querySelector("#games")?.textContent).toContain("your 2 MLB cards for today");
+    expect(document.querySelector("#games a.button")?.getAttribute("href")).toBe("/pricing/");
     expect(/** @type {HTMLElement | null} */ (document.querySelector("#model-selector"))?.hidden).toBe(true);
     expect(/** @type {HTMLElement | null} */ (document.querySelector("#best-card-toggle"))?.style.display).toBe("none");
+  });
+
+  it("falls back to the pricing path for unsafe preview upgrade links", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        access: {
+          level: "preview",
+          preview: true,
+          full_access: false,
+          max_preview_games: 2,
+          upgrade_path: "https://evil.example/phish",
+        },
+        games: [],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+
+    await vi.waitFor(() => expect(document.querySelector("#games a.button")?.textContent).toBe("Upgrade"));
+    expect(document.querySelector("#games a.button")?.getAttribute("href")).toBe("/pricing/");
+  });
+
+  it("falls back to the pricing path for protocol-relative preview upgrade links", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        access: {
+          level: "preview",
+          preview: true,
+          full_access: false,
+          max_preview_games: 2,
+          upgrade_path: "//evil.example/phish",
+        },
+        games: [],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+
+    await vi.waitFor(() => expect(document.querySelector("#games a.button")?.textContent).toBe("Upgrade"));
+    expect(document.querySelector("#games a.button")?.getAttribute("href")).toBe("/pricing/");
   });
 
   it("shows sign-in copy for unauthenticated MLB access", async () => {
