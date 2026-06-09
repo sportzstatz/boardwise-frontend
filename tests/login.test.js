@@ -2,8 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const API_BASE = "https://api.example.test";
 
+/**
+ * @param {{ turnstileEnabled?: boolean, turnstileValue?: string | null, url?: string }} [options]
+ */
 async function loadLoginScript({
-  turnstileEnabled = true,
+  turnstileEnabled,
   turnstileValue = "test-token",
   url = "/login/",
 } = {}) {
@@ -11,9 +14,11 @@ async function loadLoginScript({
   delete window.BoardWiseApi;
   window.history.pushState({}, "", url);
   window.BOARDWISE_API_BASE = API_BASE;
-  /** @type {{ BOARDWISE_TURNSTILE_ENABLED?: boolean }} */ (
-    window
-  ).BOARDWISE_TURNSTILE_ENABLED = turnstileEnabled;
+  if (turnstileEnabled !== undefined) {
+    /** @type {{ BOARDWISE_TURNSTILE_ENABLED?: boolean }} */ (
+      window
+    ).BOARDWISE_TURNSTILE_ENABLED = turnstileEnabled;
+  }
 
   document.body.innerHTML = `
     <form id="login-form" class="auth-form">
@@ -97,10 +102,8 @@ describe("login", () => {
     expect(message.hasAttribute("hidden")).toBe(false);
   });
 
-  it("does not require Turnstile or send a token when Turnstile is disabled", async () => {
-    const fetch = vi.fn().mockResolvedValue(
-      jsonResponse({ ok: true, message: "Sent" })
-    );
+  it("ignores client-side Turnstile disable flags when the token is missing", async () => {
+    const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
 
     const { form, email, message } = await loadLoginScript({
@@ -111,14 +114,9 @@ describe("login", () => {
     submit(form);
     await settle();
 
-    expect(fetch).toHaveBeenCalledTimes(1);
-    const request = fetch.mock.calls[0][1];
-    const body = JSON.parse(String(request.body));
-    expect(body).toEqual({
-      email: "newuser@example.test",
-      return_to: "/account/",
-    });
-    expect(message.textContent).toBe("Sent");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(message.textContent).toBe("Complete the human check, then try again.");
+    expect(message.dataset.kind).toBe("error");
   });
 
   it("sends the Turnstile token in the magic-link start request", async () => {
