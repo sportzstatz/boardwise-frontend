@@ -47,6 +47,32 @@ async function expectAdminOnlyPerformanceResponse(response, label) {
   expectNoOperatorLeak(body, label);
 }
 
+async function expectMlbBasicRequiredResponse(response, label) {
+  expect(response.status(), `${label} status`).toBe(401);
+
+  const contentType = response.headers()["content-type"] || "";
+  expect(
+    contentType,
+    `${label} should return JSON content-type`
+  ).toContain("application/json");
+
+  const cacheControl = response.headers()["cache-control"] || "";
+  expect(cacheControl, `${label} cache-control`).toContain("private");
+  expect(cacheControl, `${label} cache-control`).toContain("no-store");
+  expect(cacheControl, `${label} cache-control`).toContain("max-age=0");
+
+  const body = await response.json();
+  expectPlainObject(body, label);
+  expectPlainObject(body.detail, `${label}.detail`);
+  expect(body.detail.error, `${label}.detail.error`).toBe(
+    "authentication_required"
+  );
+  expect(body.detail.required_feature, `${label}.detail.required_feature`).toBe(
+    "mlb_board_basic"
+  );
+  expectNoOperatorLeak(body, label);
+}
+
 test.describe("BoardWise public API contract", () => {
   test("GET /api/v1/me returns guest/auth state shape", async ({ request }) => {
     const response = await request.get("/api/v1/me");
@@ -68,37 +94,42 @@ test.describe("BoardWise public API contract", () => {
     }
   });
 
-  for (const sport of ["mlb", "nhl"]) {
-    test(`GET /api/v1/boards/${sport}/current returns board payload shape`, async ({
-      request,
-    }) => {
-      const response = await request.get(`/api/v1/boards/${sport}/current`);
-      const body = await expectJsonResponse(response, `${sport} current board`);
+  test("GET /api/v1/boards/mlb/current requires MLB basic auth for guests", async ({
+    request,
+  }) => {
+    const response = await request.get("/api/v1/boards/mlb/current");
+    await expectMlbBasicRequiredResponse(response, "mlb current board");
+  });
 
-      expectArray(body.games, `${sport}.games`);
-      expectVisibilityIfPresent(body, `${sport} board`);
+  test("GET /api/v1/boards/nhl/current returns board payload shape", async ({
+    request,
+  }) => {
+    const response = await request.get("/api/v1/boards/nhl/current");
+    const body = await expectJsonResponse(response, "nhl current board");
 
-      if (
-        "game_count" in body &&
-        body.game_count !== null &&
-        body.game_count !== undefined
-      ) {
-        expectNumberLike(body.game_count, `${sport}.game_count`);
-      }
+    expectArray(body.games, "nhl.games");
+    expectVisibilityIfPresent(body, "nhl board");
 
-      if (
-        "target_date" in body &&
-        body.target_date !== null &&
-        body.target_date !== undefined
-      ) {
-        expectString(body.target_date, `${sport}.target_date`);
-      }
+    if (
+      "game_count" in body &&
+      body.game_count !== null &&
+      body.game_count !== undefined
+    ) {
+      expectNumberLike(body.game_count, "nhl.game_count");
+    }
 
-      if (body.games.length > 0) {
-        expectPlainObject(body.games[0], `${sport}.games[0]`);
-      }
-    });
-  }
+    if (
+      "target_date" in body &&
+      body.target_date !== null &&
+      body.target_date !== undefined
+    ) {
+      expectString(body.target_date, "nhl.target_date");
+    }
+
+    if (body.games.length > 0) {
+      expectPlainObject(body.games[0], "nhl.games[0]");
+    }
+  });
 
   test("GET /api/v1/performance/filters requires admin auth", async ({
     request,
