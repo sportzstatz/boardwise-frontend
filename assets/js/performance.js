@@ -379,10 +379,33 @@ function isAccessDeniedError(err) {
   return Boolean(err && (err.status === 401 || err.status === 403));
 }
 
+function clearChartState() {
+  if (els.chartContainer) {
+    const oldSvg = els.chartContainer.querySelector("svg");
+    if (oldSvg) oldSvg.remove();
+  }
+  if (els.chartTooltip) {
+    els.chartTooltip.classList.remove("is-visible");
+    els.chartTooltip.innerHTML = "";
+    els.chartTooltip.removeAttribute("style");
+  }
+}
+
+function clearPerformanceData() {
+  if (els.kpiGrid) els.kpiGrid.innerHTML = "";
+  if (els.emptySummary) els.emptySummary.textContent = "";
+  if (els.breakdownTable) els.breakdownTable.innerHTML = "";
+  if (els.picksTable) els.picksTable.innerHTML = "";
+  if (els.bookCmpTable) els.bookCmpTable.innerHTML = "";
+  if (els.bookCmpSummary) els.bookCmpSummary.textContent = "";
+  clearChartState();
+}
+
 function showAccessDenied(err) {
   const message = err && err.status === 401
     ? "Sign in with an admin account to view performance."
     : "Performance is available to admin accounts only.";
+  clearPerformanceData();
   showError(message);
   setHidden(els.kpiGrid, true);
   setHidden(els.emptySummary, false);
@@ -391,6 +414,8 @@ function showAccessDenied(err) {
   if (els.breakdownEmpty) els.breakdownEmpty.textContent = message;
   setHidden(els.picksEmpty, false);
   if (els.picksEmpty) els.picksEmpty.textContent = message;
+  setHidden(els.bookCmpEmpty, false);
+  if (els.bookCmpEmpty) els.bookCmpEmpty.textContent = message;
   setHidden(els.chartEmpty, false);
   if (els.chartEmpty) els.chartEmpty.textContent = message;
   if (els.chartMeta) els.chartMeta.textContent = "Access required";
@@ -1229,15 +1254,11 @@ async function loadAll(filters) {
   setHidden(els.loading, false);
   setHidden(els.kpiGrid, true);
   setHidden(els.emptySummary, true);
-  // Wipe stale KPI content so it can never linger if the next render doesn't run.
-  if (els.kpiGrid) els.kpiGrid.innerHTML = "";
-  if (els.emptySummary) els.emptySummary.textContent = "";
+  // Wipe stale account-scoped content so it can never linger if the next
+  // render doesn't run (for example, when an admin session expires).
+  clearPerformanceData();
   // Reset chart panel to a fresh loading state for this query.
   if (els.chartMeta) els.chartMeta.textContent = "Loading…";
-  if (els.chartContainer) {
-    const oldSvg = els.chartContainer.querySelector("svg");
-    if (oldSvg) oldSvg.remove();
-  }
   setHidden(els.chartEmpty, true);
 
   const summaryQs = buildQuery(filters, { includeSettled: false, overrides: { settled_only: filters.settled_only === false ? "false" : "true" } });

@@ -145,6 +145,14 @@ describe("performance page", () => {
   it("shows a clean admin sign-in state when performance is denied", async () => {
     window.history.replaceState({}, "", "/performance/");
     installPerformanceDom();
+    document.querySelector("#breakdown-table tbody").innerHTML = "<tr><td>ADMIN-SECRET-BREAKDOWN</td></tr>";
+    document.querySelector("#picks-table tbody").innerHTML = "<tr><td>SECRET_PICK_TEAM</td></tr>";
+    document.querySelector("#book-comparison-table tbody").innerHTML = "<tr><td>SecretBook</td></tr>";
+    document.querySelector("#book-comparison-summary").textContent = "Secret book summary";
+    document.querySelector("#chart-container").insertAdjacentHTML("beforeend", "<svg><text>SECRET_CHART</text></svg>");
+    const tooltip = document.querySelector("#chart-tooltip");
+    tooltip.innerHTML = "SECRET_TOOLTIP_UNITS";
+    tooltip.classList.add("is-visible");
     installDeniedPerformanceApi(401);
 
     await import("../assets/js/performance.js");
@@ -155,7 +163,90 @@ describe("performance page", () => {
       );
     });
     expect(window.BoardWiseApi.getPerformanceSummary).not.toHaveBeenCalled();
+    expect(document.querySelector("#breakdown-table tbody")?.innerHTML).toBe("");
+    expect(document.querySelector("#picks-table tbody")?.innerHTML).toBe("");
+    expect(document.querySelector("#book-comparison-table tbody")?.innerHTML).toBe("");
+    expect(document.querySelector("#book-comparison-summary")?.textContent).toBe("");
+    expect(document.querySelector("#chart-container svg")).toBeNull();
+    expect(document.querySelector("#chart-tooltip")?.innerHTML).toBe("");
+    expect(document.querySelector("#chart-tooltip")?.classList.contains("is-visible")).toBe(false);
     expect(document.querySelector("#loading")?.hasAttribute("hidden")).toBe(true);
+  });
+
+  it("clears previously rendered performance data after access is denied", async () => {
+    window.history.replaceState({}, "", "/performance/");
+    installPerformanceDom();
+    const calls = [];
+    installMockApi(calls);
+    const api = /** @type {any} */ (window.BoardWiseApi);
+    api.getPerformanceSummary.mockResolvedValue({
+      summary: { ...emptySummary(), pick_count: 1, settled_count: 1, record: "1-0-0", units_won: 1.2, units_risked: 1, roi: 1.2 },
+      visibility: filtersPayload().visibility,
+    });
+    api.getPerformanceBreakdown.mockImplementation((query) => {
+      calls.push(["breakdown", query]);
+      const qs = new URLSearchParams(query);
+      if (qs.get("group_by") === "date") {
+        return Promise.resolve({
+          group_by: "date",
+          groups: [{ group_value: "2026-05-01", units_won: 1.2, units_risked: 1, settled_count: 1, record: "1-0-0" }],
+          visibility: filtersPayload().visibility,
+        });
+      }
+      return Promise.resolve({
+        group_by: "wise_choice_bucket",
+        groups: [{ group_value: "ADMIN-SECRET-BREAKDOWN", pick_count: 1, record: "1-0-0", units_won: 1.2, roi: 1.2 }],
+        visibility: filtersPayload().visibility,
+      });
+    });
+    api.getPerformancePicks.mockResolvedValue({
+      picks: [{
+        target_date: "2026-05-01",
+        model_family: "obsidian_steed",
+        game_label: "SECRET_PICK_TEAM at Other",
+        market_key: "h2h",
+        outcome_name: "SECRET_PICK_TEAM",
+        bookmaker_title: "SecretBook",
+        price_american: -110,
+        model_probability: 0.55,
+        is_settled: false,
+      }],
+      visibility: filtersPayload().visibility,
+    });
+    api.getPerformanceBookComparison.mockResolvedValue({
+      rows: [{ pricing_bookmaker_title: "SecretBook", pick_count: 1, record: "1-0-0", units_risked: 1, units_won: 1.2 }],
+      visibility: filtersPayload().visibility,
+    });
+
+    await import("../assets/js/performance.js");
+
+    await vi.waitFor(() => {
+      expect(document.querySelector("#breakdown-table tbody")?.textContent).toContain("ADMIN-SECRET-BREAKDOWN");
+      expect(document.querySelector("#picks-table tbody")?.textContent).toContain("SECRET_PICK_TEAM");
+      expect(document.querySelector("#book-comparison-table tbody")?.textContent).toContain("SecretBook");
+      expect(document.querySelector("#chart-container svg")).not.toBeNull();
+    });
+
+    const tooltip = document.querySelector("#chart-tooltip");
+    tooltip.innerHTML = "SECRET_TOOLTIP_UNITS";
+    tooltip.classList.add("is-visible");
+
+    const denied = Object.assign(new Error("403 denied"), { status: 403 });
+    api.getPerformanceSummary.mockRejectedValue(denied);
+    api.getPerformanceBreakdown.mockRejectedValue(denied);
+    api.getPerformancePicks.mockRejectedValue(denied);
+    document.querySelector("#filter-form").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+
+    await vi.waitFor(() => {
+      expect(document.querySelector("#error")?.textContent).toContain("admin accounts only");
+    });
+    expect(document.querySelector("#breakdown-table tbody")?.innerHTML).toBe("");
+    expect(document.querySelector("#picks-table tbody")?.innerHTML).toBe("");
+    expect(document.querySelector("#book-comparison-table tbody")?.innerHTML).toBe("");
+    expect(document.querySelector("#book-comparison-summary")?.textContent).toBe("");
+    expect(document.querySelector("#chart-container svg")).toBeNull();
+    expect(document.querySelector("#chart-tooltip")?.innerHTML).toBe("");
+    expect(document.querySelector("#chart-tooltip")?.classList.contains("is-visible")).toBe(false);
   });
 
   it("loads tracking performance as Obsidian beta rows", async () => {
