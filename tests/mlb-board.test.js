@@ -453,6 +453,29 @@ describe("mlb-board model selector", () => {
     expect(new URL(window.location.href).searchParams.get("model")).toBe("classic_mlb");
   });
 
+  it("normalizes the URL when the API selects a different family than an advertised-but-unavailable request", async () => {
+    window.history.replaceState({}, "", "/mlb/?model=obsidian_steed");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        available_model_families: [
+          { key: "classic_mlb", label: "Classic MLB", available: true },
+          {
+            key: "obsidian_steed",
+            label: "Obsidian Steed",
+            available: false,
+            visibility_status: "shadow",
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(1));
+
+    expect(getMlbBoard).toHaveBeenCalledWith("", { model: "obsidian_steed" });
+    expect(new URL(window.location.href).searchParams.get("model")).toBe("classic_mlb");
+  });
+
   it("hides shadow-only model options from the public Classic page", async () => {
     window.history.replaceState({}, "", "/mlb/");
     const getMlbBoard = vi.fn().mockResolvedValue(

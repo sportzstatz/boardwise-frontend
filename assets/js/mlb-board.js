@@ -1131,8 +1131,9 @@ async function loadBoard(targetDate, options = {}) {
     state.payload = payload;
     const metadata = selectedModelMetadata(payload);
     state.selectedModel = metadata.selected_model_family || requestedModel || metadata.default_model_family || "";
-    if (requestedModel && !modelAvailabilityMap(metadata).has(requestedModel)) {
-      // The API resolved a different family than requested; normalize URL state.
+    if (requestedModel && state.selectedModel !== requestedModel) {
+      // The API resolved a different family than requested (unknown, alias, or
+      // advertised-but-unavailable for this date); normalize URL state.
       state.requestedModel = state.selectedModel;
       writeModelToUrl(state.requestedModel);
     }
