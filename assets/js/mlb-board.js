@@ -31,11 +31,6 @@ const KELLY_BUCKETS = [
   ["kelly_20_plus", "20%+", "#156f3c"]
 ];
 
-const MODEL_OPTIONS = [
-  ["obsidian_steed", "Obsidian Steed", "New model"],
-  ["classic_mlb", "Classic MLB", "Legacy baseline"]
-];
-
 const TRACKER_MARKET_LABELS = new Map([
   ["first_inning_total", "1st Inning O/U"],
   ["nrfi_yrfi", "NRFI/YRFI"],
@@ -118,7 +113,9 @@ function writeTargetDate(date) {
 function readModelFromUrl() {
   const params = new URLSearchParams(window.location.search);
   const model = (params.get("model") || "").trim();
-  return MODEL_OPTIONS.some(([key]) => key === model) ? model : "";
+  // Any syntactically plausible family key is forwarded; the API validates
+  // unknown keys (HTTP 400) so new families need no frontend allowlist.
+  return /^[a-z][a-z0-9_]{0,63}$/.test(model) ? model : "";
 }
 
 function writeModelToUrl(model) {
@@ -126,10 +123,6 @@ function writeModelToUrl(model) {
   if (model) url.searchParams.set("model", model);
   else url.searchParams.delete("model");
   window.history.replaceState({}, "", url);
-}
-
-function modelOption(key) {
-  return MODEL_OPTIONS.find(([value]) => value === key) || MODEL_OPTIONS[0];
 }
 
 function selectedModelMetadata(payload = state.payload) {
@@ -280,15 +273,30 @@ function updatePageSubtitle(payload = state.payload) {
   subtitleEl.textContent = hasTrackerMarkets(payload) ? TRACKER_PAGE_SUBTITLE : DEFAULT_PAGE_SUBTITLE;
 }
 
+function availableModelFamilies(metadata = selectedModelMetadata()) {
+  return (Array.isArray(metadata.available_model_families) ? metadata.available_model_families : [])
+    .filter((item) => item && typeof item === "object" && item.key);
+}
+
 function modelAvailabilityMap(metadata = selectedModelMetadata()) {
-  return new Map(
-    (Array.isArray(metadata.available_model_families) ? metadata.available_model_families : [])
-      .map((item) => [item.key, item])
-  );
+  return new Map(availableModelFamilies(metadata).map((item) => [String(item.key), item]));
+}
+
+function selectedModelFamily(metadata = selectedModelMetadata()) {
+  return metadata.selected_model_family || state.selectedModel || "";
+}
+
+function selectedModelLabelParts(metadata = selectedModelMetadata()) {
+  const selected = selectedModelFamily(metadata);
+  const item = selected ? modelAvailabilityMap(metadata).get(selected) : undefined;
+  return {
+    label: item?.label || metadata.model_display_name || selected || "",
+    badge: item?.badge || ""
+  };
 }
 
 function shouldShowModelOption(key, metadata = selectedModelMetadata()) {
-  const selected = metadata.selected_model_family || state.selectedModel || "classic_mlb";
+  const selected = selectedModelFamily(metadata);
   const item = modelAvailabilityMap(metadata).get(key);
   const visibilityStatus = item?.visibility_status || item?.status;
   return !(visibilityStatus === "shadow" && key !== selected);
@@ -413,12 +421,12 @@ function showError(message) {
 function topLevelCounts(payload) {
   const booksSeen = Array.isArray(payload.books_seen) ? payload.books_seen : [];
   const metadata = selectedModelMetadata(payload);
-  const selectedModel = metadata.selected_model_family || state.selectedModel;
-  const model = selectedModel ? modelOption(selectedModel) : null;
+  const model = selectedModelLabelParts(metadata);
+  const modelText = [model.label, model.badge].filter(Boolean).join(" · ");
   return [
     ["Generated", payload.generated_at || "Unknown"],
     ["Date", payload.target_date || "-"],
-    model ? ["Model", `${model[1]} · ${model[2]}`] : null,
+    modelText ? ["Model", modelText] : null,
     ["Games", formatCount(payload.game_count)],
     ["Betting Games", formatCount(payload.betting_game_count)],
     ["Recommendations", formatCount(payload.recommendation_count)],
@@ -584,28 +592,19 @@ function renderToggleButtons() {
 
 function renderModelSelector() {
   if (!modelSelectorEl) return;
-  if (isPreviewPayload()) {
-    modelSelectorEl.hidden = true;
-    modelSelectorEl.innerHTML = "";
-    return;
-  }
   const metadata = selectedModelMetadata();
-  const selected = metadata.selected_model_family || state.selectedModel || "classic_mlb";
-  const metadataHasAvailability = Array.isArray(metadata.available_model_families);
-  const available = new Map(
-    (metadataHasAvailability ? metadata.available_model_families : [])
-      .map((item) => [item.key, item])
-  );
-  modelSelectorEl.hidden = false;
-  modelSelectorEl.innerHTML = `
-    <span class="model-selector-label">Model</span>
-    ${MODEL_OPTIONS.filter(([key]) => shouldShowModelOption(key, metadata)).map(([key, fallbackLabel, fallbackBadge]) => {
-      const item = available.get(key) || {};
-      const label = item.label || fallbackLabel;
-      const badge = item.badge || fallbackBadge;
-      const active = key === selected;
-      const disabled = metadataHasAvailability ? (!available.has(key) || item.available === false) : false;
-      return `
+  const families = availableModelFamilies(metadata);
+  const selected = selectedModelFamily(metadata);
+  const buttons = isPreviewPayload()
+    ? []
+    : families
+      .filter((item) => shouldShowModelOption(String(item.key), metadata))
+      .map((item) => {
+        const key = String(item.key);
+        const label = item.label || key;
+        const active = key === selected;
+        const disabled = item.available === false;
+        return `
         <button
           class="model-selector-button ${active ? "active" : ""}"
           type="button"
@@ -614,9 +613,20 @@ function renderModelSelector() {
           title="${disabled ? "No published rows for this date/model yet" : ""}"
         >
           <span>${esc(label)}</span>
-          <span class="model-tag">${esc(badge)}</span>
+          ${item.badge ? `<span class="model-tag">${esc(item.badge)}</span>` : ""}
         </button>`;
-    }).join("")}
+      });
+  if (!buttons.length) {
+    // No selector is better than a wrong hardcoded one: hide when the API
+    // does not advertise any model families.
+    modelSelectorEl.hidden = true;
+    modelSelectorEl.innerHTML = "";
+    return;
+  }
+  modelSelectorEl.hidden = false;
+  modelSelectorEl.innerHTML = `
+    <span class="model-selector-label">Model</span>
+    ${buttons.join("")}
   `;
   modelSelectorEl.querySelectorAll("[data-model-family]").forEach((rawButton) => {
     const button = /** @type {HTMLButtonElement} */ (rawButton);
@@ -716,7 +726,7 @@ function renderBestCard(option, variant) {
   if (!option) return `<div class="forecast-only-note">No best-bet recommendation is available for this sort.</div>`;
   const label = BEST_CARD_MODES.find(([key]) => key === variant)?.[1] || "Best Value";
   const wise = optionWiseBucket(option);
-  const model = modelOption(selectedModelMetadata().selected_model_family || state.selectedModel || "classic_mlb");
+  const modelLabel = selectedModelLabelParts().label;
   const badge = variant === "wise_choice"
     ? officialTierBadge(option, wise)
     : variant === "best_growth"
@@ -736,7 +746,7 @@ function renderBestCard(option, variant) {
         ${badge ? `<span class="rating-badge ${variant === "wise_choice" ? "wise-rating-badge" : ""}" title="${esc(badgeTitle)}" style="background:${color};color:${esc(textColorFor(color))}">${esc(badgePrefix + badge)}</span>` : ""}
       </div>
       <div class="best-bet">${esc(option.selection_text || "No selection")}</div>
-      <div class="best-meta">${esc([model[1], option.sportsbook, option.odds_text].filter(Boolean).join(" · ") || "No book/odds listed")}</div>
+      <div class="best-meta">${esc([modelLabel, option.sportsbook, option.odds_text].filter(Boolean).join(" · ") || "No book/odds listed")}</div>
       <div class="best-metrics">
         ${metric("Odds", option.odds_text)}
         ${metric("Win Prob", option.model_prob_text || option.model_probability_text)}
@@ -1111,15 +1121,22 @@ function showAccessError(error) {
   showError("Could not load the MLB board right now. Please try again in a moment.");
 }
 
-async function loadBoard(targetDate) {
+async function loadBoard(targetDate, options = {}) {
   showLoading();
+  const requestedModel = state.requestedModel;
   try {
     const payload = await window.BoardWiseApi.getMlbBoard(targetDate, {
-      model: state.requestedModel || undefined
+      model: requestedModel || undefined
     });
     state.payload = payload;
     const metadata = selectedModelMetadata(payload);
-    state.selectedModel = metadata.selected_model_family || state.requestedModel || "classic_mlb";
+    state.selectedModel = metadata.selected_model_family || requestedModel || metadata.default_model_family || "";
+    if (requestedModel && state.selectedModel !== requestedModel) {
+      // The API resolved a different family than requested (unknown, alias, or
+      // advertised-but-unavailable for this date); normalize URL state.
+      state.requestedModel = state.selectedModel;
+      writeModelToUrl(state.requestedModel);
+    }
     setHidden(loadingEl, true);
     setHidden(errorEl, true);
     setPageMeta(payload, targetDate);
@@ -1131,6 +1148,14 @@ async function loadBoard(targetDate) {
     applyVisualTreatment(payload);
     renderBoard();
   } catch (error) {
+    if (requestedModel && !options.isModelFallback && Number(error?.status) === 400) {
+      // The API rejected the requested model family; drop the model param and
+      // reload the default board once (isModelFallback guards retry loops).
+      state.requestedModel = "";
+      writeModelToUrl("");
+      await loadBoard(targetDate, { isModelFallback: true });
+      return;
+    }
     console.error(error);
     showAccessError(error);
   }

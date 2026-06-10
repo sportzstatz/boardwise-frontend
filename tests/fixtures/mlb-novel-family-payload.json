@@ -15,20 +15,20 @@
   },
   "model_metadata": {
     "default_model_family": "classic_mlb",
-    "selected_model_family": "obsidian_steed",
+    "selected_model_family": "thunder_tusk",
     "selected_model_available": true,
-    "model_family": "obsidian_steed",
-    "model_display_name": "Obsidian Steed",
-    "model_version": "obsidian_steed_shadow_snapshot_v1",
+    "model_family": "thunder_tusk",
+    "model_display_name": "Thunder Tusk",
+    "model_version": "thunder_tusk_smoke_v1",
     "shadow_only": true,
     "available_model_families": [
       {
-        "key": "obsidian_steed",
-        "label": "Obsidian Steed",
+        "key": "thunder_tusk",
+        "label": "Thunder Tusk",
         "available": true,
         "visibility_status": "shadow",
         "status": "shadow",
-        "badge": "New model"
+        "badge": "Simulation engine"
       },
       {
         "key": "classic_mlb",
@@ -40,11 +40,11 @@
       }
     ],
     "visual_branding": {
-      "family": "obsidian_steed",
-      "display_name": "Obsidian Steed",
+      "family": "thunder_tusk",
+      "display_name": "Thunder Tusk",
       "variant": "shadow",
-      "hero_enabled": true,
-      "shadow_treatment_enabled": true,
+      "hero_enabled": false,
+      "shadow_treatment_enabled": false,
       "requires_games": true,
       "public_enabled": false
     },
@@ -79,7 +79,7 @@
       "home_pitcher": "Yu Darvish",
       "lineup_status_away": "confirmed",
       "lineup_status_home": "projected",
-      "model_version": "obsidian_steed_shadow_snapshot_v1",
+      "model_version": "thunder_tusk_smoke_v1",
       "recommendations": [
         {
           "selection_text": "Dodgers Moneyline",
