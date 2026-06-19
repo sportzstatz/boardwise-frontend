@@ -19,11 +19,12 @@ function installDetailDom() {
     <div class="nav-row">
       <a class="nav-link" href="/account/" data-auth-authenticated data-auth-label hidden>Account</a>
     </div>
-    <h1 id="gd-heading">Game Detail</h1>
-    <div id="gd-back" class="gd-back"></div>
-    <section id="gd-loading" class="loading-panel">Loading…</section>
-    <section id="gd-error" class="error-panel" hidden></section>
-    <main id="gd-detail" hidden></main>
+    <main class="gd-shell-frame">
+      <div id="gd-back" class="gd-game-top-band"></div>
+      <section id="gd-loading" class="loading-panel">Loading…</section>
+      <section id="gd-error" class="error-panel" hidden></section>
+      <section id="gd-detail" hidden></section>
+    </main>
   `;
 }
 
@@ -151,6 +152,10 @@ describe("mlb game detail", () => {
     // Must NOT fetch-and-hide premium data: no real odds/edge rendered
     expect(detail?.querySelector(".gd-wise")).toBeNull();
     expect(detail?.querySelector(".gd-mkt-option")).toBeNull();
+    expect(detail?.querySelector(".gd-section-nav")).toBeNull();
+    expect(text).not.toContain("Odds");
+    expect(text).not.toContain("Edge");
+    expect(text).not.toContain("EV");
     expect(text).not.toContain("-205");
     expect(text).not.toContain("+9.1%");
   });
@@ -235,5 +240,18 @@ describe("mlb game detail", () => {
     });
     expect(probs.home).toBeCloseTo(54.1, 1);
     expect(probs.away).toBeCloseTo(45.9, 1);
+  });
+
+  it("preserves date and model on the back-to-board link", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001&date=2026-06-18&model=classic_mlb");
+    const getMlbBoard = vi.fn().mockResolvedValue(clone(FULL_PAYLOAD));
+
+    await loadDetailScript(getMlbBoard);
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    const href = document.querySelector("#gd-back .gd-back-link")?.getAttribute("href") || "";
+    expect(href).toContain("/mlb/");
+    expect(href).toContain("date=2026-06-18");
+    expect(href).toContain("model=classic_mlb");
   });
 });

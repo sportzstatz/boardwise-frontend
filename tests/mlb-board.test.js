@@ -880,7 +880,7 @@ describe("mlb-board model selector", () => {
     await vi.waitFor(() => expect(document.querySelector(".best-card")).not.toBeNull());
 
     const bestCardText = document.querySelector(".best-card")?.textContent || "";
-    expect(bestCardText).toContain("Wise Choices");
+    expect(bestCardText).toContain("Wise Choice");
     expect(bestCardText).toContain("Away Moneyline");
     expect(bestCardText).toContain("BookA");
     expect(bestCardText).toContain("+115");
@@ -908,7 +908,7 @@ describe("mlb-board model selector", () => {
     await vi.waitFor(() => expect(document.querySelector(".tile")).not.toBeNull());
 
     const bodyText = document.body.textContent || "";
-    expect(bodyText).toContain("No best-bet recommendation is available for this sort.");
+    expect(bodyText).toContain("No Wise Choice recommendation is available for this game yet.");
     expect(bodyText).not.toContain("undefined");
     expect(bodyText).not.toContain("null");
     expect(bodyText).not.toContain("[object Object]");
@@ -1138,6 +1138,247 @@ describe("mlb-board model selector", () => {
     expect(away).not.toContain("-150");
     expect(home).toContain("ML -150");
     expect(home).not.toContain("+130");
+  });
+
+  it("styles the away side as favored when away has the higher explicit probability", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        games: [
+          {
+            game_label: "Mets at Cubs",
+            away_team: "New York Mets",
+            home_team: "Chicago Cubs",
+            away_team_abbr: "NYM",
+            home_team_abbr: "CHC",
+            away_win_prob_text: "61.0%",
+            home_win_prob_text: "39.0%",
+            best_card_options: {},
+            recommendations: [],
+            market_dropdowns: [],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tot-side.away")).not.toBeNull());
+
+    expect(document.querySelector(".tot-side.away")?.classList.contains("is-favored")).toBe(true);
+    expect(document.querySelector(".tot-side.home")?.classList.contains("is-underdog")).toBe(true);
+  });
+
+  it("falls back to favorite_team for favored styling when explicit probabilities are absent", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        games: [
+          {
+            game_label: "Mets at Cubs",
+            away_team: "New York Mets",
+            home_team: "Chicago Cubs",
+            away_team_abbr: "NYM",
+            home_team_abbr: "CHC",
+            favorite_team: "Mets",
+            favorite_prob_text: "55.5%",
+            best_card_options: {},
+            recommendations: [],
+            market_dropdowns: [],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tot-side.away")).not.toBeNull());
+
+    expect(document.querySelector(".tot-side.away")?.classList.contains("is-favored")).toBe(true);
+    expect(document.querySelector(".tot-side.home")?.classList.contains("is-underdog")).toBe(true);
+  });
+
+  it("does not automatically favor home when the favorite is unresolved", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        games: [
+          {
+            game_label: "Away at Home",
+            away_team: "Away Club",
+            home_team: "Home Club",
+            best_card_options: {},
+            recommendations: [],
+            market_dropdowns: [],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tot-side.home")).not.toBeNull());
+
+    expect(document.querySelector(".tot-side.away")?.classList.contains("is-favored")).toBe(false);
+    expect(document.querySelector(".tot-side.home")?.classList.contains("is-favored")).toBe(false);
+  });
+
+  it("selects representative market options by official, primary, summary match, then first valid option", async () => {
+    const getMlbBoard = vi.fn().mockResolvedValue(payload("classic_mlb"));
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect((/** @type {any} */ (window)).__BoardWiseMlbTestHooks).toBeTruthy());
+    const hooks = (/** @type {any} */ (window)).__BoardWiseMlbTestHooks;
+
+    expect(hooks.representativeMarketOption({
+      summary_center_text: "Primary side",
+      options: [
+        { selection_text: "Primary side", is_primary: true },
+        { selection_text: "Official side", is_official: true },
+      ],
+    })?.selection_text).toBe("Official side");
+    expect(hooks.representativeMarketOption({
+      summary_center_text: "Other side",
+      options: [
+        { selection_text: "First side" },
+        { selection_text: "Primary side", is_primary: true },
+      ],
+    })?.selection_text).toBe("Primary side");
+    expect(hooks.representativeMarketOption({
+      summary_center_text: "Under 8.5",
+      options: [
+        { selection_text: "Over 8.5" },
+        { label: "Under 8.5" },
+      ],
+    })?.label).toBe("Under 8.5");
+    expect(hooks.representativeMarketOption({
+      summary_center_text: "No match",
+      options: [
+        { selection_text: "First side" },
+        { selection_text: "Second side" },
+      ],
+    })?.selection_text).toBe("First side");
+  });
+
+  it("renders market rows safely when a market has no options", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        games: [
+          {
+            game_label: "Away at Home",
+            market_dropdowns: [{ title: "Money Line", market_key: "h2h", options: [] }],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".market-summary-table")).not.toBeNull());
+
+    expect(document.querySelector(".market-summary-selection")?.textContent).toContain("Money Line");
+    expect(document.querySelector(".market-summary-model")?.textContent).toContain("—");
+    expect(document.querySelector(".market-summary-call")?.textContent).toContain("Pass");
+    expect(document.body.textContent).toContain("No market options are available for this market yet.");
+  });
+
+  it("does not infer an Official market call from positive edge alone", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        games: [
+          {
+            game_label: "Away at Home",
+            market_dropdowns: [
+              {
+                title: "Total Runs",
+                summary_center_text: "Under 8.5",
+                options: [
+                  { selection_text: "Under 8.5", edge_text: "+9.1%", model_probability_text: "55.0%" },
+                ],
+              },
+            ],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".market-summary-call")).not.toBeNull());
+
+    expect(document.querySelector(".market-summary-call")?.textContent).toBe("Pass");
+    expect(document.querySelector(".market-summary-call")?.classList.contains("official")).toBe(false);
+  });
+
+  it("renders the collapsed Wise Choice card with Win, Edge, and EV only", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const pick = {
+      selection_text: "Home Moneyline",
+      label: "Home Moneyline",
+      sportsbook: "BookA",
+      odds_text: "-120",
+      wise_choice_score: 16,
+      wise_choice_bucket_key: "medium_high_14_20",
+      wise_choice_status: "Strong",
+      is_official: true,
+      model_probability_text: "58.0%",
+      market_probability_text: "53.0%",
+      edge_text: "+5.0%",
+      ev_text: "+0.08u",
+    };
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        games: [
+          {
+            game_label: "Away at Home",
+            best_card_options: { wise_choice: pick },
+            recommendations: [pick],
+            market_dropdowns: [],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".best-card")).not.toBeNull());
+
+    const text = document.querySelector(".best-card")?.textContent || "";
+    expect(text).toContain("Win");
+    expect(text).toContain("Edge");
+    expect(text).toContain("EV");
+    expect(text).not.toContain("Odds");
+    expect(text).not.toContain("Market Impl");
+  });
+
+  it("preserves game_pk, date, and model in board-to-detail links", async () => {
+    window.history.replaceState({}, "", "/mlb/?date=2026-05-27&model=classic_mlb");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        target_date: "2026-05-27",
+        game_count: 1,
+        games: [
+          {
+            game_pk: 123456,
+            game_label: "Away at Home",
+            best_card_options: {},
+            recommendations: [],
+            market_dropdowns: [],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tot-detail-link")).not.toBeNull());
+
+    const href = document.querySelector(".tot-detail-link")?.getAttribute("href") || "";
+    expect(href).toContain("/mlb/game/");
+    expect(href).toContain("game_pk=123456");
+    expect(href).toContain("date=2026-05-27");
+    expect(href).toContain("model=classic_mlb");
   });
 
   it("matches Wise Choice boundary fixture labels", async () => {

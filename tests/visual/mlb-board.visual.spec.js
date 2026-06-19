@@ -61,10 +61,23 @@ test.describe("MLB board visual baselines", () => {
     await expect(page.locator("#obsidian-hero")).toBeHidden();
     await expect(page.locator("body")).not.toHaveClass(/obsidian-treatment/);
     await expect(page.locator(".tracker-market-dropdown")).toHaveCount(0);
-    await expect(page.locator(".market-dropdown .summary-label", { hasText: "Money Line" })).toBeVisible();
-    await expect(page.locator(".market-dropdown .summary-label", { hasText: "Total Runs" })).toBeVisible();
+    await expect(page.locator(".market-summary-selection", { hasText: "Money Line" })).toBeVisible();
+    await expect(page.locator(".market-summary-selection", { hasText: "Total Runs" })).toBeVisible();
 
     await expect(page).toHaveScreenshot("mlb-classic.png", { fullPage: true });
+  });
+
+  test("Classic mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await renderBoard(page, await fixture("mlb-classic-payload.json"));
+
+    await expect(page.locator(".tot-mobile-bar").first()).toBeVisible();
+    await expect(page.locator(".best-card")).toBeVisible();
+    await expect(page.locator(".market-summary-head")).toBeHidden();
+    await expect(page.locator(".market-summary-selection").first()).toBeVisible();
+    await expect(page).toHaveScreenshot("mlb-classic-mobile.png", { fullPage: true });
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    expect(overflow).toBe(false);
   });
 
   test("Obsidian shadow-only", async ({ page }) => {
@@ -107,12 +120,36 @@ test.describe("MLB board visual baselines", () => {
     await page.locator(".tracker-market-dropdown").evaluateAll((dropdowns) => {
       for (const dropdown of dropdowns) dropdown.setAttribute("open", "");
     });
-    await expect(page.locator(".tracker-market-dropdown .summary-label", { hasText: "1st Inning O/U" })).toHaveCount(0);
-    await expect(page.locator(".tracker-market-dropdown .summary-label", { hasText: "NRFI/YRFI" })).toBeVisible();
+    await expect(page.locator(".tracker-market-dropdown .market-summary-selection", { hasText: "1st Inning O/U" })).toHaveCount(0);
+    await expect(page.locator(".tracker-market-dropdown .market-summary-selection", { hasText: "NRFI/YRFI" })).toBeVisible();
     await expect(page.getByText("Tracking Only").first()).toBeVisible();
     await expect(page.getByText("Tracking-only market. Not included in official record or public performance.").first()).toBeVisible();
     await expect(page.locator(".best-card")).not.toContainText("YRFI");
 
     await expect(page).toHaveScreenshot("mlb-tracker-market-present.png", { fullPage: true });
+  });
+
+  test("Tracker-market-present mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await renderBoard(page, await fixture("mlb-tracker-market-present-payload.json"));
+
+    await expect(page.locator(".tot-mobile-bar").first()).toBeVisible();
+    await expect(page.locator(".tracker-market-dropdown")).toHaveCount(1);
+    await page.locator(".tracker-market-dropdown").evaluateAll((dropdowns) => {
+      for (const dropdown of dropdowns) dropdown.setAttribute("open", "");
+    });
+    await expect(page.getByText("Tracking Only").first()).toBeVisible();
+    await expect(page).toHaveScreenshot("mlb-tracker-market-present-mobile.png", { fullPage: true });
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    expect(overflow).toBe(false);
+  });
+
+  test("Classic board has no horizontal overflow across required widths", async ({ page }) => {
+    for (const width of [320, 390, 720, 1024, 1280]) {
+      await page.setViewportSize({ width, height: 844 });
+      await renderBoard(page, await fixture("mlb-classic-payload.json"));
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+      expect(overflow, `overflow at ${width}px`).toBe(false);
+    }
   });
 });

@@ -67,4 +67,21 @@ test.describe("MLB game detail accessibility", () => {
     );
     await expectNoA11yViolations(page);
   });
+
+  test("Pro detail mobile has no automated WCAG A/AA violations", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await renderDetail(page, await fixture("mlb-game-detail-payload.json"));
+    await expectNoA11yViolations(page);
+  });
+
+  test("Free detail mobile has no automated WCAG A/AA violations", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await renderDetail(
+      page,
+      await fixture("mlb-game-detail-preview-payload.json"),
+      "?game_pk=777001",
+      { authenticated: false }
+    );
+    await expectNoA11yViolations(page);
+  });
 });

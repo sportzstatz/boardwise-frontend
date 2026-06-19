@@ -132,6 +132,12 @@ test.describe("MLB board accessibility", () => {
     await expect(firstTrackerDetails).toHaveAttribute("open", "");
   });
 
+  test("Classic mobile has no automated WCAG A/AA violations", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await renderBoard(page, await fixture("mlb-classic-payload.json"));
+    await expectNoA11yViolations(page);
+  });
+
   test("hidden Obsidian hero is not keyboard focusable on Classic", async ({ page }) => {
     await renderBoard(page, await fixture("mlb-classic-payload.json"));
 

@@ -53,10 +53,57 @@ test.describe("MLB game detail visual baselines", () => {
     await expect(page).toHaveScreenshot("mlb-game-detail-pro.png", { fullPage: true });
   });
 
+  test("Pro mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await renderDetail(page, await fixture("mlb-game-detail-payload.json"), true);
+
+    await expect(page.locator(".gd-hero .tot-mobile-bar")).toBeVisible();
+    await expect(page.locator(".gd-section-nav")).toBeVisible();
+    await expect(page.locator(".gd-section-chip").first()).toBeVisible();
+    const optionBoxes = await page.locator(".gd-market-options").first().locator(".gd-mkt-option").evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().top));
+    expect(optionBoxes[1]).toBeGreaterThan(optionBoxes[0]);
+    await expect(page).toHaveScreenshot("mlb-game-detail-pro-mobile.png", { fullPage: true });
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    expect(overflow).toBe(false);
+  });
+
   test("Free (gated)", async ({ page }) => {
     await renderDetail(page, await fixture("mlb-game-detail-preview-payload.json"), false);
     await expect(page.locator(".gd-upsell")).toBeVisible();
     await expect(page.locator(".gd-locked-row").first()).toBeVisible();
     await expect(page).toHaveScreenshot("mlb-game-detail-free.png", { fullPage: true });
+  });
+
+  test("Free mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await renderDetail(page, await fixture("mlb-game-detail-preview-payload.json"), false);
+
+    await expect(page.locator(".gd-hero .tot-mobile-bar")).toBeVisible();
+    await expect(page.locator(".gd-upsell")).toBeVisible();
+    await expect(page.locator(".gd-locked-row").first()).toBeVisible();
+    await expect(page.locator(".gd-section-nav")).toHaveCount(0);
+    await expect(page.locator(".gd-mkt-option")).toHaveCount(0);
+    await expect(page.locator("#gd-detail")).not.toContainText("+9.1%");
+    await expect(page).toHaveScreenshot("mlb-game-detail-free-mobile.png", { fullPage: true });
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    expect(overflow).toBe(false);
+  });
+
+  test("Pro detail has no horizontal overflow across required widths", async ({ page }) => {
+    for (const width of [320, 390, 720, 1024, 1280]) {
+      await page.setViewportSize({ width, height: 844 });
+      await renderDetail(page, await fixture("mlb-game-detail-payload.json"), true);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+      expect(overflow, `overflow at ${width}px`).toBe(false);
+    }
+  });
+
+  test("Free detail has no horizontal overflow across required widths", async ({ page }) => {
+    for (const width of [320, 390, 720, 1024, 1280]) {
+      await page.setViewportSize({ width, height: 844 });
+      await renderDetail(page, await fixture("mlb-game-detail-preview-payload.json"), false);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+      expect(overflow, `overflow at ${width}px`).toBe(false);
+    }
   });
 });
