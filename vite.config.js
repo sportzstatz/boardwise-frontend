@@ -14,6 +14,7 @@ export default defineConfig({
         account: resolve(root, "account/index.html"),
         login: resolve(root, "login/index.html"),
         mlb: resolve(root, "mlb/index.html"),
+        mlbGame: resolve(root, "mlb/game/index.html"),
         nhl: resolve(root, "nhl/index.html"),
         performance: resolve(root, "performance/index.html"),
         pricing: resolve(root, "pricing/index.html"),
