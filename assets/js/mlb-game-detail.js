@@ -270,6 +270,31 @@ function edgeClass(text) {
   return "";
 }
 
+// Mirrors the board's wiseStatusText so the detail page reports the same tier.
+function wiseStatusText(value) {
+  const key = String(value || "").trim();
+  const normalized = key.toUpperCase();
+  if (key === "pass_lte_0" || normalized === "NO EDGE") return "No Edge";
+  if (key === "pass_0_3" || normalized === "TRACKER") return "Tracker";
+  if (key === "pass_3_8" || normalized === "LEAN") return "Lean";
+  if (key === "pass_8_14" || normalized === "PLAYABLE") return "Playable";
+  if (key === "medium_high_14_20" || normalized === "STRONG" || normalized === "MEDIUM-HIGH") return "Strong";
+  if (key === "high_20_25" || normalized === "PRIME" || normalized === "HIGH") return "Prime";
+  if (key === "elite_verify_25_plus" || normalized === "VERIFY" || normalized === "ELITE / VERIFY") return "Verify";
+  return "No Edge";
+}
+
+// Derives the official-pick pill label from the option's Wise Choice tier
+// instead of hard-coding "Playable" (mirrors the board's officialTierBadge).
+function officialTierLabel(option) {
+  if (isTrackingOnly(option)) return "Tracking";
+  const tier = wiseStatusText(option.wise_choice_status || option.wise_choice_bucket_key || option.wise_choice_bucket_label);
+  if (tier === "Verify") return "Verify Line";
+  if (option.is_official && ["Strong", "Prime", "Playable"].includes(tier)) return `Official · ${tier}`;
+  if (tier === "Lean") return option.is_official ? "Official · Lean" : "Lean · Not Official";
+  return option.is_official ? "Official" : tier;
+}
+
 function wiseChoiceFor(game, payload) {
   const helper = window.BoardWiseWiseChoice;
   if (helper) {
@@ -298,7 +323,7 @@ function renderWiseBanner(game, payload) {
       <div class="gd-wise-copy">
         <div class="gd-wise-eyebrow">
           <span class="gd-wise-label">Wise Choice™</span>
-          ${official ? `<span class="gd-official-pill">Official · Playable</span>` : ""}
+          ${official ? `<span class="gd-official-pill">${esc(officialTierLabel(option))}</span>` : ""}
         </div>
         <div class="gd-wise-pick">${esc(option.selection_text || option.label || "No selection")}</div>
         ${meta ? `<div class="gd-wise-meta">${esc(meta)}</div>` : ""}

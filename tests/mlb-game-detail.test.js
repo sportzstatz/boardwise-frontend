@@ -104,6 +104,9 @@ describe("mlb game detail", () => {
     expect(detail?.querySelector(".gd-wise")?.textContent).toContain("Red Sox +1.5");
     expect(detail?.querySelector(".gd-wise")?.textContent).toContain("73.4%");
     expect(detail?.querySelector(".gd-wise")?.textContent).toContain("+9.1%");
+    // Tier is derived from the option's Wise Choice status, not hard-coded.
+    expect(detail?.querySelector(".gd-wise")?.textContent).toContain("Official · Strong");
+    expect(detail?.querySelector(".gd-wise")?.textContent).not.toContain("Official · Playable");
     // Full markets with both sides + official badge
     expect(text).toContain("Run Line");
     expect(text).toContain("Money Line");
