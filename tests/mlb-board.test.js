@@ -1094,6 +1094,52 @@ describe("mlb-board model selector", () => {
     expect(guideText).not.toContain("A next-generation MLB model is visible");
   });
 
+  it("labels moneyline odds by side for shared-nickname matchups", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        games: [
+          {
+            game_label: "White Sox at Red Sox",
+            away_team: "Chicago White Sox",
+            home_team: "Boston Red Sox",
+            away_team_abbr: "CWS",
+            home_team_abbr: "BOS",
+            away_win_prob_text: "47.0%",
+            home_win_prob_text: "53.0%",
+            commence_time: "7:05 PM",
+            venue: "Fenway Park",
+            favorite_team: "Red Sox",
+            favorite_prob_text: "53.0%",
+            best_card_options: {},
+            recommendations: [],
+            market_dropdowns: [
+              {
+                title: "Money Line",
+                market_key: "h2h",
+                options: [
+                  { selection_text: "Red Sox Moneyline", label: "Red Sox Moneyline", odds_text: "-150" },
+                  { selection_text: "White Sox Moneyline", label: "White Sox Moneyline", odds_text: "+130" },
+                ],
+              },
+            ],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tot-side.away")).not.toBeNull());
+
+    const away = document.querySelector(".tot-side.away")?.textContent || "";
+    const home = document.querySelector(".tot-side.home")?.textContent || "";
+    expect(away).toContain("ML +130");
+    expect(away).not.toContain("-150");
+    expect(home).toContain("ML -150");
+    expect(home).not.toContain("+130");
+  });
+
   it("matches Wise Choice boundary fixture labels", async () => {
     const getMlbBoard = vi.fn().mockResolvedValue(payload("classic_mlb"));
 

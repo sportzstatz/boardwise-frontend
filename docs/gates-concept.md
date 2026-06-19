@@ -26,6 +26,7 @@ Current first-level pages:
 /account/
 /login/
 /mlb/
+/mlb/game/
 /nhl/
 /performance/
 /pricing/
@@ -38,6 +39,7 @@ assets/js/api-client.js
 assets/js/auth-state.js
 assets/js/login.js
 assets/js/mlb-board.js
+assets/js/mlb-game-detail.js
 assets/js/nhl-board.js
 assets/js/performance.js
 assets/js/account.js
@@ -131,6 +133,30 @@ Expected API outcomes:
 
 The page renders preview payloads as preview content with sign-in/upgrade calls
 to action. It does not fetch the full premium board and hide it.
+
+`/mlb/` renders each game as a Navy/Gold "tale of the tape" card (model win
+probability tug-of-war, both starters, the Wise Choice pick, and full market
+dropdowns) that links to `/mlb/game/?game_pk=…&date=…&model=…`.
+
+## MLB Game Detail Behavior
+
+`/mlb/game/` reads `game_pk` (plus optional `date` and `model`) from the URL and
+loads the same MLB board through the shared API client, then renders the one
+requested game. It performs no game-specific API call and never fetches premium
+JSON to hide it client-side:
+
+- pro/founder/admin (`access.level = full`): the full game detail — hero,
+  Wise Choice pick, full markets with edge, model breakdown, and pitching
+  matchup — plus "coming soon" placeholders for sections not yet served by the
+  API (player props, weather/park, line movement and head-to-head).
+- free/basic (`access.level = preview`): the hero plus a Pro upsell and a list of
+  locked sections. No premium odds, edge, or pick values are rendered, because
+  the preview payload does not contain them.
+- a requested game absent from a preview board surfaces the Pro upgrade path; a
+  game absent from a full board surfaces a not-found message linking back to the
+  board.
+- `401` is shown as sign-in required and `403` as Pro access required, matching
+  the board.
 
 ## Performance Behavior
 

@@ -684,20 +684,194 @@ function renderFilters() {
   });
 }
 
-function renderPitchers(game) {
+function parsePercent(value) {
+  if (value === null || value === undefined) return null;
+  const match = String(value).match(/-?\d+(?:\.\d+)?/);
+  if (!match) return null;
+  const num = Number(match[0]);
+  return Number.isFinite(num) ? num : null;
+}
+
+function teamNickname(name) {
+  const parts = String(name || "").trim().split(/\s+/);
+  return parts.length ? parts[parts.length - 1] : "";
+}
+
+function favoriteIsHome(game) {
+  const fav = String(game.favorite_team || "").trim().toLowerCase();
+  if (!fav) return null;
+  const homeNick = teamNickname(game.home_team).toLowerCase();
+  const homeAbbr = String(game.home_team_abbr || "").toLowerCase();
+  const awayNick = teamNickname(game.away_team).toLowerCase();
+  const awayAbbr = String(game.away_team_abbr || "").toLowerCase();
+  const matchesHome = (homeNick && fav.includes(homeNick)) || (homeAbbr && fav.includes(homeAbbr)) || (homeNick && homeNick.includes(fav)) || fav === "home";
+  const matchesAway = (awayNick && fav.includes(awayNick)) || (awayAbbr && fav.includes(awayAbbr)) || (awayNick && awayNick.includes(fav)) || fav === "away";
+  if (matchesHome && !matchesAway) return true;
+  if (matchesAway && !matchesHome) return false;
+  return null;
+}
+
+// Returns away/home win probabilities (0-100) using the explicit per-side
+// fields when present, then falling back to the favorite probability. Both
+// stay null when the side cannot be determined (so the UI shows a dash).
+function winProbs(game) {
+  let away = parsePercent(game.away_win_prob_text);
+  let home = parsePercent(game.home_win_prob_text);
+  if (away === null && home === null) {
+    const fav = parsePercent(game.favorite_prob_text);
+    const favHome = favoriteIsHome(game);
+    if (fav !== null && favHome === true) {
+      home = fav;
+      away = 100 - fav;
+    } else if (fav !== null && favHome === false) {
+      away = fav;
+      home = 100 - fav;
+    }
+  } else if (away === null && home !== null) {
+    away = 100 - home;
+  } else if (home === null && away !== null) {
+    home = 100 - away;
+  }
+  return { away, home };
+}
+
+function moneylineDropdown(game) {
+  const dropdowns = Array.isArray(game.market_dropdowns) ? game.market_dropdowns : [];
+  return dropdowns.find((market) => {
+    const key = String(market?.market_key || "").toLowerCase();
+    const title = String(market?.title || "").toLowerCase();
+    return key === "h2h" || key === "moneyline" || title.includes("money line") || title.includes("moneyline");
+  }) || null;
+}
+
+function lastTwoWords(name) {
+  const words = String(name || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  return words.length >= 2 ? words.slice(-2).join(" ") : "";
+}
+
+// Classifies which side of THIS game a market option belongs to. Matches from
+// most-specific to least-specific (abbreviation, full name, last-two-words,
+// nickname) and only accepts a tier where exactly one side matches — so
+// shared-nickname matchups (e.g. White Sox at Red Sox, both "sox") never
+// mislabel the odds.
+function optionSideInGame(option, game) {
+  const text = `${option?.selection_text || ""} ${option?.label || ""}`.toLowerCase();
+  const wb = (needle) => needle.length >= 2 && new RegExp(`\\b${needle}\\b`).test(text);
+  const homeAbbr = String(game.home_team_abbr || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const awayAbbr = String(game.away_team_abbr || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const homeFull = String(game.home_team || "").trim().toLowerCase();
+  const awayFull = String(game.away_team || "").trim().toLowerCase();
+  const homeNick = teamNickname(game.home_team).toLowerCase();
+  const awayNick = teamNickname(game.away_team).toLowerCase();
+  const tiers = [
+    [wb(homeAbbr), wb(awayAbbr)],
+    [Boolean(homeFull) && text.includes(homeFull), Boolean(awayFull) && text.includes(awayFull)],
+    [Boolean(lastTwoWords(game.home_team)) && text.includes(lastTwoWords(game.home_team)), Boolean(lastTwoWords(game.away_team)) && text.includes(lastTwoWords(game.away_team))],
+    [Boolean(homeNick) && text.includes(homeNick), Boolean(awayNick) && text.includes(awayNick)],
+  ];
+  for (const [home, away] of tiers) {
+    if (home && !away) return "home";
+    if (away && !home) return "away";
+  }
+  return null;
+}
+
+function moneylineOddsFor(game, side) {
+  const dropdown = moneylineDropdown(game);
+  const options = dropdown && Array.isArray(dropdown.options) ? dropdown.options : [];
+  const match = options.find((option) => optionSideInGame(option, game) === side);
+  return match && match.odds_text ? String(match.odds_text) : "";
+}
+
+function hasOfficialPlay(game) {
+  const recs = Array.isArray(game.recommendations) ? game.recommendations : [];
+  return recs.some((rec) => rec && rec.is_official && !isTrackingOnlyOption(rec));
+}
+
+function gameDetailHref(game) {
+  const pk = game ? (game.game_pk ?? game.game_id) : null;
+  if (pk === null || pk === undefined || pk === "") return "";
+  const params = new URLSearchParams();
+  params.set("game_pk", String(pk));
+  const date = (state.payload && state.payload.target_date) || readTargetDate();
+  if (date) params.set("date", date);
+  if (state.selectedModel) params.set("model", state.selectedModel);
+  return `/mlb/game/?${params.toString()}`;
+}
+
+function teamAbbrText(team, abbr) {
+  if (abbr) return String(abbr).toUpperCase();
+  if (team) return String(team).slice(0, 3).toUpperCase();
+  return "—";
+}
+
+function renderTotSide(game, which, showProbs) {
+  const isHome = which === "home";
+  const team = isHome ? game.home_team : game.away_team;
+  const abbr = isHome ? game.home_team_abbr : game.away_team_abbr;
+  const pitcher = isHome ? game.home_pitcher : game.away_pitcher;
+  const lineup = isHome ? game.lineup_status_home : game.lineup_status_away;
+  const probs = winProbs(game);
+  const prob = isHome ? probs.home : probs.away;
+  const probText = showProbs && prob !== null ? `${prob.toFixed(1)}<span class="pct">%</span>` : "&mdash;";
+  const odds = moneylineOddsFor(game, which);
+  const lineupClass = ["confirmed", "projected"].includes(String(lineup)) ? String(lineup) : "unknown";
   return `
-    <div class="pitchers">
-      <div class="pitcher-card">
-        <div class="pitcher-label">Away Pitcher (${esc(game.away_team_abbr || "-")})</div>
-        <div class="pitcher-name">${esc(game.away_pitcher || "Not listed")}</div>
-        <span class="lineup-tag ${esc(game.lineup_status_away || "unknown")}">${esc(game.lineup_status_away || "unknown")}</span>
-      </div>
-      <div class="pitcher-card">
-        <div class="pitcher-label">Home Pitcher (${esc(game.home_team_abbr || "-")})</div>
-        <div class="pitcher-name">${esc(game.home_pitcher || "Not listed")}</div>
-        <span class="lineup-tag ${esc(game.lineup_status_home || "unknown")}">${esc(game.lineup_status_home || "unknown")}</span>
-      </div>
+    <div class="tot-side ${which}">
+      <div class="tot-abbr">${esc(teamAbbrText(team, abbr))}</div>
+      <div class="tot-team">${esc(team || (isHome ? "Home" : "Away"))}</div>
+      <div class="tot-pitcher">${esc(pitcher || "Pitcher TBD")}</div>
+      ${lineup ? `<span class="lineup-tag ${lineupClass}">${esc(lineup)}</span>` : ""}
+      <div class="tot-prob tnum">${probText}</div>
+      ${odds ? `<div class="tot-ml tnum">ML ${esc(odds)}</div>` : ""}
     </div>
+  `;
+}
+
+function renderTotCenter(game, showProbs) {
+  const probs = winProbs(game);
+  let awayPct = 50;
+  let homePct = 50;
+  if (showProbs && probs.away !== null && probs.home !== null && (probs.away + probs.home) > 0) {
+    const sum = probs.away + probs.home;
+    awayPct = (probs.away / sum) * 100;
+    homePct = 100 - awayPct;
+  }
+  const total = game.projected_total_text ? String(game.projected_total_text) : "";
+  return `
+    <div class="tot-center">
+      <div class="tot-winprob-label">Win Prob</div>
+      <div class="tot-bar" role="img" aria-label="Model win probability split">
+        <div class="tot-bar-away" style="height:${awayPct.toFixed(1)}%"></div>
+        <div class="tot-bar-home" style="height:${homePct.toFixed(1)}%"></div>
+      </div>
+      <div class="tot-vs">VS</div>
+      ${total ? `<div class="tot-total tnum">Total ${esc(total)}</div>` : ""}
+    </div>
+  `;
+}
+
+function renderTaleOfTape(game, showProbs = true) {
+  const when = [game.commence_time, game.venue].filter(Boolean).join(" · ");
+  const label = gameLabel(game);
+  const href = gameDetailHref(game);
+  const title = href ? `<a href="${esc(href)}">${esc(label)}</a>` : esc(label);
+  const official = hasOfficialPlay(game) ? `<span class="official-plays-pill">Official Plays</span>` : "";
+  return `
+    <div class="tot-head">
+      <div class="tot-head-meta">
+        ${when ? `<div class="tot-when tnum">${esc(when)}</div>` : ""}
+        <div class="tot-title">${title}</div>
+      </div>
+      ${official}
+    </div>
+    <div class="tot-tape">
+      ${renderTotSide(game, "away", showProbs)}
+      ${renderTotCenter(game, showProbs)}
+      ${renderTotSide(game, "home", showProbs)}
+    </div>
+    ${game.board_state_label ? `<div class="state-badge">${esc(game.board_state_label)}</div>` : ""}
+    ${game.board_state_note ? `<div class="venue-text" style="margin:0 20px 10px">${esc(game.board_state_note)}</div>` : ""}
   `;
 }
 
@@ -1013,45 +1187,29 @@ function gamePassesFilter(game) {
 function renderGame(game, variant = state.mode) {
   const option = bestOption(game, variant);
   const wise = optionWiseBucket(option);
-  const border = variant === "wise_choice" ? safeColor(wise.color, "#0f4c81") : modeColor(game);
+  const border = variant === "wise_choice" ? safeColor(wise.color, "#13243c") : modeColor(game);
   const tier = wiseStatusText(wise.key || wise.status);
   const strong = tier === "Prime" || tier === "Strong" || option?.ev_rating === "High";
   const tileClass = strong ? "tile strong" : "tile";
+  const detailHref = gameDetailHref(game);
   return `
     <article class="${tileClass}" style="border-left-color:${border}" data-ev-bucket="${esc(evBucket(game))}" data-prob-bucket="${esc(probBucket(game))}" data-wise-bucket="${esc(wise.key)}">
-      <div class="tile-top">
-        <div>
-          <div class="game-label">${esc(game.game_label || `${game.away_team || "Away"} at ${game.home_team || "Home"}`)}</div>
-          <div class="game-time">${esc(game.commence_time || "Time not listed")}</div>
-          <div class="venue-text">${esc(game.venue || "Venue not listed")}</div>
-          ${game.board_state_label ? `<div class="state-badge">${esc(game.board_state_label)}</div>` : ""}
-          ${game.board_state_note ? `<div class="venue-text">${esc(game.board_state_note)}</div>` : ""}
-        </div>
-        <div class="favorite-badge">${esc(game.favorite_team || "Favorite")}<br>${esc(game.favorite_prob_text || "")}</div>
-      </div>
-      ${renderPitchers(game)}
+      ${renderTaleOfTape(game, true)}
       ${renderBestCard(option, variant)}
       ${renderMarketDropdowns(game)}
       ${renderTrackerMarketDropdowns(game)}
+      ${detailHref ? `<a class="tot-detail-link" href="${esc(detailHref)}">Full game detail &rarr;</a>` : ""}
     </article>
   `;
 }
 
 function renderPreviewGame(game) {
+  const detailHref = gameDetailHref(game);
   return `
     <article class="tile preview-tile">
-      <div class="tile-top">
-        <div>
-          <div class="game-label">${esc(game.game_label || `${game.away_team || "Away"} at ${game.home_team || "Home"}`)}</div>
-          <div class="game-time">${esc(game.commence_time || "Time not listed")}</div>
-          <div class="venue-text">${esc(game.venue || "Venue not listed")}</div>
-          ${game.board_state_label ? `<div class="state-badge">${esc(game.board_state_label)}</div>` : ""}
-          ${game.board_state_note ? `<div class="venue-text">${esc(game.board_state_note)}</div>` : ""}
-        </div>
-        <div class="favorite-badge">${esc(game.favorite_team || "Favorite")}<br>${esc(game.favorite_prob_text || "")}</div>
-      </div>
-      ${renderPitchers(game)}
-      <div class="forecast-only-note">Preview card</div>
+      ${renderTaleOfTape(game, true)}
+      <div class="forecast-only-note preview-note">Preview card — go Pro to unlock full markets, the model breakdown, and the Wise Choice™ pick.</div>
+      ${detailHref ? `<a class="tot-detail-link" href="${esc(detailHref)}">Full game detail &rarr;</a>` : ""}
     </article>
   `;
 }

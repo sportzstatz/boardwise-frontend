@@ -1,0 +1,178 @@
+{
+  "target_date": "2026-06-18",
+  "generated_at": "2026-06-18 12:00 PM CT",
+  "mode": "probable",
+  "game_count": 1,
+  "betting_game_count": 1,
+  "recommendation_count": 1,
+  "tracking_count": 0,
+  "books_seen": ["FanDuel", "DraftKings"],
+  "access": {
+    "level": "full",
+    "preview": false,
+    "full_access": true,
+    "required_feature": "mlb_board_advanced"
+  },
+  "summary": {
+    "recommendation_count": 1,
+    "tracking_count": 0
+  },
+  "model_metadata": {
+    "default_model_family": "classic_mlb",
+    "selected_model_family": "classic_mlb",
+    "selected_model_available": true,
+    "model_display_name": "Classic MLB",
+    "model_version": "ensemble_probable_snapshot_v1"
+  },
+  "official_recommendations": [
+    {
+      "game_label": "Blue Jays at Red Sox",
+      "selection_text": "Red Sox +1.5",
+      "label": "Red Sox +1.5",
+      "sportsbook": "FanDuel",
+      "odds_text": "-205",
+      "is_official": true,
+      "wise_choice_status": "Strong",
+      "model_probability_text": "73.4%",
+      "edge_text": "+9.1%",
+      "ev_text": "+0.09u"
+    }
+  ],
+  "games": [
+    {
+      "game_pk": 777001,
+      "game_label": "Blue Jays at Red Sox",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "Boston Red Sox",
+      "away_team_abbr": "TOR",
+      "home_team_abbr": "BOS",
+      "commence_time": "12:35 PM CDT",
+      "venue": "Fenway Park",
+      "favorite_team": "Red Sox",
+      "favorite_prob_text": "54.1%",
+      "away_pitcher": "Trey Yesavage",
+      "home_pitcher": "Sonny Gray",
+      "lineup_status_away": "projected",
+      "lineup_status_home": "confirmed",
+      "away_win_prob_text": "45.9%",
+      "home_win_prob_text": "54.1%",
+      "projected_total_text": "8.1",
+      "projected_margin_text": "TOR +0.2",
+      "model_details_projected_score": "Red Sox 4.0 · Blue Jays 4.2",
+      "model_version": "ensemble_probable_snapshot_v1",
+      "recommendations": [
+        {
+          "selection_text": "Red Sox +1.5",
+          "label": "Red Sox +1.5",
+          "sportsbook": "FanDuel",
+          "odds_text": "-205",
+          "is_official": true,
+          "wise_choice_status": "Strong",
+          "model_probability_text": "73.4%",
+          "edge_text": "+9.1%",
+          "ev_text": "+0.09u"
+        }
+      ],
+      "best_card_options": {
+        "wise_choice": {
+          "selection_text": "Red Sox +1.5",
+          "label": "Red Sox +1.5",
+          "sportsbook": "FanDuel",
+          "odds_text": "-205",
+          "is_official": true,
+          "wise_choice_status": "Strong",
+          "wise_choice_bucket_key": "medium_high_14_20",
+          "model_probability_text": "73.4%",
+          "market_probability_text": "64.3%",
+          "edge_text": "+9.1%",
+          "ev_text": "+0.09u"
+        }
+      },
+      "model_details_cells": [
+        { "label": "Calibrated WP", "value": "54.3%" },
+        { "label": "Run-Model WP", "value": "46.9%" },
+        { "label": "Total p10/50/90", "value": "5 · 8 · 12", "wide": true },
+        { "label": "Baseline WP", "value": "54.2%" }
+      ],
+      "market_dropdowns": [
+        {
+          "market_key": "spreads",
+          "title": "Run Line",
+          "summary_center_text": "Red Sox +1.5",
+          "options": [
+            {
+              "label": "Red Sox +1.5",
+              "selection_text": "Red Sox +1.5",
+              "sportsbook": "FanDuel",
+              "odds_text": "-205",
+              "is_official": true,
+              "model_probability_text": "73.4%",
+              "edge_text": "+9.1%",
+              "ev_text": "+0.09u"
+            },
+            {
+              "label": "Blue Jays -1.5",
+              "selection_text": "Blue Jays -1.5",
+              "sportsbook": "DraftKings",
+              "odds_text": "+168",
+              "model_probability_text": "26.6%",
+              "edge_text": "-10.7%",
+              "ev_text": "-0.18u"
+            }
+          ]
+        },
+        {
+          "market_key": "totals",
+          "title": "Total Runs",
+          "summary_center_text": "Under 8.5",
+          "options": [
+            {
+              "label": "Under 8.5",
+              "selection_text": "Under 8.5",
+              "sportsbook": "FanDuel",
+              "odds_text": "+100",
+              "is_official": true,
+              "model_probability_text": "53.7%",
+              "edge_text": "+6.0%",
+              "ev_text": "+0.07u"
+            },
+            {
+              "label": "Over 8.5",
+              "selection_text": "Over 8.5",
+              "sportsbook": "DraftKings",
+              "odds_text": "-114",
+              "model_probability_text": "46.3%",
+              "edge_text": "-6.9%",
+              "ev_text": "-0.13u"
+            }
+          ]
+        },
+        {
+          "market_key": "h2h",
+          "title": "Money Line",
+          "summary_center_text": "Red Sox -124",
+          "options": [
+            {
+              "label": "Red Sox Moneyline",
+              "selection_text": "Red Sox Moneyline",
+              "sportsbook": "FanDuel",
+              "odds_text": "-124",
+              "model_probability_text": "54.1%",
+              "edge_text": "-1.3%",
+              "ev_text": "-0.02u"
+            },
+            {
+              "label": "Blue Jays Moneyline",
+              "selection_text": "Blue Jays Moneyline",
+              "sportsbook": "DraftKings",
+              "odds_text": "+106",
+              "model_probability_text": "45.9%",
+              "edge_text": "-2.6%",
+              "ev_text": "-0.05u"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

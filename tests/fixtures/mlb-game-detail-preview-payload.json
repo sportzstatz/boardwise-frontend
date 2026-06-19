@@ -1,0 +1,51 @@
+{
+  "target_date": "2026-06-18",
+  "generated_at": "2026-06-18 12:00 PM CT",
+  "mode": "probable",
+  "game_count": 1,
+  "betting_game_count": 1,
+  "recommendation_count": 0,
+  "tracking_count": 0,
+  "books_seen": [],
+  "access": {
+    "level": "preview",
+    "preview": true,
+    "full_access": false,
+    "max_preview_games": 2,
+    "preview_game_count": 1,
+    "required_feature": "mlb_board_advanced",
+    "upgrade_path": "/pricing/"
+  },
+  "summary": {
+    "game_count": 1,
+    "betting_game_count": 1,
+    "recommendation_count": 0
+  },
+  "model_metadata": {
+    "default_model_family": "classic_mlb",
+    "selected_model_family": "classic_mlb",
+    "selected_model_available": true,
+    "model_display_name": "Classic MLB"
+  },
+  "official_recommendations": [],
+  "games": [
+    {
+      "game_pk": 777001,
+      "game_label": "Blue Jays at Red Sox",
+      "away_team": "Toronto Blue Jays",
+      "home_team": "Boston Red Sox",
+      "away_team_abbr": "TOR",
+      "home_team_abbr": "BOS",
+      "commence_time": "12:35 PM CDT",
+      "venue": "Fenway Park",
+      "betting_available": true,
+      "favorite_team": "Red Sox",
+      "favorite_prob_text": "54.1%",
+      "away_pitcher": "Trey Yesavage",
+      "home_pitcher": "Sonny Gray",
+      "lineup_status_away": "projected",
+      "lineup_status_home": "confirmed",
+      "board_state_label": "Board Live"
+    }
+  ]
+}
