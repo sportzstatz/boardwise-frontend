@@ -103,6 +103,46 @@ function winProbs(game) {
   return { away, home };
 }
 
+function favoredSide(game) {
+  const away = parsePercent(game.away_win_prob_text);
+  const home = parsePercent(game.home_win_prob_text);
+  if (away !== null && home !== null && away !== home) {
+    return away > home ? "away" : "home";
+  }
+  const favHome = favoriteIsHome(game);
+  if (favHome === true) return "home";
+  if (favHome === false) return "away";
+  return "";
+}
+
+function sideToneClass(game, which) {
+  const favored = favoredSide(game);
+  if (!favored) return "";
+  return favored === which ? "is-favored" : "is-underdog";
+}
+
+function percentText(value) {
+  return value !== null ? `${value.toFixed(1)}%` : "not available";
+}
+
+function probabilitySplit(game) {
+  const probs = winProbs(game);
+  let awayPct = 50;
+  let homePct = 50;
+  if (probs.away !== null && probs.home !== null && (probs.away + probs.home) > 0) {
+    const sum = probs.away + probs.home;
+    awayPct = (probs.away / sum) * 100;
+    homePct = 100 - awayPct;
+  }
+  return { ...probs, awayPct, homePct };
+}
+
+function probabilitySplitLabel(game, split) {
+  const awayTeam = game.away_team || game.away_team_abbr || "Away";
+  const homeTeam = game.home_team || game.home_team_abbr || "Home";
+  return `${awayTeam} ${percentText(split.away)}, ${homeTeam} ${percentText(split.home)}`;
+}
+
 function lastTwoWords(name) {
   const words = String(name || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
   return words.length >= 2 ? words.slice(-2).join(" ") : "";
@@ -207,23 +247,16 @@ function boardHref() {
 /* ---------- rendering ---------- */
 
 function lockIcon(size = 20) {
-  const w = size;
-  const h = Math.round(size * 1.1);
-  return `<span class="gd-lock-icon" style="width:${w}px;height:${h}px" aria-hidden="true">
+  const sizeClass = size <= 14 ? "gd-lock-sm" : "gd-lock-lg";
+  return `<span class="gd-lock-icon ${sizeClass}" aria-hidden="true">
     <span class="gd-lock-shackle"></span><span class="gd-lock-body"></span></span>`;
 }
 
 function renderHero(game) {
-  const probs = winProbs(game);
-  const when = [game.commence_time, game.venue].filter(Boolean).join(" · ");
+  const split = probabilitySplit(game);
+  const splitLabel = probabilitySplitLabel(game, split);
   const awayMl = moneylineOddsFor(game, "away");
   const homeMl = moneylineOddsFor(game, "home");
-  let awayPct = 50;
-  let homePct = 50;
-  if (probs.away !== null && probs.home !== null && (probs.away + probs.home) > 0) {
-    awayPct = (probs.away / (probs.away + probs.home)) * 100;
-    homePct = 100 - awayPct;
-  }
   const total = game.projected_total_text ? `Proj total ${esc(game.projected_total_text)}` : "";
   const side = (which) => {
     const isHome = which === "home";
@@ -231,12 +264,14 @@ function renderHero(game) {
     const abbr = isHome ? game.home_team_abbr : game.away_team_abbr;
     const pitcher = isHome ? game.home_pitcher : game.away_pitcher;
     const lineup = isHome ? game.lineup_status_home : game.lineup_status_away;
-    const prob = isHome ? probs.home : probs.away;
+    const prob = isHome ? split.home : split.away;
     const odds = isHome ? homeMl : awayMl;
     const lineupClass = ["confirmed", "projected"].includes(String(lineup)) ? String(lineup) : "unknown";
+    const tone = sideToneClass(game, which);
+    const sideLabel = `${isHome ? "Home" : "Away"} team ${team || teamAbbrText(team, abbr)}. Starting pitcher ${pitcher || "TBD"}. Win probability ${percentText(prob)}.`;
     return `
-      <div class="tot-side ${which}">
-        <div class="tot-abbr">${esc(teamAbbrText(team, abbr))}</div>
+      <div class="tot-side ${which} ${tone}" aria-label="${esc(sideLabel)}">
+        <div class="tot-abbr" aria-hidden="true">${esc(teamAbbrText(team, abbr))}</div>
         <div class="tot-team">${esc(team || (isHome ? "Home" : "Away"))}</div>
         <div class="tot-pitcher">${esc(pitcher || "Pitcher TBD")}</div>
         ${lineup ? `<span class="lineup-tag ${lineupClass}">${esc(lineup)}</span>` : ""}
@@ -244,21 +279,30 @@ function renderHero(game) {
         ${odds ? `<div class="tot-ml tnum">ML ${esc(odds)}</div>` : ""}
       </div>`;
   };
+  const awayTone = sideToneClass(game, "away");
+  const homeTone = sideToneClass(game, "home");
   return `
     <section class="gd-hero">
-      ${when ? `<div class="gd-when tnum">${esc(when)}</div>` : ""}
       <div class="tot-tape">
         ${side("away")}
         <div class="tot-center">
           <div class="tot-winprob-label">Win Prob</div>
-          <div class="tot-bar" role="img" aria-label="Model win probability split">
-            <div class="tot-bar-away" style="height:${awayPct.toFixed(1)}%"></div>
-            <div class="tot-bar-home" style="height:${homePct.toFixed(1)}%"></div>
+          <div class="tot-bar" role="img" aria-label="${esc(splitLabel)}">
+            <div class="tot-bar-away tot-bar-segment ${awayTone}" style="height:${split.awayPct.toFixed(1)}%"></div>
+            <div class="tot-bar-home tot-bar-segment ${homeTone}" style="height:${split.homePct.toFixed(1)}%"></div>
           </div>
           <div class="tot-vs">VS</div>
           ${total ? `<div class="tot-total tnum">${total}</div>` : ""}
         </div>
         ${side("home")}
+      </div>
+      <div class="tot-mobile-split">
+        <div class="tot-mobile-bar" role="img" aria-label="${esc(splitLabel)}">
+          <div class="tot-mobile-away tot-mobile-segment ${awayTone}" style="width:${split.awayPct.toFixed(1)}%"></div>
+          <div class="tot-mobile-home tot-mobile-segment ${homeTone}" style="width:${split.homePct.toFixed(1)}%"></div>
+        </div>
+        <div class="tot-mobile-label">Model Win Probability</div>
+        ${total ? `<div class="tot-mobile-total tnum">${total}</div>` : ""}
       </div>
     </section>`;
 }
@@ -310,7 +354,13 @@ function wiseChoiceFor(game, payload) {
 
 function renderWiseBanner(game, payload) {
   const option = wiseChoiceFor(game, payload);
-  if (!option) return "";
+  if (!option) {
+    return `
+      <section id="wise-choice" class="gd-block">
+        ${sectionTitle("Wise Choice")}
+        <div class="gd-note">No Wise Choice recommendation is available for this game.</div>
+      </section>`;
+  }
   const meta = [option.sportsbook, option.odds_text].filter(Boolean).join(" · ");
   const win = option.model_probability_text || option.model_prob_text || "";
   const edge = option.edge_text || "";
@@ -319,11 +369,11 @@ function renderWiseBanner(game, payload) {
     value ? `<div class="gd-bubble"><div class="gd-bubble-label">${esc(label)}</div><div class="gd-bubble-value ${cls} tnum">${esc(value)}</div></div>` : "";
   const official = option.is_official && !isTrackingOnly(option);
   return `
-    <section class="gd-wise">
+    <section id="wise-choice" class="gd-wise" aria-labelledby="wise-choice-title">
       <div class="gd-wise-copy">
         <div class="gd-wise-eyebrow">
-          <span class="gd-wise-label">Wise Choice™</span>
-          ${official ? `<span class="gd-official-pill">${esc(officialTierLabel(option))}</span>` : ""}
+          <h2 id="wise-choice-title" class="gd-wise-label">Wise Choice™</h2>
+          <span class="gd-official-pill">${esc(official ? officialTierLabel(option) : officialTierLabel(option))}</span>
         </div>
         <div class="gd-wise-pick">${esc(option.selection_text || option.label || "No selection")}</div>
         ${meta ? `<div class="gd-wise-meta">${esc(meta)}</div>` : ""}
@@ -343,7 +393,7 @@ function sectionTitle(text) {
 function renderMarkets(game) {
   const dropdowns = Array.isArray(game.market_dropdowns) ? game.market_dropdowns : [];
   if (!dropdowns.length) {
-    return `${sectionTitle("Full Markets")}<div class="gd-note">No matched markets are available for this game yet.</div>`;
+    return `<section id="full-markets" class="gd-block">${sectionTitle("Full Markets")}<div class="gd-note">No matched markets are available for this game yet.</div></section>`;
   }
   const cell = (label, value, cls = "") =>
     `<div class="gd-cell"><div class="gd-cell-label">${esc(label)}</div><div class="gd-cell-value ${cls} tnum">${esc(value || "—")}</div></div>`;
@@ -360,6 +410,7 @@ function renderMarkets(game) {
           ${cell("Odds", option.odds_text)}
           ${cell("Model", model)}
           ${cell("Edge", option.edge_text, edgeClass(option.edge_text))}
+          ${option.ev_text ? cell("EV", option.ev_text, edgeClass(option.ev_text)) : ""}
         </div>
       </div>`;
   };
@@ -368,10 +419,10 @@ function renderMarkets(game) {
     return `
       <div class="gd-market">
         <div class="gd-market-title">${esc(market.title || market.market_key || "Market")}</div>
-        <div class="gd-market-options">${options.map(optionCard).join("")}</div>
+        <div class="gd-market-options">${options.length ? options.map(optionCard).join("") : `<div class="gd-note">No market options are available for this market yet.</div>`}</div>
       </div>`;
   }).join("");
-  return `${sectionTitle("Full Markets")}<div class="gd-markets">${markets}</div>`;
+  return `<section id="full-markets" class="gd-block">${sectionTitle("Full Markets")}<div class="gd-markets">${markets}</div></section>`;
 }
 
 function renderModelBreakdown(game) {
@@ -382,7 +433,9 @@ function renderModelBreakdown(game) {
     { label: "Projected Total", value: game.projected_total_text },
     { label: "Projected Margin", value: game.projected_margin_text },
   ].filter((row) => row.value);
-  if (!rows.length && !game.model_details_projected_score && !game.model_version) return "";
+  if (!rows.length && !game.model_details_projected_score && !game.model_version) {
+    return `<section id="model-breakdown" class="gd-block">${sectionTitle("Model Breakdown")}<div class="gd-note">Model breakdown details are not available for this game yet.</div></section>`;
+  }
   const grid = rows.map((row) => `
     <div class="gd-model-cell ${row.wide ? "wide" : ""}">
       <div class="gd-cell-label">${esc(row.label || "")}</div>
@@ -392,9 +445,11 @@ function renderModelBreakdown(game) {
     ? `<div class="gd-model-cell wide"><div class="gd-cell-label">Model Version</div><div class="gd-cell-value">${esc(game.model_version)}</div></div>`
     : "";
   return `
+    <section id="model-breakdown" class="gd-block">
     ${sectionTitle("Model Breakdown")}
     ${game.model_details_projected_score ? `<div class="gd-proj-score"><span class="gd-cell-label">Projected Score</span><span class="gd-proj-value tnum">${esc(game.model_details_projected_score)}</span></div>` : ""}
-    ${grid || versionCell ? `<div class="gd-model-grid">${grid}${versionCell}</div>` : ""}`;
+    ${grid || versionCell ? `<div class="gd-model-grid">${grid}${versionCell}</div>` : ""}
+    </section>`;
 }
 
 function renderPitching(game) {
@@ -412,9 +467,11 @@ function renderPitching(game) {
       </div>`;
   };
   return `
+    <section id="pitching-matchup" class="gd-block">
     ${sectionTitle("Pitching Matchup")}
     <div class="gd-pitch">${card("away")}${card("home")}</div>
-    <div class="gd-soon-line">Season splits, ERA, K/9 and recent form are coming soon.</div>`;
+    <div class="gd-soon-line">ERA, K/9, WHIP, splits, and recent form are coming soon.</div>
+    </section>`;
 }
 
 function comingSoonCard(title, copy) {
@@ -425,25 +482,43 @@ function comingSoonCard(title, copy) {
     </div>`;
 }
 
-function renderComingSoon() {
+function renderComingSoon(id, title, cards, extraClass = "") {
   return `
-    ${sectionTitle("Also coming to Pro")}
-    <div class="gd-soon-grid">
-      ${comingSoonCard("Player Props", "40+ props ranked by edge — strikeouts, hits, total bases and more.")}
-      ${comingSoonCard("Weather & Park Factors", "Wind, temperature, and run/HR park factors for the venue.")}
-      ${comingSoonCard("Line Movement & Head-to-Head", "Opening-to-now line history and recent matchup results.")}
-    </div>`;
+    <section id="${esc(id)}" class="gd-soon-section">
+      ${sectionTitle(title)}
+      <div class="gd-soon-grid ${esc(extraClass)}">
+        ${cards.map(([cardTitle, copy]) => comingSoonCard(cardTitle, copy)).join("")}
+      </div>
+    </section>`;
+}
+
+function renderSectionNav() {
+  const chips = [
+    ["Wise Choice", "#wise-choice"],
+    ["Markets", "#full-markets"],
+    ["Player Props", "#player-props"],
+    ["Pitching", "#pitching-matchup"],
+    ["Model", "#model-breakdown"],
+    ["Weather", "#weather-park"],
+    ["Trends", "#line-trends"],
+  ];
+  return `<nav class="gd-section-nav" aria-label="Game detail sections">${chips.map(([label, href]) => `<a class="gd-section-chip" href="${esc(href)}">${esc(label)}</a>`).join("")}</nav>`;
 }
 
 function renderProDetail(payload, game) {
   return `
-    ${renderHero(game)}
-    ${renderWiseBanner(game, payload)}
-    <div class="gd-sections">
-      <section class="gd-block">${renderMarkets(game)}</section>
-      ${renderModelBreakdown(game) ? `<section class="gd-block">${renderModelBreakdown(game)}</section>` : ""}
-      <section class="gd-block">${renderPitching(game)}</section>
-      <section class="gd-block">${renderComingSoon()}</section>
+    <div class="gd-detail-inner">
+      ${renderHero(game)}
+      ${renderSectionNav()}
+      <div class="gd-sections">
+        ${renderWiseBanner(game, payload)}
+        ${renderMarkets(game)}
+        ${renderComingSoon("player-props", "Player Props", [["Player props", "Coming soon. Board payloads do not provide player props yet."]])}
+        ${renderPitching(game)}
+        ${renderModelBreakdown(game)}
+        ${renderComingSoon("weather-park", "Weather & Park", [["Weather & park", "Coming soon. Weather and park-factor payloads are not available yet."]])}
+        ${renderComingSoon("line-trends", "Line Movement & Trends", [["Line Movement", "Coming soon."], ["Head-to-Head & Recent", "Coming soon."]], "two")}
+      </div>
     </div>`;
 }
 
@@ -454,7 +529,7 @@ function renderUpsell(payload) {
       <div class="gd-upsell-lock">${lockIcon(22)}</div>
       <div class="gd-upsell-copy">
         <div class="gd-upsell-title">Unlock the full game with BoardWise Pro</div>
-        <div class="gd-upsell-sub">Full markets with edge, the Wise Choice™ pick, model breakdown, pitching and more.</div>
+        <div class="gd-upsell-sub">Full market context, the Wise Choice™ pick, model breakdown, pitching and more.</div>
       </div>
       <a class="button primary" href="${esc(href)}">Go Pro</a>
     </section>`;
@@ -471,19 +546,24 @@ function lockedRow(title, copy) {
 
 function renderFreeDetail(payload, game) {
   return `
-    ${renderHero(game)}
-    ${renderUpsell(payload)}
-    <div class="gd-sections">
-      <section class="gd-block">
-        ${sectionTitle("Locked with Pro")}
-        <div class="gd-locked-list">
-          ${lockedRow("Full Markets", "All sides, odds and edge for every market.")}
-          ${lockedRow("Wise Choice™ Pick", "The official playable pick with win, edge and EV.")}
-          ${lockedRow("Model Breakdown", "Projected score, win probability and percentiles.")}
-          ${lockedRow("Pitching Matchup", "Starters, lineup status and recent form.")}
-        </div>
-      </section>
-      <section class="gd-block">${renderComingSoon()}</section>
+    <div class="gd-detail-inner">
+      ${renderHero(game)}
+      ${renderUpsell(payload)}
+      <div class="gd-sections">
+        <section class="gd-block">
+          ${sectionTitle("Locked with Pro")}
+          <div class="gd-locked-list">
+            ${lockedRow("Full Markets", "Every supported market side and model call.")}
+            ${lockedRow("Wise Choice™ Pick", "The official playable pick context.")}
+            ${lockedRow("Model Breakdown", "Projected score, win probability and model cells.")}
+            ${lockedRow("Pitching Matchup", "Starters, lineup status and future pitching metrics.")}
+            ${lockedRow("Player Props / Weather / Trends", "Additional Pro sections as payloads become available.")}
+          </div>
+        </section>
+        ${renderComingSoon("player-props", "Player Props", [["Player props", "Coming soon."]])}
+        ${renderComingSoon("weather-park", "Weather & Park", [["Weather & park", "Coming soon."]])}
+        ${renderComingSoon("line-trends", "Line Movement & Trends", [["Line Movement", "Coming soon."], ["Head-to-Head & Recent", "Coming soon."]], "two")}
+      </div>
     </div>`;
 }
 
@@ -491,12 +571,19 @@ function renderNav(payload, game) {
   if (!gdEls.back) return;
   const planBadge = isPreviewPayload(payload)
     ? `<span class="gd-plan free">Free</span>`
-    : `<span class="gd-plan pro">★ Pro</span>`;
+    : `<span class="gd-plan pro">Pro</span>`;
   const official = game && hasOfficialPlay(game)
     ? `<span class="official-plays-pill">Official Plays</span>`
     : "";
+  const label = game ? gameLabel(game) : "Game Detail";
+  const when = game ? [game.commence_time, game.venue].filter(Boolean).join(" · ") : "";
   gdEls.back.innerHTML = `
     <a class="gd-back-link" href="${esc(boardHref())}">← Today's Board</a>
+    <div class="gd-title-wrap">
+      <div class="eyebrow">BoardWise · MLB · Game Detail</div>
+      <h1 id="gd-heading">${esc(label)}</h1>
+      ${when ? `<div class="gd-top-meta tnum">${esc(when)}</div>` : ""}
+    </div>
     <span class="gd-nav-right">${planBadge}${official}</span>`;
 }
 
@@ -513,7 +600,7 @@ function showError(message, options = {}) {
   if (gdEls.error) {
     gdEls.error.hidden = false;
     const cta = options.cta
-      ? `<div style="margin-top:12px"><a class="button primary" href="${esc(options.cta.href)}">${esc(options.cta.label)}</a></div>`
+      ? `<div class="gd-error-cta"><a class="button primary" href="${esc(options.cta.href)}">${esc(options.cta.label)}</a></div>`
       : "";
     gdEls.error.innerHTML = `<div>${esc(message)}</div>${cta}`;
   }
@@ -594,7 +681,13 @@ function init() {
   gdState.gamePk = readGamePk();
   gdState.requestedModel = readModel();
   if (gdEls.back) {
-    gdEls.back.innerHTML = `<a class="gd-back-link" href="${esc(boardHref())}">← Today's Board</a>`;
+    gdEls.back.innerHTML = `
+      <a class="gd-back-link" href="${esc(boardHref())}">← Today's Board</a>
+      <div class="gd-title-wrap">
+        <div class="eyebrow">BoardWise · MLB · Game Detail</div>
+        <h1 id="gd-heading">Game Detail</h1>
+      </div>
+      <span class="gd-nav-right"></span>`;
   }
   loadDetail();
 }
@@ -604,6 +697,7 @@ if (["", "localhost", "127.0.0.1"].includes(window.location.hostname)) {
   testWindow.__BoardWiseGameDetailTestHooks = Object.freeze({
     winProbs,
     favoriteIsHome,
+    favoredSide,
     findGame,
     accessLevel,
   });

@@ -5,175 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MLB Forecast and Betting Board</title>
   <meta name="description" content="Live MLB board with official picks, market dropdowns, and tracking-only first-inning signals when available.">
-  <style>
-    :root {
-      --bg: #e7e5df;
-      --panel: #fbfaf7;
-      --ink: #11263b;
-      --muted: #566472;
-      --line: #eee7da;
-      --navy: #13243c;
-      --navy-soft: #1d3252;
-      --gold: #c79a3a;
-      --gold-ink: #7a5e16;
-      --gold-soft: #faf6ec;
-      --accent: #13243c;
-      --accent-soft: #eef1f6;
-      --good: #15803d;
-      --good-soft: #edf7ee;
-      --bad: #b42318;
-      --shadow: 0 1px 3px rgba(16, 24, 40, 0.10);
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; color: var(--ink); background: var(--bg); overflow-x: hidden; }
-    .tnum { font-variant-numeric: tabular-nums; }
-    .wrap { max-width: 1220px; margin: 0 auto; padding: 24px 18px 48px; }
-    .header { display: grid; gap: 12px; margin-bottom: 18px; }
-    .eyebrow { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold-ink); font-weight: 700; }
-    h1 { margin: 0; font-size: clamp(28px, 4vw, 44px); line-height: 1.05; letter-spacing: -.02em; }
-    .subtitle { color: var(--muted); line-height: 1.5; max-width: 78ch; font-size: 15px; }
-    .meta, .nav-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .pill, .nav-link { border: 1px solid var(--line); background: var(--panel); padding: 8px 12px; border-radius: 999px; font-size: 13px; text-decoration: none; color: var(--muted); }
-    .nav-link { color: var(--ink); font-weight: 700; }
-    .nav-link.disabled { color: var(--muted); cursor: not-allowed; }
-    .nav-link:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible, a:focus-visible { outline: 3px solid #fdb022; outline-offset: 3px; }
-    .date-form { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }
-    .date-form input[type=date] { border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; font-size: 13px; background: var(--panel); }
-    .date-form button { border: 1px solid var(--navy); background: var(--navy); color: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; }
-    .quick-guide { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
-    .quick-guide-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
-    .board-view-toggle, .best-card-toggle { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
-    .model-selector { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 2px 0 4px; }
-    .model-selector-label { color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
-    .model-selector-button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 8px 12px; font-size: 13px; font-weight: 800; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
-    .model-selector-button.active { border-color: var(--navy); background: var(--navy); color: #fff; }
-    .model-selector-button .model-tag { border: 1px solid currentColor; border-radius: 999px; padding: 2px 6px; font-size: 10px; font-weight: 800; opacity: .82; }
-    .obsidian-hero { display: grid; gap: 6px; margin: 2px 0 18px; padding: 18px 20px; border: 1px solid #111827; border-left: 6px solid #111827; border-radius: 14px; background: #f9fafb; color: var(--ink); box-shadow: 0 12px 28px rgba(17, 24, 39, 0.10); }
-    .obsidian-hero[hidden] { display: none; }
-    .obsidian-hero-title { margin: 0; font-size: clamp(22px, 3vw, 34px); line-height: 1.05; font-weight: 900; }
-    .obsidian-hero-copy { color: var(--muted); font-size: 15px; line-height: 1.45; max-width: 68ch; }
-    body.obsidian-treatment .tile { border-color: rgba(17, 24, 39, 0.18); border-left-color: #111827; box-shadow: 0 16px 32px rgba(17, 24, 39, 0.14); }
-    body.obsidian-treatment .tile.strong { border-left-color: #111827; }
-    body.obsidian-treatment .model-selector-button.active { border-color: #111827; background: #111827; }
-    body.obsidian-treatment .tracker-market-dropdown { border-color: rgba(17, 24, 39, 0.25); background: #f9fafb; }
-    .toggle-btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 9px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 120ms, color 120ms, border-color 120ms; }
-    .toggle-btn.active { background: var(--navy); border-color: var(--navy); color: white; }
-    .bucket-filter-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-    .bucket-pill { border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; transition: background 100ms, color 100ms, border-color 100ms; }
-    .bucket-pill.active { color: #fff; }
-    .tile-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 0; }
-    .tile { background: var(--panel); border: 1px solid var(--line); border-left-width: 6px; border-left-color: var(--navy); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
-
-    /* ---- Tale of the Tape header ---- */
-    .tot-head { background: var(--navy); color: #fff; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-    .tot-head-meta { min-width: 0; }
-    .tot-when { font-size: 11px; color: #9db4cf; }
-    .tot-title { font-size: 18px; font-weight: 800; letter-spacing: -.01em; margin-top: 2px; }
-    .tot-title a { color: #fff; text-decoration: none; }
-    .tot-title a:hover { text-decoration: underline; }
-    .official-plays-pill { flex: none; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; background: var(--gold); color: #1a1408; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
-
-    .tot-tape { display: flex; align-items: stretch; padding: 20px 20px 16px; gap: 8px; }
-    .tot-side { flex: 1; text-align: center; min-width: 0; }
-    .tot-abbr { width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 8px; display: grid; place-items: center; font-weight: 800; font-size: 15px; color: #fff; background: var(--navy); }
-    .tot-side.away .tot-abbr { background: #44546a; }
-    .tot-team { font-size: 14px; font-weight: 700; }
-    .tot-pitcher { font-size: 11px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .tot-prob { font-size: 40px; font-weight: 900; margin-top: 8px; line-height: 1; }
-    .tot-side.away .tot-prob { color: #6b7a89; }
-    .tot-side.home .tot-prob { color: var(--navy); }
-    .tot-prob .pct { font-size: 17px; }
-    .tot-ml { font-size: 13px; font-weight: 700; color: var(--muted); margin-top: 4px; }
-    .tot-center { flex: none; width: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .tot-winprob-label { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 800; margin-bottom: 8px; white-space: nowrap; }
-    .tot-bar { width: 14px; height: 118px; border-radius: 999px; overflow: hidden; display: flex; flex-direction: column; background: #c4ccd4; }
-    .tot-bar-away { background: #aab4bf; }
-    .tot-bar-home { background: var(--navy); }
-    .tot-vs { font-size: 11px; font-weight: 800; letter-spacing: .1em; color: var(--gold-ink); margin-top: 10px; }
-    .tot-total { font-size: 10px; color: var(--muted); margin-top: 2px; }
-    .lineup-tag { display: inline-block; margin-top: 4px; font-size: 10px; padding: 2px 8px; border-radius: 999px; border: 1px solid transparent; }
-    .lineup-tag.confirmed { color: var(--good); background: var(--good-soft); border-color: rgba(21,111,60,.2); }
-    .lineup-tag.projected { color: var(--navy); background: var(--accent-soft); border-color: rgba(19,36,60,.18); }
-    .lineup-tag.unknown { color: var(--muted); background: #f2efe7; border-color: var(--line); }
-    .tot-body { padding: 0 20px 18px; }
-    .state-badge { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 800; color: var(--ink); background: #fff; margin: 0 20px 12px; }
-    .tot-detail-link { display: inline-flex; align-items: center; gap: 6px; margin: 4px 20px 18px; font-size: 13px; font-weight: 800; color: var(--navy); text-decoration: none; }
-    .tot-detail-link:hover { text-decoration: underline; }
-
-    /* legacy aliases retained for any external reference */
-    .tile-top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
-    .game-label { font-size: 18px; font-weight: 800; line-height: 1.1; }
-    .game-time { color: var(--muted); font-size: 13px; }
-    .venue-text { color: var(--muted); font-size: 13px; }
-    .favorite-badge { text-align: right; font-size: 14px; font-weight: 800; color: var(--muted); white-space: nowrap; }
-    .pitchers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 14px; }
-    .pitcher-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #fff; }
-    .pitcher-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-    .pitcher-name { margin-top: 4px; font-size: 15px; font-weight: 700; }
-
-    .best-card { border: 1.5px solid var(--gold); border-radius: 14px; padding: 14px 16px; margin: 0 20px 14px; background: #fff; }
-    .tile.strong .best-card { border-color: var(--gold); background: var(--gold-soft); }
-    .best-bet { font-size: 19px; font-weight: 800; line-height: 1.1; margin-top: 2px; }
-    .best-meta { color: var(--muted); font-size: 14px; line-height: 1.45; }
-    .best-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
-    .metric-bubble { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--gold-soft); text-align: center; }
-    .metric-bubble .m-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold-ink); font-weight: 800; }
-    .metric-bubble .m-value { margin-top: 3px; font-size: 14px; font-weight: 800; }
-    .dropdown-stack { display: grid; gap: 10px; margin: 0 20px; }
-    .market-dropdown { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; }
-    .market-dropdown summary { list-style: none; cursor: pointer; padding: 12px 14px; display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; font-weight: 700; }
-    .market-dropdown summary:focus-visible { background: var(--accent-soft); }
-    .market-dropdown summary::-webkit-details-marker { display: none; }
-    .summary-label { font-weight: 700; font-size: 14px; white-space: nowrap; }
-    .summary-center { text-align: center; color: var(--ink); font-weight: 600; font-size: 14px; }
-    .summary-icon { color: var(--muted); font-size: 20px; line-height: 1; }
-    .market-dropdown[open] .summary-icon-plus { display: none; }
-    .market-dropdown:not([open]) .summary-icon-minus { display: none; }
-    .dropdown-body { padding: 0 14px 14px; border-top: 1px solid var(--line); }
-    .option-card { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-top: 10px; background: #fff; }
-    .option-card.primary { border-color: rgba(19,36,60,.3); background: var(--accent-soft); }
-    .option-card.official { border-color: var(--gold); background: var(--gold-soft); }
-    .option-header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-    .option-label { font-size: 18px; font-weight: 800; line-height: 1.1; }
-    .option-meta { color: var(--muted); font-size: 14px; line-height: 1.45; }
-    .option-badge { border: 1px solid var(--line); border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 700; white-space: nowrap; }
-    .option-badge.official { color: #1a1408; background: var(--gold); border-color: var(--gold); }
-    .tracker-badge { color: #111827; background: #f4f1ea; border-color: rgba(17, 24, 39, .22); }
-    .tracker-helper-line { color: var(--muted); font-size: 13px; line-height: 1.4; padding: 0 0 2px; }
-    .option-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
-    .rating-badge { display: inline-block; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #fff; white-space: nowrap; }
-    .wise-rating-badge { text-transform: none; letter-spacing: 0; font-size: 12px; }
-    .bet-pill-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 0; max-width: 100%; min-width: 0; overflow-x: hidden; }
-    .bet-pill-card { background: var(--panel); border: 1px solid var(--line); border-left-width: 6px; border-left-color: var(--navy); border-radius: 999px; padding: 11px 14px; box-shadow: var(--shadow); max-width: 100%; min-width: 0; overflow: hidden; }
-    .bet-pill-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; justify-content: space-between; gap: 12px; align-items: center; max-width: 100%; min-width: 0; }
-    .bet-pill-copy { min-width: 0; max-width: 100%; }
-    .bet-pill-game { color: var(--muted); font-size: 12px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .bet-pill-choice { margin-top: 2px; font-size: 18px; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
-    .bet-pill-odds { display: block; margin-top: 3px; color: var(--muted); font-size: 13px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
-    .bet-pill-bucket { justify-self: end; border-radius: 999px; padding: 6px 11px; max-width: min(42vw, 170px); font-size: 12px; font-weight: 800; line-height: 1.15; text-align: center; white-space: normal; overflow-wrap: anywhere; }
-    .md-projected-score { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-top: 10px; background: #fff; }
-    .md-projected-score .m-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-    .md-projected-score .m-value { margin-top: 4px; font-size: 18px; font-weight: 800; }
-    .md-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
-    .md-cell { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fff; }
-    .md-cell .m-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-    .md-cell .m-value { margin-top: 3px; font-size: 14px; font-weight: 700; word-break: break-word; }
-    .md-wide { grid-column: 1 / -1; }
-    .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
-    .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-    .forecast-only-note { border: 1px dashed var(--line); border-radius: 12px; padding: 12px; margin: 0 20px 14px; background: #fff; color: var(--muted); font-size: 14px; }
-    .preview-note { margin: 0 20px 18px; }
-    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 18px; grid-column: 1 / -1; }
-    .empty-state .button.primary, a.button.primary { display: inline-flex; align-items: center; justify-content: center; margin-top: 12px; background: var(--gold); color: #1a1408; border: none; border-radius: 999px; padding: 10px 20px; font-weight: 800; font-size: 14px; text-decoration: none; }
-    .loading-panel, .error-panel, .status-note { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; color: var(--muted); }
-    .error-panel { color: #b42318; border-color: rgba(180,35,24,.3); background: #fef3f2; }
-    .footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
-    .footer a { color: var(--muted); }
-    @media (max-width: 980px) { .quick-guide { grid-template-columns: repeat(2, minmax(0, 1fr)); } .best-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } .option-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (max-width: 720px) { .quick-guide { grid-template-columns: 1fr; } .tile-list { grid-template-columns: 1fr; } .best-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .option-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } .md-grid { grid-template-columns: 1fr; } .tot-center { width: 88px; } .tot-prob { font-size: 34px; } .bet-pill-card { border-radius: 18px; } .bet-pill-main { align-items: flex-start; grid-template-columns: minmax(0, 1fr) minmax(84px, auto); gap: 10px; } .bet-pill-choice { font-size: 16px; } .bet-pill-bucket { max-width: 36vw; padding: 6px 9px; font-size: 11px; } }
-  </style>
+  <link rel="stylesheet" href="/assets/css/mlb-navy-gold.css">
 </head>
-<body>
+<body class="mlb-board-page">
   <div class="wrap">
     <section class="header">
       <div class="nav-row">
@@ -198,10 +32,10 @@
     <section id="obsidian-hero" class="obsidian-hero" aria-labelledby="obsidian-hero-title" hidden></section>
 
     <div id="model-selector" class="model-selector" hidden></div>
-    <div id="board-view-toggle" class="board-view-toggle" style="display:none"></div>
-    <div id="best-card-toggle" class="best-card-toggle" style="display:none"></div>
-    <div class="bucket-filter-row" id="ev-filters" style="display:none"></div>
-    <div class="bucket-filter-row" id="prob-filters" style="display:none"></div>
+    <div id="board-view-toggle" class="board-view-toggle"></div>
+    <div id="best-card-toggle" class="best-card-toggle"></div>
+    <div class="bucket-filter-row" id="ev-filters"></div>
+    <div class="bucket-filter-row" id="prob-filters"></div>
 
     <section id="status-note" class="status-note" hidden></section>
     <section id="loading" class="loading-panel">Loading the MLB board…</section>
@@ -210,8 +44,8 @@
 
     <footer class="footer">
   <div><strong>BoardWise Analytics LLC</strong> &copy; 2026. BoardWise is for informational and entertainment purposes only. No pick is guaranteed. Not gambling, financial, legal, or investment advice.</div>
-  <div style="margin-top:6px">Must be 21+ and legally permitted to use wagering-related content. If gambling is a problem, call <strong>1-800-GAMBLER</strong> or Iowa <strong>1-800-BETS-OFF</strong>.</div>
-  <div style="margin-top:6px"><a href="/privacy/">Privacy Policy</a> · <a href="/terms/">Terms</a> · <a href="/responsible-gaming/">Responsible Gaming</a> · <a href="mailto:support@useboardwise.com">support@useboardwise.com</a></div>
+  <div class="footer-line">Must be 21+ and legally permitted to use wagering-related content. If gambling is a problem, call <strong>1-800-GAMBLER</strong> or Iowa <strong>1-800-BETS-OFF</strong>.</div>
+  <div class="footer-line"><a href="/privacy/">Privacy Policy</a> · <a href="/terms/">Terms</a> · <a href="/responsible-gaming/">Responsible Gaming</a> · <a href="mailto:support@useboardwise.com">support@useboardwise.com</a></div>
 </footer>
   </div>
   <script src="/assets/js/api-client.js"></script>

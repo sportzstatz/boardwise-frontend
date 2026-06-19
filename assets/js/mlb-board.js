@@ -41,11 +41,6 @@ const PUBLIC_TRACKER_MARKET_KEYS = new Set(["nrfi_yrfi"]);
 const TRACKER_HELPER_TEXT = "Tracking-only market. Not included in official record or public performance.";
 const DEFAULT_PAGE_SUBTITLE = "Forecasts render from the BoardWise public API. When matched odds are present, each tile shows a best available bet card and market-level dropdowns with both sides of every market.";
 const TRACKER_PAGE_SUBTITLE = "Compare official MLB picks, market dropdowns, and tracking-only first-inning signals from the BoardWise public API.";
-const SUMMARY_TEXT_COLOR_OVERRIDES = new Map([
-  ["#669f2a", "#4d7c0f"],
-  ["#86efac", "#156f3c"]
-]);
-
 const metaEl = document.getElementById("meta");
 const statusNoteEl = document.getElementById("status-note");
 const loadingEl = document.getElementById("loading");
@@ -69,19 +64,6 @@ function esc(value) {
 
 function isIsoDate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
-
-function safeColor(value, fallback = "#0f4c81") {
-  return /^#[0-9a-fA-F]{3,8}$/.test(String(value || "")) ? value : fallback;
-}
-
-function textColorFor(bgColor) {
-  return String(bgColor || "").toLowerCase() === "#86efac" ? "#101828" : "#fff";
-}
-
-function summaryTextColor(value) {
-  const color = safeColor(value, "#0f4c81");
-  return SUMMARY_TEXT_COLOR_OVERRIDES.get(String(color).toLowerCase()) || color;
 }
 
 function wiseStatusText(value) {
@@ -507,10 +489,6 @@ function evBucket(game) {
   return bestOption(game, "best_value")?.ev_rating || game.ev_bucket_label || "Low";
 }
 
-function evColor(game) {
-  return safeColor(bestOption(game, "best_value")?.ev_rating_color || game.ev_bucket_color, "#0f4c81");
-}
-
 function probBucket(game) {
   return bestOption(game, "highest_model_prob")?.prob_rating || game.prob_bucket_label || "<50%";
 }
@@ -520,13 +498,6 @@ function modeBucket(game) {
   if (state.mode === "wise_choice") return optionWiseBucket(option).key;
   if (state.mode === "best_growth") return kellyBucket(option).key;
   return evBucket(game);
-}
-
-function modeColor(game) {
-  const option = bestOption(game, state.mode);
-  if (state.mode === "wise_choice") return safeColor(optionWiseBucket(option).color, "#0f4c81");
-  if (state.mode === "best_growth") return safeColor(kellyBucket(option).color, "#0f4c81");
-  return evColor(game);
 }
 
 function obsidianQuickGuideItem(payload = state.payload) {
@@ -563,7 +534,7 @@ function renderQuickGuide() {
   el.innerHTML = items.map(([label, text]) => `
     <article class="quick-guide-card">
       <div class="stat-label">${esc(label)}</div>
-      <div style="color:var(--muted);font-size:14px;margin-top:4px">${esc(text)}</div>
+      <div>${esc(text)}</div>
     </article>
   `).join("");
 }
@@ -670,10 +641,9 @@ function renderFilters() {
   if (probFilters) probFilters.style.display = "none";
   if (!target) return;
   target.style.display = "";
-  target.innerHTML = filters.map(([bucket, label, color]) => {
+  target.innerHTML = filters.map(([bucket, label]) => {
     const active = state.activeBucket === bucket;
-    const style = active ? ` style="background:${esc(color)};border-color:${esc(color)};color:${esc(textColorFor(color))}"` : "";
-    return `<button class="bucket-pill ${active ? "active" : ""}" data-bucket="${esc(bucket)}" data-bg="${esc(color)}"${style}>${esc(label)}</button>`;
+    return `<button class="bucket-pill ${active ? "active" : ""}" data-bucket="${esc(bucket)}">${esc(label)}</button>`;
   }).join("");
   target.querySelectorAll("[data-bucket]").forEach((rawButton) => {
     const button = /** @type {HTMLElement} */ (rawButton);
@@ -733,6 +703,46 @@ function winProbs(game) {
     home = 100 - away;
   }
   return { away, home };
+}
+
+function favoredSide(game) {
+  const away = parsePercent(game.away_win_prob_text);
+  const home = parsePercent(game.home_win_prob_text);
+  if (away !== null && home !== null && away !== home) {
+    return away > home ? "away" : "home";
+  }
+  const favHome = favoriteIsHome(game);
+  if (favHome === true) return "home";
+  if (favHome === false) return "away";
+  return "";
+}
+
+function sideToneClass(game, which) {
+  const favored = favoredSide(game);
+  if (!favored) return "";
+  return favored === which ? "is-favored" : "is-underdog";
+}
+
+function percentText(value, showProbs = true) {
+  return showProbs && value !== null ? `${value.toFixed(1)}%` : "not available";
+}
+
+function probabilitySplit(game, showProbs = true) {
+  const probs = winProbs(game);
+  let awayPct = 50;
+  let homePct = 50;
+  if (showProbs && probs.away !== null && probs.home !== null && (probs.away + probs.home) > 0) {
+    const sum = probs.away + probs.home;
+    awayPct = (probs.away / sum) * 100;
+    homePct = 100 - awayPct;
+  }
+  return { ...probs, awayPct, homePct };
+}
+
+function probabilitySplitLabel(game, split, showProbs = true) {
+  const awayTeam = game.away_team || game.away_team_abbr || "Away";
+  const homeTeam = game.home_team || game.home_team_abbr || "Home";
+  return `${awayTeam} ${percentText(split.away, showProbs)}, ${homeTeam} ${percentText(split.home, showProbs)}`;
 }
 
 function moneylineDropdown(game) {
@@ -816,9 +826,11 @@ function renderTotSide(game, which, showProbs) {
   const probText = showProbs && prob !== null ? `${prob.toFixed(1)}<span class="pct">%</span>` : "&mdash;";
   const odds = moneylineOddsFor(game, which);
   const lineupClass = ["confirmed", "projected"].includes(String(lineup)) ? String(lineup) : "unknown";
+  const tone = sideToneClass(game, which);
+  const sideLabel = `${isHome ? "Home" : "Away"} team ${team || teamAbbrText(team, abbr)}. Starting pitcher ${pitcher || "TBD"}. Win probability ${percentText(prob, showProbs)}.`;
   return `
-    <div class="tot-side ${which}">
-      <div class="tot-abbr">${esc(teamAbbrText(team, abbr))}</div>
+    <div class="tot-side ${which} ${tone}" aria-label="${esc(sideLabel)}">
+      <div class="tot-abbr" aria-hidden="true">${esc(teamAbbrText(team, abbr))}</div>
       <div class="tot-team">${esc(team || (isHome ? "Home" : "Away"))}</div>
       <div class="tot-pitcher">${esc(pitcher || "Pitcher TBD")}</div>
       ${lineup ? `<span class="lineup-tag ${lineupClass}">${esc(lineup)}</span>` : ""}
@@ -829,24 +841,38 @@ function renderTotSide(game, which, showProbs) {
 }
 
 function renderTotCenter(game, showProbs) {
-  const probs = winProbs(game);
-  let awayPct = 50;
-  let homePct = 50;
-  if (showProbs && probs.away !== null && probs.home !== null && (probs.away + probs.home) > 0) {
-    const sum = probs.away + probs.home;
-    awayPct = (probs.away / sum) * 100;
-    homePct = 100 - awayPct;
-  }
+  const split = probabilitySplit(game, showProbs);
+  const label = probabilitySplitLabel(game, split, showProbs);
+  const awayTone = sideToneClass(game, "away");
+  const homeTone = sideToneClass(game, "home");
   const total = game.projected_total_text ? String(game.projected_total_text) : "";
   return `
     <div class="tot-center">
       <div class="tot-winprob-label">Win Prob</div>
-      <div class="tot-bar" role="img" aria-label="Model win probability split">
-        <div class="tot-bar-away" style="height:${awayPct.toFixed(1)}%"></div>
-        <div class="tot-bar-home" style="height:${homePct.toFixed(1)}%"></div>
+      <div class="tot-bar" role="img" aria-label="${esc(label)}">
+        <div class="tot-bar-away tot-bar-segment ${awayTone}" style="height:${split.awayPct.toFixed(1)}%"></div>
+        <div class="tot-bar-home tot-bar-segment ${homeTone}" style="height:${split.homePct.toFixed(1)}%"></div>
       </div>
       <div class="tot-vs">VS</div>
       ${total ? `<div class="tot-total tnum">Total ${esc(total)}</div>` : ""}
+    </div>
+  `;
+}
+
+function renderTotMobileSplit(game, showProbs) {
+  const split = probabilitySplit(game, showProbs);
+  const label = probabilitySplitLabel(game, split, showProbs);
+  const awayTone = sideToneClass(game, "away");
+  const homeTone = sideToneClass(game, "home");
+  const total = game.projected_total_text ? String(game.projected_total_text) : "";
+  return `
+    <div class="tot-mobile-split">
+      <div class="tot-mobile-bar" role="img" aria-label="${esc(label)}">
+        <div class="tot-mobile-away tot-mobile-segment ${awayTone}" style="width:${split.awayPct.toFixed(1)}%"></div>
+        <div class="tot-mobile-home tot-mobile-segment ${homeTone}" style="width:${split.homePct.toFixed(1)}%"></div>
+      </div>
+      <div class="tot-mobile-label">Model Win Probability</div>
+      ${total ? `<div class="tot-mobile-total tnum">Projected total ${esc(total)}</div>` : ""}
     </div>
   `;
 }
@@ -870,14 +896,27 @@ function renderTaleOfTape(game, showProbs = true) {
       ${renderTotCenter(game, showProbs)}
       ${renderTotSide(game, "home", showProbs)}
     </div>
+    ${renderTotMobileSplit(game, showProbs)}
     ${game.board_state_label ? `<div class="state-badge">${esc(game.board_state_label)}</div>` : ""}
-    ${game.board_state_note ? `<div class="venue-text" style="margin:0 20px 10px">${esc(game.board_state_note)}</div>` : ""}
+    ${game.board_state_note ? `<div class="board-state-note">${esc(game.board_state_note)}</div>` : ""}
   `;
 }
 
-function metric(label, value) {
+function valueToneClass(text) {
+  const trimmed = String(text || "").trim();
+  if (trimmed.startsWith("+")) return "positive";
+  if (trimmed.startsWith("-") || trimmed.startsWith("−")) return "negative";
+  return "";
+}
+
+function metric(label, value, cls = "") {
   const displayValue = value === null || value === undefined || value === "" ? "-" : value;
-  return `<div class="metric-bubble"><div class="m-label">${esc(label)}</div><div class="m-value">${esc(displayValue)}</div></div>`;
+  return `<div class="metric-bubble"><div class="m-label">${esc(label)}</div><div class="m-value ${cls}">${esc(displayValue)}</div></div>`;
+}
+
+function optionalMetric(label, value, cls = "") {
+  if (value === null || value === undefined || value === "") return "";
+  return metric(label, value, cls);
 }
 
 function formatProbability(value) {
@@ -897,36 +936,39 @@ function optionMarketProbability(option) {
 }
 
 function renderBestCard(option, variant) {
-  if (!option) return `<div class="forecast-only-note">No best-bet recommendation is available for this sort.</div>`;
-  const label = BEST_CARD_MODES.find(([key]) => key === variant)?.[1] || "Best Value";
+  if (!option) return `<div class="forecast-only-note">No Wise Choice recommendation is available for this game yet.</div>`;
+  const label = variant === "wise_choice" || variant === "full_board"
+    ? "Wise Choice™"
+    : BEST_CARD_MODES.find(([key]) => key === variant)?.[1] || "Best Value";
   const wise = optionWiseBucket(option);
-  const modelLabel = selectedModelLabelParts().label;
   const badge = variant === "wise_choice"
     ? officialTierBadge(option, wise)
     : variant === "best_growth"
       ? formatKelly(option)
       : (option.ev_text || option.ev_rating);
-  const color = variant === "wise_choice"
-    ? safeColor(wise.color, "#0f4c81")
-    : variant === "best_growth"
-      ? safeColor(kellyBucket(option).color, "#0f4c81")
-      : safeColor(option.ev_rating_color, "#0f4c81");
   const badgePrefix = variant === "wise_choice" ? "" : variant === "best_growth" ? "Kelly: " : "Value: ";
   const badgeTitle = variant === "wise_choice" ? `Safest Edge = Kelly Score × Model Probability (${formatWise(option)})` : variant === "best_growth" ? "Kelly percentage" : "Expected value rating";
+  const official = option.is_official && !isTrackingOnlyOption(option);
+  const meta = [option.sportsbook, option.odds_text].filter(Boolean).join(" ");
+  const selection = option.selection_text || option.label || "No selection";
+  const win = option.model_probability_text || option.model_prob_text || "";
+  const edge = option.edge_text || "";
+  const ev = option.ev_text || "";
   return `
     <div class="best-card" data-best-card-variant="${esc(variant)}">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-        <div class="label">${esc(label)}</div>
-        ${badge ? `<span class="rating-badge ${variant === "wise_choice" ? "wise-rating-badge" : ""}" title="${esc(badgeTitle)}" style="background:${color};color:${esc(textColorFor(color))}">${esc(badgePrefix + badge)}</span>` : ""}
-      </div>
-      <div class="best-bet">${esc(option.selection_text || "No selection")}</div>
-      <div class="best-meta">${esc([modelLabel, option.sportsbook, option.odds_text].filter(Boolean).join(" · ") || "No book/odds listed")}</div>
-      <div class="best-metrics">
-        ${metric("Odds", option.odds_text)}
-        ${metric("Win Prob", option.model_prob_text || option.model_probability_text)}
-        ${metric("Market Impl", formatProbability(optionMarketProbability(option)))}
-        ${metric("Edge", option.edge_text)}
-        ${metric("EV / Unit", option.ev_text)}
+      <div class="best-card-layout">
+        <div class="best-copy">
+          <div class="best-topline">
+            <div class="best-label">${esc(label)}</div>
+            ${badge ? `<span class="rating-badge ${variant === "wise_choice" ? "wise-rating-badge" : ""} ${official ? "" : "not-official"}" title="${esc(badgeTitle)}">${esc(badgePrefix + badge)}</span>` : ""}
+          </div>
+          <div class="best-bet">${esc(selection)}${meta ? `<span class="best-meta-inline"> · ${esc(meta)}</span>` : ""}</div>
+        </div>
+        <div class="best-metrics">
+          ${optionalMetric("Win", win)}
+          ${optionalMetric("Edge", edge, valueToneClass(edge))}
+          ${optionalMetric("EV", ev, valueToneClass(ev))}
+        </div>
       </div>
     </div>
   `;
@@ -1004,17 +1046,16 @@ function collectRecommendedBets(games) {
 function optionModeBucket(option) {
   if (state.mode === "wise_choice") {
     const wise = optionWiseBucket(option);
-    return { key: wise.key, label: wiseStatusText(wise.key || wise.status), color: safeColor(wise.color, "#0f4c81") };
+    return { key: wise.key, label: wiseStatusText(wise.key || wise.status) };
   }
   if (state.mode === "best_growth") {
     const bucket = kellyBucket(option);
     const found = KELLY_BUCKETS.find(([key]) => key === bucket.key);
-    return { key: bucket.key, label: found ? found[1] : "Kelly", color: safeColor(bucket.color, "#0f4c81") };
+    return { key: bucket.key, label: found ? found[1] : "Kelly" };
   }
   return {
     key: option.ev_rating || "Low",
-    label: option.ev_rating || "Value",
-    color: safeColor(option.ev_rating_color, "#0f4c81")
+    label: option.ev_rating || "Value"
   };
 }
 
@@ -1025,26 +1066,23 @@ function betPassesFilter(item) {
 
 function renderBetPill(item) {
   const bucket = optionModeBucket(item.option);
-  const color = safeColor(bucket.color, "#0f4c81");
-  const textColor = textColorFor(color);
   const option = item.option;
   const odds = [option.sportsbook, option.odds_text].filter(Boolean).join(" ");
   return `
-    <article class="bet-pill-card" style="border-left-color:${color}">
+    <article class="bet-pill-card">
       <div class="bet-pill-main">
         <div class="bet-pill-copy">
           <div class="bet-pill-game">${esc(item.gameLabel)}</div>
           <div class="bet-pill-choice">${esc(option.selection_text || option.label || "Recommendation")}</div>
           ${odds ? `<div class="bet-pill-odds">${esc(odds)}</div>` : ""}
         </div>
-        <span class="bet-pill-bucket" title="Safest Edge = Kelly Score × Model Probability" style="background:${color};color:${textColor}">${esc(bucket.label)}</span>
+        <span class="bet-pill-bucket" title="Safest Edge = Kelly Score × Model Probability">${esc(bucket.label)}</span>
       </div>
     </article>
   `;
 }
 
 function renderOptionCard(option) {
-  const color = safeColor(option.ev_rating_color || option.prob_rating_color, "#0f4c81");
   const classes = ["option-card"];
   const trackingOnly = isTrackingOnlyOption(option);
   const official = option.is_official && !trackingOnly;
@@ -1054,9 +1092,9 @@ function renderOptionCard(option) {
     <div class="${classes.join(" ")}">
       <div class="option-header">
         <span class="option-label">${esc(option.label || option.selection_text || "Option")}</span>
-        <span style="display:flex;gap:6px;align-items:center">
-          ${option.ev_rating ? `<span class="option-rating-badge rating-badge" title="Expected value rating" style="background:${color};font-size:10px;padding:3px 7px">EV: ${esc(option.ev_rating)}</span>` : ""}
-          ${trackingOnly ? `<span class="option-badge">Tracking</span>` : official ? `<span class="option-badge official">Official</span>` : option.status_label ? `<span class="option-badge">${esc(option.status_label)}</span>` : ""}
+        <span class="option-badge-row">
+          ${option.ev_rating ? `<span class="option-rating-badge rating-badge not-official" title="Expected value rating">EV: ${esc(option.ev_rating)}</span>` : ""}
+          ${trackingOnly ? `<span class="option-badge tracker-badge">Tracking Only</span>` : official ? `<span class="option-badge official">Official</span>` : option.status_label ? `<span class="option-badge">${esc(option.status_label)}</span>` : `<span class="option-badge">Pass</span>`}
         </span>
       </div>
       <div class="option-meta">${esc([option.sportsbook, option.odds_text].filter(Boolean).join(" ") || "No book/odds listed")}</div>
@@ -1064,8 +1102,8 @@ function renderOptionCard(option) {
         ${metric("Odds", option.odds_text)}
         ${metric("Win Prob", option.model_probability_text || option.model_prob_text)}
         ${metric("Market Impl", formatProbability(optionMarketProbability(option)))}
-        ${metric("Edge", option.edge_text)}
-        ${metric("EV / Unit", option.ev_text)}
+        ${metric("Edge", option.edge_text, valueToneClass(option.edge_text))}
+        ${metric("EV / Unit", option.ev_text, valueToneClass(option.ev_text))}
       </div>
     </div>
   `;
@@ -1100,15 +1138,22 @@ function renderTrackerMarketDropdowns(game) {
       return key && advertisedKeys.has(String(key));
     });
   if (!dropdowns.length) return "";
-  return `<div class="dropdown-stack tracker-dropdown-stack">${dropdowns.map((market) => {
+  return `<section class="tracker-market-section" aria-label="Tracking-only markets">
+    <div class="tracker-section-head">
+      <span class="tracker-section-title">Tracking-only markets</span>
+      <span class="option-badge tracker-badge" title="${esc(TRACKER_HELPER_TEXT)}">Tracking Only</span>
+    </div>
+    <div class="dropdown-stack tracker-dropdown-stack">${dropdowns.map((market) => {
     const outcomes = Array.isArray(market.outcomes) ? market.outcomes : [];
     const title = trackerMarketLabel(market);
     return `
       <details class="market-dropdown tracker-market-dropdown">
         <summary>
-          <span class="summary-label">${esc(title)}</span>
-          <span class="summary-center"><span class="option-badge tracker-badge" title="${esc(TRACKER_HELPER_TEXT)}">${esc(market.tracking_only === false ? "Tracker" : "Tracking Only")}</span></span>
-          <span class="summary-icon"><span class="summary-icon-plus">+</span><span class="summary-icon-minus">−</span></span>
+          <span class="market-summary-selection">${esc(title)}</span>
+          <span class="market-summary-model"></span>
+          <span class="market-summary-edge"></span>
+          <span class="market-summary-call">Tracking Only</span>
+          <span class="market-summary-chevron" aria-hidden="true">›</span>
         </summary>
         <div class="dropdown-body">
           <div class="tracker-helper-line">${esc(TRACKER_HELPER_TEXT)}</div>
@@ -1116,7 +1161,68 @@ function renderTrackerMarketDropdowns(game) {
         </div>
       </details>
     `;
-  }).join("")}</div>`;
+  }).join("")}</div></section>`;
+}
+
+function normalizedText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function marketOptions(market) {
+  return (Array.isArray(market?.options) ? market.options : [])
+    .filter((option) => option && typeof option === "object");
+}
+
+function representativeMarketOption(market) {
+  const options = marketOptions(market);
+  if (!options.length) return null;
+  const official = options.find((option) => option.is_official === true && !isTrackingOnlyOption(option));
+  if (official) return official;
+  const primary = options.find((option) => option.is_primary === true);
+  if (primary) return primary;
+  const summary = normalizedText(market?.summary_center_text);
+  if (summary) {
+    const summaryMatch = options.find((option) => {
+      const selection = normalizedText(option.selection_text);
+      const label = normalizedText(option.label);
+      return selection === summary || label === summary || (selection && summary.includes(selection)) || (label && summary.includes(label));
+    });
+    if (summaryMatch) return summaryMatch;
+  }
+  return options[0];
+}
+
+function marketRowSelection(market, option) {
+  const title = String(market?.title || market?.market_key || "Market");
+  if (!option) return title;
+  const selection = String(option.selection_text || option.label || "").trim();
+  if (!selection) return title;
+  const titleNorm = normalizedText(title);
+  const selectionNorm = normalizedText(selection);
+  if (titleNorm && (titleNorm === selectionNorm || selectionNorm.includes(titleNorm))) return selection;
+  return `${title} · ${selection}`;
+}
+
+function renderMarketSummaryRow(market) {
+  const representative = representativeMarketOption(market);
+  const official = Boolean(representative?.is_official === true && !isTrackingOnlyOption(representative));
+  const edge = representative?.edge_text || "";
+  return `
+    <details class="market-dropdown">
+      <summary>
+        <span class="market-summary-selection">${esc(marketRowSelection(market, representative))}</span>
+        <span class="market-summary-model tnum">${esc(representative?.model_probability_text || representative?.model_prob_text || "—")}</span>
+        <span class="market-summary-edge ${valueToneClass(edge)} tnum">${esc(edge || "—")}</span>
+        <span class="market-summary-call ${official ? "official" : ""}">${official ? "Official" : "Pass"}</span>
+        <span class="market-summary-chevron" aria-hidden="true">›</span>
+      </summary>
+      <div class="dropdown-body">${marketOptions(market).map(renderOptionCard).join("") || `<div class="forecast-only-note">No market options are available for this market yet.</div>`}</div>
+    </details>
+  `;
 }
 
 function renderMarketDropdowns(game) {
@@ -1124,20 +1230,17 @@ function renderMarketDropdowns(game) {
   if (!dropdowns.length) {
     return `<div class="forecast-only-note">No market dropdowns are available for this game yet.</div>`;
   }
-  return `<div class="dropdown-stack">${dropdowns.map((market) => {
-    const summaryColor = summaryTextColor(state.mode === "best_value" ? market.ev_summary_color : market.ev_summary_color || market.prob_summary_color);
-    const options = Array.isArray(market.options) ? market.options : [];
-    return `
-      <details class="market-dropdown">
-        <summary>
-          <span class="summary-label">${esc(market.title || market.market_key || "Market")}</span>
-          <span class="summary-center" style="color:${summaryColor}">${esc(market.summary_center_text || "")}</span>
-          <span class="summary-icon"><span class="summary-icon-plus">+</span><span class="summary-icon-minus">−</span></span>
-        </summary>
-        <div class="dropdown-body">${options.map(renderOptionCard).join("")}</div>
-      </details>
-    `;
-  }).join("")}${renderModelDetails(game)}</div>`;
+  return `<div class="market-summary-table">
+    <div class="market-summary-head" aria-hidden="true">
+      <span>Market</span>
+      <span>Model</span>
+      <span>Edge</span>
+      <span>Call</span>
+      <span></span>
+    </div>
+    ${dropdowns.map(renderMarketSummaryRow).join("")}
+    ${renderModelDetails(game)}
+  </div>`;
 }
 
 function renderModelDetails(game) {
@@ -1152,9 +1255,11 @@ function renderModelDetails(game) {
   return `
     <details class="market-dropdown">
       <summary>
-        <span class="summary-label">Model Details</span>
-        <span class="summary-center"></span>
-        <span class="summary-icon"><span class="summary-icon-plus">+</span><span class="summary-icon-minus">−</span></span>
+        <span class="market-summary-selection">Model Details</span>
+        <span class="market-summary-model"></span>
+        <span class="market-summary-edge"></span>
+        <span class="market-summary-call">Auxiliary</span>
+        <span class="market-summary-chevron" aria-hidden="true">›</span>
       </summary>
       <div class="dropdown-body">
         ${game.model_details_projected_score ? `
@@ -1187,13 +1292,12 @@ function gamePassesFilter(game) {
 function renderGame(game, variant = state.mode) {
   const option = bestOption(game, variant);
   const wise = optionWiseBucket(option);
-  const border = variant === "wise_choice" ? safeColor(wise.color, "#13243c") : modeColor(game);
   const tier = wiseStatusText(wise.key || wise.status);
   const strong = tier === "Prime" || tier === "Strong" || option?.ev_rating === "High";
   const tileClass = strong ? "tile strong" : "tile";
   const detailHref = gameDetailHref(game);
   return `
-    <article class="${tileClass}" style="border-left-color:${border}" data-ev-bucket="${esc(evBucket(game))}" data-prob-bucket="${esc(probBucket(game))}" data-wise-bucket="${esc(wise.key)}">
+    <article class="${tileClass}" data-ev-bucket="${esc(evBucket(game))}" data-prob-bucket="${esc(probBucket(game))}" data-wise-bucket="${esc(wise.key)}">
       ${renderTaleOfTape(game, true)}
       ${renderBestCard(option, variant)}
       ${renderMarketDropdowns(game)}
@@ -1229,8 +1333,8 @@ function renderPreviewUpgradeCard(payload = state.payload) {
   return `
     <article class="empty-state">
       <strong>Full MLB board requires Pro access.</strong>
-      <div style="margin-top:6px">The preview shows your ${esc(access.max_preview_games || 2)} MLB cards for today.</div>
-      <a class="button primary" href="${esc(href)}" style="margin-top:12px;display:inline-flex">Upgrade</a>
+      <div class="preview-upgrade-copy">The preview shows your ${esc(access.max_preview_games || 2)} MLB cards for today.</div>
+      <a class="button primary" href="${esc(href)}">Upgrade</a>
     </article>
   `;
 }
@@ -1344,6 +1448,8 @@ if (["", "localhost", "127.0.0.1"].includes(window.location.hostname)) {
     getVisualBranding,
     getTrackerMarketMetadata,
     shouldShowObsidianTreatment,
+    favoredSide,
+    representativeMarketOption,
     wiseBucketForScore,
     wiseStatusText
   });

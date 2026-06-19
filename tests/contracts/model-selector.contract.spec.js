@@ -96,7 +96,8 @@ test.describe("MLB model selector renders from API model family metadata", () =>
     // The board itself renders for the unknown-to-the-frontend family.
     await expect(page.locator(".tile")).toHaveCount(1);
     await expect(page.locator("#meta")).toContainText("Thunder Tusk · Simulation engine");
-    await expect(page.locator(".best-card")).toContainText("Thunder Tusk");
+    await expect(page.locator(".best-card")).toContainText("Wise Choice");
+    await expect(page.locator(".best-card")).not.toContainText("Thunder Tusk");
 
     // Obsidian-specific visual treatment stays off for non-obsidian families.
     await expect(page.locator("body")).not.toHaveClass(/obsidian-treatment/);
