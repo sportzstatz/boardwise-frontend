@@ -44,7 +44,7 @@ async function mockBoardPayload(page, payload) {
 
 async function waitForTeamMarks(page) {
   await page.waitForFunction(() => {
-    const marks = [...document.querySelectorAll(".tot-team-mark")];
+    const marks = [...document.querySelectorAll(".tot-team-logo-mark, .tot-team-mark")];
     return marks.length > 0 && marks.every((mark) => {
       const img = mark.querySelector("img[data-team-logo]");
       const fallback = mark.querySelector(".tot-team-fallback");
@@ -69,7 +69,7 @@ async function renderBoard(page, payload) {
 }
 
 test.describe("MLB mobile WebKit layout", () => {
-  test("keeps market summary columns separated and logo shells nonempty", async ({ page }) => {
+  test("keeps market summary columns separated and direct team logos visible", async ({ page }) => {
     await renderBoard(page, await fixture("mlb-classic-payload.json"));
 
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -103,7 +103,34 @@ test.describe("MLB mobile WebKit layout", () => {
     await summary.click();
     await expect(summary.locator("xpath=..").locator(".option-badge.official").first()).toBeVisible();
 
-    const shellFailures = await page.locator(".tot-team-mark").evaluateAll((marks) => marks.map((mark) => {
+    await expect(page.locator(".tot-team-mark.has-logo")).toHaveCount(0);
+
+    const logoMetrics = await page.locator(".tot-team-logo-mark").evaluateAll((marks) => marks.map((mark) => {
+      const img = mark.querySelector("img[data-team-logo]");
+      const markBox = mark.getBoundingClientRect();
+      const imgBox = img instanceof HTMLImageElement ? img.getBoundingClientRect() : null;
+      return {
+        className: mark.className,
+        markWidth: markBox.width,
+        markHeight: markBox.height,
+        imgWidth: imgBox?.width || 0,
+        imgHeight: imgBox?.height || 0,
+        logoLoaded: img instanceof HTMLImageElement && img.complete && img.naturalWidth > 0,
+      };
+    }));
+
+    expect(logoMetrics.length).toBeGreaterThan(0);
+    for (const metric of logoMetrics) {
+      expect(metric.className).not.toContain("tot-team-mark");
+      expect(metric.className).not.toContain("has-logo");
+      expect(metric.logoLoaded).toBe(true);
+      expect(metric.markWidth).toBeGreaterThanOrEqual(120);
+      expect(metric.markHeight).toBeGreaterThanOrEqual(84);
+      expect(metric.imgWidth).toBeGreaterThanOrEqual(120);
+      expect(metric.imgHeight).toBeGreaterThanOrEqual(84);
+    }
+
+    const markFailures = await page.locator(".tot-team-logo-mark, .tot-team-mark").evaluateAll((marks) => marks.map((mark) => {
       const img = mark.querySelector("img[data-team-logo]");
       const fallback = mark.querySelector(".tot-team-fallback");
       const fallbackVisible = fallback ? window.getComputedStyle(fallback).display !== "none" : false;
@@ -113,6 +140,6 @@ test.describe("MLB mobile WebKit layout", () => {
         failedWithoutFallback: img instanceof HTMLImageElement && img.complete && img.naturalWidth === 0 && !mark.classList.contains("logo-failed"),
       };
     }).filter((result) => result.empty || result.failedWithoutFallback));
-    expect(shellFailures).toEqual([]);
+    expect(markFailures).toEqual([]);
   });
 });
