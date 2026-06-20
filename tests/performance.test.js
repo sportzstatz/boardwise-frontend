@@ -2,6 +2,24 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 function installPerformanceDom() {
   document.body.innerHTML = `
+    <div class="performance-scope">
+      <button type="button" data-performance-scope-button="official" aria-pressed="true">Official</button>
+      <button type="button" data-performance-scope-button="tracking" aria-pressed="false">Tracking</button>
+    </div>
+    <div class="performance-range">
+      <button type="button" data-range-days="30" aria-pressed="false">30d</button>
+      <button type="button" data-range-days="90" aria-pressed="false">90d</button>
+      <button type="button" data-range-days="available" aria-pressed="false">Available</button>
+    </div>
+    <div id="performance-filter-summary">
+      <button type="button" data-filter-shortcut="sport">MLB</button>
+      <button type="button" data-filter-shortcut="dates">Available range</button>
+      <button type="button" data-filter-shortcut="markets">All markets</button>
+      <button type="button" data-filter-shortcut="book">All books</button>
+      <button type="button" data-filter-reset>Reset</button>
+    </div>
+    <button id="advanced-filter-toggle" type="button" aria-expanded="false" aria-controls="advanced-filters">Advanced filters</button>
+    <section id="advanced-filters" hidden>
     <form id="filter-form">
       <select id="f-performance-scope" name="performance_scope">
         <option value="official">Official</option>
@@ -25,19 +43,31 @@ function installPerformanceDom() {
       <input id="f-settled" name="settled_only" type="checkbox" checked>
       <button id="reset-filters" type="button">Reset</button>
     </form>
+    </section>
     <select id="group-by"><option value="wise_choice_bucket">Wise Tier</option><option value="date">Date</option></select>
     <section id="loading"></section>
     <section id="error" hidden></section>
     <section id="empty-summary" hidden></section>
     <section id="kpi-grid" hidden></section>
+    <div id="chart-hero-value"></div>
+    <div id="chart-roi-pill"></div>
+    <div id="chart-eyebrow"></div>
+    <h2 id="breakdown-heading"></h2>
+    <div id="breakdown-primary-heading"></div>
+    <div id="breakdown-range-heading"></div>
+    <div id="breakdown-health-heading"></div>
     <table id="breakdown-table"><tbody></tbody></table>
+    <div id="breakdown-cards"></div>
     <section id="breakdown-empty" hidden></section>
     <table id="picks-table"><tbody></tbody></table>
+    <div id="picks-cards"></div>
+    <p id="picks-summary"></p>
     <section id="picks-empty" hidden></section>
     <div id="chart-container"><div id="chart-tooltip"></div></div>
     <section id="chart-empty" hidden></section>
     <div id="chart-meta"></div>
     <table id="book-comparison-table"><tbody></tbody></table>
+    <div id="book-comparison-cards"></div>
     <section id="book-comparison-empty" hidden></section>
     <div id="book-comparison-summary"></div>
     <div id="book-cmp-books"></div>
@@ -135,6 +165,7 @@ function lastQuery(calls, name) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   vi.resetModules();
   delete window.BoardWiseApi;
   document.body.innerHTML = "";
@@ -390,5 +421,135 @@ describe("performance page", () => {
     expect(/** @type {HTMLInputElement | null} */ (document.querySelector("#f-market"))?.value).toBe("");
     expect(document.querySelector("#f-market-toggle")?.textContent).toBe("All markets");
     expect(window.location.search).not.toContain("market_keys=");
+  });
+
+  it("top scope buttons synchronize with the canonical scope select", async () => {
+    window.history.replaceState({}, "", "/performance/");
+    installPerformanceDom();
+    const calls = [];
+    installMockApi(calls);
+
+    await import("../assets/js/performance.js");
+    await vi.waitFor(() => expect(window.BoardWiseApi.getPerformanceSummary).toHaveBeenCalled());
+
+    const initialSummaryCount = calls.filter(([name]) => name === "summary").length;
+    document.querySelector('[data-performance-scope-button="tracking"]').dispatchEvent(new Event("click", { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(calls.filter(([name]) => name === "summary").length).toBeGreaterThan(initialSummaryCount);
+    });
+
+    expect(/** @type {HTMLSelectElement | null} */ (document.querySelector("#f-performance-scope"))?.value).toBe("tracking");
+    expect(document.querySelector('[data-performance-scope-button="tracking"]')?.getAttribute("aria-pressed")).toBe("true");
+    expect(lastQuery(calls, "summary").get("performance_scope")).toBe("tracking");
+    expect(lastQuery(calls, "summary").get("model_family")).toBe("obsidian_steed");
+  });
+
+  it("returning from tracking to official removes the forced tracking model family", async () => {
+    window.history.replaceState({}, "", "/performance/?performance_scope=tracking");
+    installPerformanceDom();
+    const calls = [];
+    installMockApi(calls);
+
+    await import("../assets/js/performance.js");
+    await vi.waitFor(() => expect(window.BoardWiseApi.getPerformanceSummary).toHaveBeenCalled());
+
+    const initialSummaryCount = calls.filter(([name]) => name === "summary").length;
+    document.querySelector('[data-performance-scope-button="official"]').dispatchEvent(new Event("click", { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(calls.filter(([name]) => name === "summary").length).toBeGreaterThan(initialSummaryCount);
+    });
+
+    const qs = lastQuery(calls, "summary");
+    expect(qs.get("performance_scope")).toBe("official");
+    expect(qs.get("model_family")).toBeNull();
+    expect(qs.get("official_only")).toBe("true");
+  });
+
+  it("30-day and Available date presets update canonical dates and URL-backed queries", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(new Date("2026-06-20T12:00:00Z").valueOf());
+    window.history.replaceState({}, "", "/performance/");
+    installPerformanceDom();
+    const calls = [];
+    installMockApi(calls);
+
+    await import("../assets/js/performance.js");
+    await vi.waitFor(() => expect(window.BoardWiseApi.getPerformanceSummary).toHaveBeenCalled());
+
+    const initialSummaryCount = calls.filter(([name]) => name === "summary").length;
+    document.querySelector('[data-range-days="30"]').dispatchEvent(new Event("click", { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(calls.filter(([name]) => name === "summary").length).toBeGreaterThan(initialSummaryCount);
+    });
+
+    let qs = lastQuery(calls, "summary");
+    expect(qs.get("start_date")).toBe("2026-05-22");
+    expect(qs.get("end_date")).toBe("2026-06-20");
+    expect(document.querySelector('[data-range-days="30"]')?.getAttribute("aria-pressed")).toBe("true");
+
+    const afterThirtyCount = calls.filter(([name]) => name === "summary").length;
+    document.querySelector('[data-range-days="available"]').dispatchEvent(new Event("click", { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(calls.filter(([name]) => name === "summary").length).toBeGreaterThan(afterThirtyCount);
+    });
+
+    qs = lastQuery(calls, "summary");
+    expect(qs.get("start_date")).toBe("2026-04-29");
+    expect(document.querySelector('[data-range-days="available"]')?.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("renders win rate excluding pushes and voids and CLV N/A at zero coverage", async () => {
+    window.history.replaceState({}, "", "/performance/");
+    installPerformanceDom();
+    const calls = [];
+    installMockApi(calls);
+    const api = /** @type {any} */ (window.BoardWiseApi);
+    api.getPerformanceSummary.mockResolvedValue({
+      summary: {
+        pick_count: 5,
+        settled_count: 5,
+        pending_count: 0,
+        record: "2-1-1-1",
+        units_won: 1.25,
+        units_risked: 5,
+        roi: 0.25,
+        clv_coverage: 0,
+        clv_count: 0,
+        avg_clv_prob_delta: null,
+      },
+      visibility: filtersPayload().visibility,
+    });
+
+    await import("../assets/js/performance.js");
+    await vi.waitFor(() => expect(document.querySelector("#kpi-grid")?.textContent).toContain("Win rate"));
+
+    const text = document.querySelector("#kpi-grid")?.textContent || "";
+    expect(text).toContain("66.7%");
+    expect(text).toContain("Pushes/voids excluded");
+    expect(text).toContain("Avg CLV");
+    expect(text).toContain("No CLV data yet");
+  });
+
+  it("advanced filter drawer opens, closes with Escape, and updates aria-expanded", async () => {
+    window.history.replaceState({}, "", "/performance/");
+    installPerformanceDom();
+    const calls = [];
+    installMockApi(calls);
+
+    await import("../assets/js/performance.js");
+    await vi.waitFor(() => expect(window.BoardWiseApi.getPerformanceSummary).toHaveBeenCalled());
+
+    document.querySelector("#advanced-filter-toggle").dispatchEvent(new Event("click", { bubbles: true }));
+    expect(document.querySelector("#advanced-filter-toggle")?.getAttribute("aria-expanded")).toBe("true");
+    expect(document.querySelector("#advanced-filters")?.hasAttribute("hidden")).toBe(false);
+
+    const sport = document.querySelector("#f-sport");
+    sport.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+
+    expect(document.querySelector("#advanced-filter-toggle")?.getAttribute("aria-expanded")).toBe("false");
+    expect(document.querySelector("#advanced-filters")?.hasAttribute("hidden")).toBe(true);
   });
 });

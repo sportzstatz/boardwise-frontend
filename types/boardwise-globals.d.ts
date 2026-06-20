@@ -12,6 +12,7 @@ interface BoardWiseAuthApi {
   loadAuthState(options?: { force?: boolean }): Promise<BoardWiseAuthState>;
   hasFeature(state: BoardWiseAuthState | null | undefined, featureKey: string): boolean;
   displayName(state: BoardWiseAuthState | null | undefined): string;
+  initials(state: BoardWiseAuthState | null | undefined): string;
   guestState: BoardWiseAuthState;
 }
 
@@ -214,6 +215,12 @@ interface BoardWiseMlbBrandingApi {
   bindLogoFallbacks(root?: Document | Element): void;
 }
 
+interface BoardWiseLandingApi {
+  canLoadMlb(auth: BoardWiseAuthState | null | undefined): boolean;
+  gameCount(payload: BoardWiseBoardPayload | null | undefined): number;
+  init(): Promise<void>;
+}
+
 interface Window {
   BOARDWISE_API_BASE?: string;
   BoardWiseApi?: BoardWiseApiClient;
@@ -221,5 +228,6 @@ interface Window {
   BoardWiseGates?: BoardWiseGatesApi;
   BoardWiseWiseChoice?: BoardWiseWiseChoiceApi;
   BoardWiseMlbBranding?: BoardWiseMlbBrandingApi;
+  BoardWiseLanding?: BoardWiseLandingApi;
   turnstile?: TurnstileApi;
 }

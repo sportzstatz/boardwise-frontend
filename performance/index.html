@@ -3,355 +3,290 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Performance & ROI — BoardWise</title>
-  <meta name="description" content="BoardWise model performance, record, ROI, and CLV from the public API.">
-  <style>
-    :root {
-      --bg: #f7f7f5;
-      --panel: #ffffff;
-      --ink: #101828;
-      --muted: #667085;
-      --line: #d0d5dd;
-      --accent: #0f4c81;
-      --accent-soft: #eef4ff;
-      --good: #156f3c;
-      --good-soft: #edf9f0;
-      --bad: #b42318;
-      --bad-soft: #fef3f2;
-      --shadow: 0 10px 24px rgba(16, 24, 40, 0.07);
-    }
-    * { box-sizing: border-box; }
-    /* Force [hidden] to win over class display rules (e.g. .kpi-grid { display: grid }). */
-    [hidden] { display: none !important; }
-    body { margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; color: var(--ink); background: var(--bg); overflow-x: hidden; }
-    .wrap { max-width: 1220px; margin: 0 auto; padding: 24px 18px 48px; }
-    .header { display: grid; gap: 12px; margin-bottom: 18px; }
-    h1 { margin: 0; font-size: clamp(28px, 4vw, 44px); line-height: 1.05; }
-    .subtitle { color: var(--muted); line-height: 1.5; max-width: 78ch; font-size: 15px; }
-    .nav-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .nav-link { border: 1px solid var(--line); background: var(--panel); padding: 8px 12px; border-radius: 999px; font-size: 13px; text-decoration: none; color: var(--ink); font-weight: 700; }
-    .nav-link.disabled { color: var(--muted); cursor: not-allowed; }
-
-    .filters { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 18px; max-width: 100%; min-width: 0; }
-    .filters legend { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 0 6px; }
-    .filter-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; min-width: 0; max-width: 100%; }
-    .filter-grid label, .filter-field { display: grid; gap: 4px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; min-width: 0; max-width: 100%; }
-    .filter-label { display: block; }
-    .filter-grid input, .filter-grid select, .market-menu-button { display: block; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; background: #fcfcfd; color: var(--ink); width: 100%; max-width: 100%; min-width: 0; inline-size: 100%; max-inline-size: 100%; box-sizing: border-box; }
-    .market-menu-wrap { position: relative; min-width: 0; }
-    .market-menu-button { cursor: pointer; text-align: left; text-transform: none; letter-spacing: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 38px; }
-    .market-menu-button::after { content: "v"; color: var(--muted); font-size: 12px; }
-    .market-menu-button[aria-expanded="true"]::after { content: "^"; }
-    .market-checkbox-menu { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; right: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 8px; text-transform: none; letter-spacing: 0; color: var(--ink); }
-    .market-checkbox-menu label { display: flex; align-items: center; gap: 8px; padding: 7px 6px; border-radius: 8px; font-size: 13px; color: var(--ink); text-transform: none; letter-spacing: 0; cursor: pointer; }
-    .market-checkbox-menu label:hover { background: var(--accent-soft); }
-    .market-checkbox-menu input { width: auto; inline-size: auto; min-width: 0; margin: 0; }
-    .market-empty { padding: 8px 6px; color: var(--muted); font-size: 13px; }
-    /* iOS Safari treats <input type="date"> as a fixed-width control by default and will overflow narrow grid cells. Force it to behave like every other input. */
-    .filter-grid input[type="date"] { -webkit-appearance: none; appearance: none; text-align: left; }
-    .filter-grid input[type="date"]::-webkit-date-and-time-value { text-align: left; min-width: 0; }
-    .filter-grid input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; }
-    @supports (-webkit-touch-callout: none) {
-      .filter-grid input[type="date"] { width: 100%; min-width: 0; max-width: 100%; }
-    }
-    .filter-row-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; align-items: center; }
-    .filter-row-actions .checkbox { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--ink); }
-    .filter-row-actions button { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 999px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
-    .filter-row-actions button.secondary { background: var(--panel); color: var(--ink); border-color: var(--line); }
-
-    .kpi-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; max-width: 100%; }
-    .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
-    .kpi .k-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-    .kpi .k-value { margin-top: 6px; font-size: 22px; font-weight: 800; line-height: 1.1; }
-    .kpi .k-sub { margin-top: 4px; font-size: 12px; color: var(--muted); }
-    .kpi.positive .k-value { color: var(--good); }
-    .kpi.negative .k-value { color: var(--bad); }
-
-    .section { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 18px; max-width: 100%; }
-    .section h2 { margin: 0 0 12px; font-size: 18px; }
-    .section .section-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
-    .section .section-controls label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-    .section .section-controls select { border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: 14px; background: #fcfcfd; }
-
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eaecf0; vertical-align: top; }
-    th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; background: #fcfcfd; position: sticky; top: 0; }
-    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-    .table-scroll { max-width: 100%; max-height: 520px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; -webkit-overflow-scrolling: touch; }
-    .pill-tag { display: inline-block; border: 1px solid var(--line); background: #fcfcfd; border-radius: 999px; padding: 2px 8px; font-size: 11px; color: var(--muted); }
-    .pill-tag.good { color: var(--good); background: var(--good-soft); border-color: rgba(21,111,60,.25); }
-    .pill-tag.bad { color: var(--bad); background: var(--bad-soft); border-color: rgba(180,35,24,.25); }
-
-    .loading-panel, .error-panel, .status-note, .empty-state {
-      border: 1px solid var(--line); background: var(--panel); border-radius: 12px;
-      padding: 14px 18px; margin-bottom: 14px; color: var(--muted);
-    }
-    .error-panel { color: var(--bad); border-color: rgba(180,35,24,.3); background: var(--bad-soft); }
-    .empty-state { text-align: center; padding: 28px 18px; }
-    .footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
-
-    .chart-section { padding: 14px 18px 16px; }
-    .chart-header { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
-    .chart-header h2 { margin: 0; font-size: 18px; }
-    .chart-meta { color: var(--muted); font-size: 12px; }
-    .chart-meta strong { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
-    .chart-meta .pos { color: var(--good); }
-    .chart-meta .neg { color: var(--bad); }
-    .chart-container { width: 100%; }
-    .chart-svg { width: 100%; height: 240px; display: block; }
-    .chart-svg .axis { stroke: #eaecf0; stroke-width: 1; }
-    .chart-svg .zero-line { stroke: #98a2b3; stroke-dasharray: 3 4; stroke-width: 1; }
-    .chart-svg .area-pos { fill: rgba(21,111,60,.16); }
-    .chart-svg .area-neg { fill: rgba(180,35,24,.16); }
-    .chart-svg .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-    .chart-svg .label { fill: var(--muted); font-size: 11px; font-family: inherit; }
-    .chart-svg .label.zero { fill: #475467; }
-    .chart-svg .point { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; }
-    .chart-svg .point.win { stroke: var(--good); }
-    .chart-svg .point.loss { stroke: var(--bad); }
-    .chart-svg .hover-target { fill: transparent; cursor: crosshair; }
-    .chart-tooltip { position: absolute; pointer-events: none; background: var(--ink); color: #fff; font-size: 12px; padding: 6px 9px; border-radius: 8px; box-shadow: var(--shadow); transform: translate(-50%, -110%); white-space: nowrap; opacity: 0; transition: opacity 80ms; }
-    .chart-tooltip.is-visible { opacity: 1; }
-    .chart-tooltip .t-units { font-weight: 700; font-variant-numeric: tabular-nums; }
-    .chart-tooltip .t-units.pos { color: #6cd29a; }
-    .chart-tooltip .t-units.neg { color: #fda29b; }
-    .chart-tooltip .t-sub { color: #cbd5e1; font-size: 11px; }
-
-    @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (max-width: 720px) {
-      .wrap { padding: 18px 12px 36px; }
-      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .filter-grid { grid-template-columns: 1fr 1fr; }
-      .chart-svg { height: 200px; }
-      .filters, .section { padding: 14px; border-radius: 14px; }
-    }
-    @media (max-width: 520px) {
-      .wrap { padding: 14px 10px 32px; }
-      .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-      .filter-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-      .filter-grid input, .filter-grid select, .filter-grid input[type="date"] { width: 100%; min-width: 0; max-width: 100%; }
-      .market-checkbox-menu { position: static; margin-top: 6px; box-shadow: none; }
-      .market-checkbox-menu label { min-height: 40px; }
-      .filters, .section { padding: 12px; }
-      .filter-row-actions { gap: 8px; }
-      .filter-row-actions button { flex: 1 1 auto; min-width: 0; }
-      .filter-row-actions .checkbox { flex: 1 1 100%; }
-      .chart-header { flex-direction: column; align-items: flex-start; gap: 4px; }
-      .chart-meta { font-size: 11px; }
-      .chart-svg { height: 180px; }
-      .kpi { padding: 10px 12px; }
-      .kpi .k-value { font-size: 18px; }
-      h1 { font-size: clamp(24px, 8vw, 32px); }
-      .subtitle { font-size: 14px; }
-      th, td { padding: 6px 8px; font-size: 13px; }
-    }
-  </style>
+  <title>Performance & ROI - BoardWise</title>
+  <meta name="description" content="BoardWise model performance, record, ROI, and CLV for authorized accounts.">
+  <link rel="stylesheet" href="/assets/css/boardwise-theme.css">
+  <link rel="stylesheet" href="/assets/css/performance.css">
 </head>
-<body>
-  <div class="wrap">
-    <section class="header">
-      <div class="nav-row">
-        <a class="nav-link" href="/">All Sports</a>
-        <a class="nav-link" href="/mlb/">MLB Board</a>
-        <a class="nav-link" href="/nhl/">NHL Board</a>
-        <a class="nav-link" href="/performance/" aria-current="page" data-feature-visible="performance_summary" hidden>Performance</a>
-        <a class="nav-link" href="/pricing/" data-auth-guest>Join beta</a>
-        <a class="nav-link" href="/login/" data-auth-guest>Sign in</a>
-        <a class="nav-link" href="/account/" data-auth-authenticated data-auth-label>Account</a>
+<body class="performance-page">
+  <header class="bw-app-banner">
+    <div class="bw-app-banner__inner">
+      <a class="bw-brand bw-brand--dark" href="/" aria-label="BoardWise home">
+        <span class="bw-brand__mark" aria-hidden="true">B</span>
+        <span class="bw-brand__name">BoardWise</span>
+      </a>
+      <nav class="bw-app-nav" aria-label="Primary">
+        <a href="/">All Sports</a>
+        <a href="/mlb/">MLB Board</a>
+        <a href="/nhl/">NHL Board</a>
+        <a href="/performance/" data-feature-visible="performance_summary" aria-current="page" hidden>Performance</a>
+      </nav>
+      <div class="bw-app-account">
+        <a href="/pricing/" data-auth-guest>Join beta</a>
+        <a href="/login/" data-auth-guest>Sign in</a>
+        <a href="/account/" data-auth-authenticated hidden>
+          <span data-auth-label>Account</span>
+          <span class="bw-account-avatar" data-auth-initials aria-hidden="true">A</span>
+        </a>
       </div>
-      <h1>Performance &amp; ROI</h1>
-      <div class="subtitle">Record, units, ROI, and closing-line value (CLV) for official BoardWise picks and beta tracking models. Pending picks count toward volume but never inflate ROI.</div>
-    </section>
+    </div>
+  </header>
 
-    <section class="section chart-section" id="chart-section">
-      <div class="chart-header">
-        <h2>Cumulative units</h2>
-        <div class="chart-meta" id="chart-meta">Loading…</div>
+  <main class="performance-shell">
+    <section class="performance-heading">
+      <div>
+        <p class="bw-kicker">BoardWise · Tracked record</p>
+        <h1>Performance &amp; ROI</h1>
+        <p class="performance-heading__copy">Record, units, ROI, and closing-line value. Pending picks count toward volume, never toward settled ROI.</p>
       </div>
-      <div id="chart-empty" class="empty-state" hidden></div>
-      <div id="chart-container" class="chart-container" style="position: relative;">
-        <div id="chart-tooltip" class="chart-tooltip" role="status" aria-live="polite"></div>
-      </div>
-    </section>
-
-    <form id="filter-form" class="filters" autocomplete="off">
-      <div class="filter-grid">
-        <label>Performance type
-          <select id="f-performance-scope" name="performance_scope">
-            <option value="official">Official</option>
-            <option value="tracking">Tracking</option>
-          </select>
-        </label>
-        <label>Sport
-          <select id="f-sport" name="sport"><option value="">All</option></select>
-        </label>
-        <div class="filter-field">
-          <span class="filter-label">Market</span>
-          <div class="market-menu-wrap">
-            <button id="f-market-toggle" class="market-menu-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="f-market-menu">All markets</button>
-            <div id="f-market-menu" class="market-checkbox-menu" role="group" aria-label="Market" hidden></div>
-            <input id="f-market" name="market_keys" type="hidden">
-          </div>
+      <div>
+        <div class="performance-scope" role="group" aria-label="Performance type">
+          <button type="button" data-performance-scope-button="official" aria-pressed="true">Official</button>
+          <button type="button" data-performance-scope-button="tracking" aria-pressed="false">Tracking</button>
         </div>
-        <label>Selected book
-          <select id="f-book" name="bookmaker_key"><option value="">All</option></select>
-        </label>
-        <label>Confidence bucket
-          <select id="f-confidence" name="confidence_bucket"><option value="">All</option></select>
-        </label>
-        <label>Model probability bucket
-          <select id="f-prob-bucket" name="model_probability_bucket"><option value="">All</option></select>
-        </label>
-        <label>Wise Tier
-          <select id="f-wise-bucket" name="wise_choice_bucket"><option value="">All</option></select>
-        </label>
-        <label>Model version
-          <select id="f-model-version" name="model_version"><option value="">All</option></select>
-        </label>
-        <label>Model family
-          <select id="f-model-family" name="model_family"><option value="">All</option></select>
-        </label>
-        <label>Prediction mode
-          <select id="f-mode" name="prediction_mode"><option value="">All</option></select>
-        </label>
-        <label>Start date
-          <input id="f-start" name="start_date" type="date">
-        </label>
-        <label>End date
-          <input id="f-end" name="end_date" type="date">
-        </label>
-        <label>Min model probability
-          <input id="f-min-prob" name="min_model_probability" type="number" min="0" max="1" step="0.01" placeholder="0.00">
-        </label>
-        <label>Max model probability
-          <input id="f-max-prob" name="max_model_probability" type="number" min="0" max="1" step="0.01" placeholder="1.00">
-        </label>
-      </div>
-      <div class="filter-row-actions">
-        <label class="checkbox"><input id="f-settled" name="settled_only" type="checkbox" checked> Settled only (KPIs)</label>
-        <button type="submit">Apply filters</button>
-        <button type="button" id="reset-filters" class="secondary">Reset</button>
-      </div>
-    </form>
-
-    <section id="error" class="error-panel" hidden></section>
-    <section id="loading" class="loading-panel">Loading performance summary…</section>
-    <section id="empty-summary" class="empty-state" hidden></section>
-
-    <section id="kpi-grid" class="kpi-grid" hidden></section>
-
-    <section class="status-note">
-      Wise Tier is a model signal bucket, not a guarantee. Higher score does not automatically mean higher historical ROI; compare tiers by sample size, units, ROI, and CLV.
-    </section>
-
-    <section class="section">
-      <h2>Breakdown</h2>
-      <div class="section-controls">
-        <label for="group-by">Group by</label>
-        <select id="group-by">
-          <option value="wise_choice_bucket">Wise Tier</option>
-          <option value="confidence_bucket">Confidence bucket</option>
-          <option value="model_probability_bucket">Model probability bucket</option>
-          <option value="model_version">Model version</option>
-          <option value="model_family">Model family</option>
-          <option value="sport">Sport</option>
-          <option value="market">Market</option>
-          <option value="book">Bookmaker</option>
-          <option value="prediction_mode">Prediction mode</option>
-          <option value="date">Date</option>
+        <label class="sr-only" for="f-performance-scope">Performance type</label>
+        <select id="f-performance-scope" name="performance_scope" class="sr-only" form="filter-form">
+          <option value="official">Official</option>
+          <option value="tracking">Tracking</option>
         </select>
       </div>
-      <div id="breakdown-empty" class="empty-state" hidden></div>
-      <div class="table-scroll">
-        <table id="breakdown-table">
-          <thead>
-            <tr>
-              <th>Tier</th>
-              <th>Range</th>
-              <th>Tier health</th>
-              <th class="num">Picks</th>
-              <th>Record</th>
-              <th class="num">Units</th>
-              <th class="num">ROI</th>
-              <th class="num">Avg CLV</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+    </section>
+
+    <section id="chart-section" class="performance-chart-hero" aria-labelledby="chart-title">
+      <div class="performance-chart-head">
+        <div>
+          <p class="performance-chart-eyebrow" id="chart-eyebrow">Cumulative units</p>
+          <h2 id="chart-title">Cumulative units</h2>
+          <div class="performance-hero-value-row">
+            <span id="chart-hero-value" class="performance-hero-value tnum">Loading</span>
+            <span id="chart-roi-pill" class="performance-roi-pill tnum">ROI loading</span>
+          </div>
+        </div>
+        <div class="performance-range" role="group" aria-label="Chart date range">
+          <button type="button" data-range-days="30" aria-pressed="false">30d</button>
+          <button type="button" data-range-days="90" aria-pressed="false">90d</button>
+          <button type="button" data-range-days="available" aria-pressed="false">Available</button>
+        </div>
+      </div>
+      <div class="chart-section">
+        <div id="chart-meta" class="chart-meta">Loading...</div>
+        <div id="chart-empty" class="empty-state" hidden></div>
+        <div id="chart-container" class="chart-container">
+          <div id="chart-tooltip" class="chart-tooltip" role="status" aria-live="polite"></div>
+        </div>
       </div>
     </section>
 
-    <section class="section">
-      <h2>Book price comparison</h2>
-      <p style="margin: 0 0 12px; color: var(--muted); font-size: 13px; line-height: 1.5;">
-        Compare the same BoardWise picks across books using each book's price
-        for the same market/side/line. Picks without a comparable line at every
-        selected book are excluded from the common-pick set.
-      </p>
-      <div class="section-controls" id="book-comparison-controls">
-        <label class="checkbox"><input id="book-cmp-same" type="checkbox" checked> Same-pick comparison</label>
-        <span style="font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;">Pricing books</span>
-        <span id="book-cmp-books" style="display: inline-flex; flex-wrap: wrap; gap: 8px;"></span>
+    <div class="performance-status">
+      <section id="error" class="error-panel" role="alert" hidden></section>
+      <section id="loading" class="loading-panel" role="status" aria-atomic="true">Loading performance summary...</section>
+      <section id="empty-summary" class="empty-state" hidden></section>
+    </div>
+
+    <section id="kpi-grid" class="performance-kpis" hidden></section>
+
+    <section class="performance-filter-shell" aria-label="Performance filters">
+      <div class="performance-filter-summary" id="performance-filter-summary" aria-label="Active performance filters">
+        <span class="performance-filter-summary__label">Filters</span>
+        <button class="performance-filter-chip performance-filter-chip--primary" type="button" data-filter-shortcut="sport">MLB</button>
+        <button class="performance-filter-chip" type="button" data-filter-shortcut="dates">Available range</button>
+        <button class="performance-filter-chip" type="button" data-filter-shortcut="markets">All markets</button>
+        <button class="performance-filter-chip" type="button" data-filter-shortcut="book">All books</button>
+        <label>
+          <input id="f-settled" name="settled_only" type="checkbox" form="filter-form" checked>
+          Settled only
+        </label>
+        <button id="advanced-filter-toggle" class="performance-advanced-toggle" type="button" aria-expanded="false" aria-controls="advanced-filters">Advanced filters</button>
+        <button class="performance-reset" type="button" data-filter-reset>Reset</button>
       </div>
-      <div id="book-comparison-summary" class="chart-meta" style="margin-bottom: 8px;"></div>
-      <div id="book-comparison-empty" class="empty-state" hidden></div>
-      <div class="table-scroll">
-        <table id="book-comparison-table">
-          <thead>
-            <tr>
-              <th>Book</th>
-              <th class="num">Comparable picks</th>
-              <th>Record</th>
-              <th class="num">Units risked</th>
-              <th class="num">Units won</th>
-              <th class="num">ROI</th>
-              <th class="num">Avg price</th>
-              <th class="num">Best price</th>
-              <th class="num">Best price rate</th>
-              <th class="num">Source-book picks</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+
+      <section id="advanced-filters" class="performance-advanced-filters" hidden>
+        <form id="filter-form" class="filters" autocomplete="off">
+          <div class="filter-grid">
+            <label>Sport
+              <select id="f-sport" name="sport"><option value="">All</option></select>
+            </label>
+            <div class="filter-field">
+              <span class="filter-label">Market</span>
+              <div class="market-menu-wrap">
+                <button id="f-market-toggle" class="market-menu-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="f-market-menu">All markets</button>
+                <div id="f-market-menu" class="market-checkbox-menu" role="group" aria-label="Market" hidden></div>
+                <input id="f-market" name="market_keys" type="hidden">
+              </div>
+            </div>
+            <label>Selected book
+              <select id="f-book" name="bookmaker_key"><option value="">All</option></select>
+            </label>
+            <label>Confidence bucket
+              <select id="f-confidence" name="confidence_bucket"><option value="">All</option></select>
+            </label>
+            <label>Model probability bucket
+              <select id="f-prob-bucket" name="model_probability_bucket"><option value="">All</option></select>
+            </label>
+            <label>Wise Tier
+              <select id="f-wise-bucket" name="wise_choice_bucket"><option value="">All</option></select>
+            </label>
+            <label>Model version
+              <select id="f-model-version" name="model_version"><option value="">All</option></select>
+            </label>
+            <label>Model family
+              <select id="f-model-family" name="model_family"><option value="">All</option></select>
+            </label>
+            <label>Prediction mode
+              <select id="f-mode" name="prediction_mode"><option value="">All</option></select>
+            </label>
+            <label>Start date
+              <input id="f-start" name="start_date" type="date">
+            </label>
+            <label>End date
+              <input id="f-end" name="end_date" type="date">
+            </label>
+            <label>Min model probability
+              <input id="f-min-prob" name="min_model_probability" type="number" min="0" max="1" step="0.01" placeholder="0.00">
+            </label>
+            <label>Max model probability
+              <input id="f-max-prob" name="max_model_probability" type="number" min="0" max="1" step="0.01" placeholder="1.00">
+            </label>
+          </div>
+          <div class="filter-row-actions">
+            <button type="submit">Apply filters</button>
+            <button type="button" id="reset-filters" class="secondary">Reset</button>
+          </div>
+        </form>
+      </section>
     </section>
 
-    <section class="section">
-      <h2>Recent picks</h2>
-      <div id="picks-empty" class="empty-state" hidden></div>
-      <div class="table-scroll">
-        <table id="picks-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Model</th>
-              <th>Game</th>
-              <th>Market</th>
-              <th>Selection</th>
-              <th>Book</th>
-              <th class="num">Price</th>
-              <th class="num">Model %</th>
-              <th>Wise Tier</th>
-              <th class="num">Kelly %</th>
-              <th title="Expected value rating at the published price">EV Rating</th>
-              <th title="Model/policy confidence bucket used for performance grouping">Model Confidence</th>
-              <th>Status</th>
-              <th>Result</th>
-              <th class="num">Units won</th>
-              <th class="num">CLV Δ</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
+    <div class="performance-layout">
+      <section class="section performance-breakdown-panel" aria-labelledby="breakdown-heading">
+        <div class="section-header">
+          <div>
+            <p class="bw-kicker">Breakdown</p>
+            <h2 id="breakdown-heading">By Wise Tier</h2>
+          </div>
+          <div class="section-controls">
+            <label for="group-by">Group by</label>
+            <select id="group-by">
+              <option value="wise_choice_bucket">Wise Tier</option>
+              <option value="confidence_bucket">Confidence bucket</option>
+              <option value="model_probability_bucket">Model probability bucket</option>
+              <option value="model_version">Model version</option>
+              <option value="model_family">Model family</option>
+              <option value="sport">Sport</option>
+              <option value="market">Market</option>
+              <option value="book">Bookmaker</option>
+              <option value="prediction_mode">Prediction mode</option>
+              <option value="date">Date</option>
+            </select>
+          </div>
+        </div>
+        <div class="section-body">
+          <div id="breakdown-empty" class="empty-state" hidden></div>
+          <div class="table-scroll breakdown-desktop">
+            <table id="breakdown-table">
+              <thead>
+                <tr>
+                  <th id="breakdown-primary-heading">Tier</th>
+                  <th id="breakdown-range-heading">Range</th>
+                  <th id="breakdown-health-heading">Tier health</th>
+                  <th class="num">Picks</th>
+                  <th>Record</th>
+                  <th class="num">Units</th>
+                  <th class="num">ROI</th>
+                  <th class="num">Avg CLV</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div id="breakdown-cards" class="performance-card-list"></div>
+        </div>
+      </section>
 
-    <footer class="footer">
-  <div><strong>BoardWise Analytics LLC</strong> &copy; 2026. BoardWise is for informational and entertainment purposes only. No pick is guaranteed. Not gambling, financial, legal, or investment advice.</div>
-  <div style="margin-top:6px">Must be 21+ and legally permitted to use wagering-related content. If gambling is a problem, call <strong>1-800-GAMBLER</strong> or Iowa <strong>1-800-BETS-OFF</strong>.</div>
-  <div style="margin-top:6px"><a href="/privacy/">Privacy Policy</a> · <a href="/terms/">Terms</a> · <a href="/responsible-gaming/">Responsible Gaming</a> · <a href="mailto:support@useboardwise.com">support@useboardwise.com</a></div>
-</footer>
-  </div>
+      <aside class="status-note performance-insight">
+        <strong>Wise Tier is a model signal bucket, not a guarantee.</strong> Compare sample size, units, ROI, and CLV before drawing conclusions.
+      </aside>
+
+      <section class="section performance-book-panel" aria-labelledby="book-comparison-heading">
+        <div class="section-header">
+          <div>
+            <p class="bw-kicker">Line shopping</p>
+            <h2 id="book-comparison-heading">Book price comparison</h2>
+            <p>Compare the same BoardWise picks across books using each book's price for the same market, side, and line.</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="section-controls" id="book-comparison-controls">
+            <label class="checkbox"><input id="book-cmp-same" type="checkbox" checked> Same-pick comparison</label>
+            <span>Pricing books</span>
+            <span id="book-cmp-books"></span>
+          </div>
+          <div id="book-comparison-summary" class="chart-meta"></div>
+          <div id="book-comparison-empty" class="empty-state" hidden></div>
+          <div class="table-scroll book-comparison-desktop">
+            <table id="book-comparison-table">
+              <thead>
+                <tr>
+                  <th>Book</th>
+                  <th class="num">Comparable picks</th>
+                  <th>Record</th>
+                  <th class="num">Units risked</th>
+                  <th class="num">Units won</th>
+                  <th class="num">ROI</th>
+                  <th class="num">Avg price</th>
+                  <th class="num">Best price</th>
+                  <th class="num">Best price rate</th>
+                  <th class="num">Source-book picks</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div id="book-comparison-cards" class="performance-card-list"></div>
+        </div>
+      </section>
+
+      <section class="section performance-picks-panel" aria-labelledby="picks-heading">
+        <div class="section-header">
+          <div>
+            <p class="bw-kicker">Recent picks</p>
+            <h2 id="picks-heading">Recent picks</h2>
+            <p id="picks-summary">Showing the latest filtered picks, including pending entries.</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div id="picks-empty" class="empty-state" hidden></div>
+          <div class="table-scroll picks-desktop">
+            <table id="picks-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Model</th>
+                  <th>Game</th>
+                  <th>Selection</th>
+                  <th>Book/price</th>
+                  <th class="num">Model %</th>
+                  <th>Wise Tier</th>
+                  <th>Status</th>
+                  <th class="num">Units</th>
+                  <th class="num">CLV</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div id="picks-cards" class="performance-card-list"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="bw-footer">
+    <div><strong>BoardWise Analytics LLC</strong> &copy; 2026. BoardWise is for informational and entertainment purposes only. No pick is guaranteed. Not gambling, financial, legal, or investment advice.</div>
+    <div class="bw-footer__line">Must be 21+ and legally permitted to use wagering-related content. If gambling is a problem, call <strong>1-800-GAMBLER</strong> or Iowa <strong>1-800-BETS-OFF</strong>.</div>
+    <div class="bw-footer__line"><a href="/privacy/">Privacy Policy</a> · <a href="/terms/">Terms</a> · <a href="/responsible-gaming/">Responsible Gaming</a> · <a href="mailto:support@useboardwise.com">support@useboardwise.com</a></div>
+  </footer>
+
   <script src="/assets/js/api-client.js"></script>
   <script src="/assets/js/auth-state.js"></script>
   <script src="/assets/js/gates.js"></script>

@@ -5,94 +5,108 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sign in - BoardWise</title>
   <meta name="description" content="Sign in to BoardWise with a passwordless email link.">
-  <link rel="stylesheet" href="/assets/css/site.css">
-  <style>
-    .muted {
-      color: var(--muted);
-      line-height: 1.5;
-    }
-    .button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 44px;
-      padding: 0 16px;
-      border-radius: 999px;
-      text-decoration: none;
-      font-weight: 700;
-      border: 1px solid var(--line);
-      color: var(--ink);
-      background: #fcfcfd;
-      cursor: pointer;
-      font: inherit;
-    }
-    .button.primary {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #fff;
-    }
-    .auth-form {
-      display: grid;
-      gap: 12px;
-      max-width: 420px;
-      margin-top: 16px;
-    }
-    .auth-form label {
-      font-weight: 700;
-    }
-    .auth-form input[type="email"] {
-      min-height: 44px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 0 12px;
-      font: inherit;
-      color: var(--ink);
-      background: #fcfcfd;
-    }
-    .empty-state[data-kind="error"] {
-      border: 1px solid #f2b8b5;
-      border-radius: 12px;
-      background: #fff4f2;
-      color: #b42318;
-    }
-  </style>
+  <link rel="stylesheet" href="/assets/css/boardwise-theme.css">
+  <link rel="stylesheet" href="/assets/css/login.css">
 </head>
-<body>
-  <main class="wrap">
-    <nav class="nav-row">
-      <a class="nav-link" href="/">All Sports</a>
-      <a class="nav-link" href="/mlb/">MLB Board</a>
-      <a class="nav-link" href="/nhl/">NHL Board</a>
-      <a class="nav-link" href="/performance/" data-feature-visible="performance_summary" hidden>Performance</a>
-      <a class="nav-link" href="/account/" data-auth-authenticated data-auth-label>Account</a>
-    </nav>
+<body class="login-page">
+  <header class="login-topbar">
+    <div class="login-topbar__inner">
+      <a class="bw-brand bw-brand--light" href="/" aria-label="BoardWise home">
+        <span class="bw-brand__mark" aria-hidden="true">B</span>
+        <span class="bw-brand__name">BoardWise</span>
+      </a>
+      <a class="login-back-link" href="/mlb/" aria-label="Back to today's board">
+        <span aria-hidden="true">&larr;</span>
+        <span>Back to today's board</span>
+      </a>
+    </div>
+  </header>
 
-    <section class="account-panel">
-      <h1>Sign in or create account</h1>
-      <p class="muted">Enter your email and we’ll send a one-time link to sign in or create your BoardWise account.</p>
+  <main class="login-main">
+    <section class="login-card" aria-labelledby="login-title">
+      <aside class="login-value-panel">
+        <a class="bw-brand bw-brand--dark" href="/" aria-label="BoardWise home">
+          <span class="bw-brand__mark" aria-hidden="true">B</span>
+          <span class="bw-brand__name">BoardWise</span>
+        </a>
+        <div class="login-value-panel__content">
+          <p class="bw-kicker">Your BoardWise account</p>
+          <h2>Get the board view available to your plan.</h2>
+          <ul class="login-benefits">
+            <li>
+              <span class="login-benefits__check" aria-hidden="true">✓</span>
+              <span>
+                <strong>MLB board access</strong>
+                <span>Signed-in free accounts can access the basic MLB board experience.</span>
+              </span>
+            </li>
+            <li>
+              <span class="login-benefits__check" aria-hidden="true">✓</span>
+              <span>
+                <strong>Advanced market detail for eligible plans</strong>
+                <span>Founder and pro users can access advanced MLB detail where enabled.</span>
+              </span>
+            </li>
+            <li>
+              <span class="login-benefits__check" aria-hidden="true">✓</span>
+              <span>
+                <strong>Passwordless account access</strong>
+                <span>One-time email links; no password to remember.</span>
+              </span>
+            </li>
+          </ul>
+          <div class="login-trust-strip" aria-label="Account access facts">
+            <div>
+              <strong>One-time link</strong>
+              <span>No password</span>
+            </div>
+            <div>
+              <strong>Beta access</strong>
+              <span>No card to sign in</span>
+            </div>
+          </div>
+        </div>
+      </aside>
 
-      <form id="login-form" class="auth-form">
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="email" required>
+      <div class="login-form-panel">
+        <p class="bw-kicker">Sign in or create account</p>
+        <h1 id="login-title">Get on the board</h1>
+        <p class="login-form-panel__copy">Enter your email and we will send a one-time link to sign in, or to create your BoardWise account. No password is required.</p>
 
-        <div
-          class="cf-turnstile"
-          data-sitekey="0x4AAAAAADOsjU5xR4BDnifb"
-          data-action="magic_link_start"
-          data-theme="auto"
-        ></div>
+        <form id="login-form" class="login-form">
+          <label class="login-field" for="email">
+            <span>Email address</span>
+            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" spellcheck="false" required placeholder="you@example.com">
+          </label>
 
-        <button class="button primary" type="submit">Send email link</button>
-      </form>
+          <div class="login-turnstile">
+            <div
+              class="cf-turnstile"
+              data-sitekey="0x4AAAAAADOsjU5xR4BDnifb"
+              data-action="magic_link_start"
+              data-theme="auto"
+              data-size="flexible"
+            ></div>
+          </div>
 
-      <div id="login-message" class="empty-state" role="status" aria-live="polite" hidden></div>
+          <button id="login-submit" class="bw-button bw-button--gold login-submit" type="submit">
+            <span data-login-submit-label>Send my sign-in link</span>
+            <span aria-hidden="true">&rarr;</span>
+          </button>
+        </form>
+
+        <div id="login-message" class="login-message" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+
+        <p class="login-legal">By continuing you confirm you are 21+ and agree to the <a href="/terms/">Terms</a> and <a href="/privacy/">Privacy Policy</a>.</p>
+      </div>
     </section>
-    <footer class="footer">
-  <div><strong>BoardWise Analytics LLC</strong> &copy; 2026. BoardWise is for informational and entertainment purposes only. No pick is guaranteed. Not gambling, financial, legal, or investment advice.</div>
-  <div style="margin-top:6px">Must be 21+ and legally permitted to use wagering-related content. If gambling is a problem, call <strong>1-800-GAMBLER</strong> or Iowa <strong>1-800-BETS-OFF</strong>.</div>
-  <div style="margin-top:6px"><a href="/privacy/">Privacy Policy</a> · <a href="/terms/">Terms</a> · <a href="/responsible-gaming/">Responsible Gaming</a> · <a href="mailto:support@useboardwise.com">support@useboardwise.com</a></div>
-</footer>
   </main>
+
+  <footer class="bw-footer">
+    <div><strong>BoardWise Analytics LLC</strong> &copy; 2026. BoardWise is for informational and entertainment purposes only. No pick is guaranteed. Not gambling, financial, legal, or investment advice.</div>
+    <div class="bw-footer__line">Must be 21+ and legally permitted to use wagering-related content. If gambling is a problem, call <strong>1-800-GAMBLER</strong> or Iowa <strong>1-800-BETS-OFF</strong>.</div>
+    <div class="bw-footer__line"><a href="/privacy/">Privacy Policy</a> · <a href="/terms/">Terms</a> · <a href="/responsible-gaming/">Responsible Gaming</a> · <a href="mailto:support@useboardwise.com">support@useboardwise.com</a></div>
+  </footer>
 
   <script src="/assets/js/api-client.js"></script>
   <script src="/assets/js/auth-state.js"></script>

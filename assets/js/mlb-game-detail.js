@@ -243,7 +243,7 @@ function renderTeamMark(team, abbr, sideBranding) {
   if (logoPath) {
     return `
       <span class="tot-team-logo-mark"${style ? ` style="${esc(style)}"` : ""} aria-hidden="true">
-        <img class="tot-team-logo" data-team-logo src="${esc(logoPath)}" alt="" width="168" height="120" decoding="async">
+        <img class="tot-team-logo" data-team-logo src="${esc(logoPath)}" alt="" width="184" height="132" decoding="async">
         <span class="tot-team-fallback">${esc(fallback)}</span>
       </span>
     `;
