@@ -112,6 +112,7 @@ async function loadMlbBoardScript(getMlbBoard) {
   installMlbDom();
   window.BoardWiseApi = /** @type {any} */ ({ getMlbBoard });
   await import("../assets/js/wise-choice.js");
+  await import("../assets/js/mlb-team-branding.js");
   await import("../assets/js/mlb-board.js");
 }
 
@@ -119,7 +120,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
   delete window.BoardWiseApi;
   delete window.BoardWiseWiseChoice;
+  delete window.BoardWiseMlbBranding;
   delete (/** @type {any} */ (window)).__BoardWiseMlbTestHooks;
+  delete (/** @type {any} */ (window)).__BoardWiseMlbBrandingTestHooks;
   document.body.innerHTML = "";
   document.body.className = "";
   delete document.body.dataset.obsidianVariant;
@@ -1379,6 +1382,185 @@ describe("mlb-board model selector", () => {
     expect(href).toContain("game_pk=123456");
     expect(href).toContain("date=2026-05-27");
     expect(href).toContain("model=classic_mlb");
+  });
+
+  it("renders known team logo markup, resolved team colors, and accessible probability bars", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const game = {
+      game_pk: 123456,
+      game_label: "Reds at Cardinals",
+      away_team: "Cincinnati Reds",
+      home_team: "St. Louis Cardinals",
+      away_team_abbr: "CIN",
+      home_team_abbr: "STL",
+      away_pitcher: "Away Starter",
+      home_pitcher: "Home Starter",
+      lineup_status_away: "projected",
+      lineup_status_home: "confirmed",
+      away_win_prob_text: "47.2%",
+      home_win_prob_text: "52.8%",
+      market_dropdowns: [
+        {
+          title: "Money Line",
+          market_key: "h2h",
+          options: [
+            {
+              selection_text: "St. Louis Cardinals Moneyline",
+              label: "Cardinals Moneyline",
+              sportsbook: "BookA",
+              odds_text: "-130",
+              model_probability_text: "52.8%",
+              edge_text: "+4.2%",
+              is_official: true,
+            },
+            {
+              selection_text: "Cincinnati Reds Moneyline",
+              label: "Reds Moneyline",
+              sportsbook: "BookA",
+              odds_text: "+120",
+              model_probability_text: "47.2%",
+              edge_text: "-4.2%",
+            },
+          ],
+        },
+      ],
+    };
+    const getMlbBoard = vi.fn().mockResolvedValue(payload("classic_mlb", {
+      game_count: 1,
+      games: [game],
+    }));
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tile")).not.toBeNull());
+
+    const awaySide = /** @type {HTMLElement} */ (document.querySelector(".tot-side.away"));
+    const homeSide = /** @type {HTMLElement} */ (document.querySelector(".tot-side.home"));
+    const awayLogo = /** @type {HTMLImageElement} */ (awaySide.querySelector("[data-team-logo]"));
+    const homeLogo = /** @type {HTMLImageElement} */ (homeSide.querySelector("[data-team-logo]"));
+    expect(awayLogo.getAttribute("src")).toBe("/assets/img/mlb/team-logos/cin.svg");
+    expect(homeLogo.getAttribute("src")).toBe("/assets/img/mlb/team-logos/stl.svg");
+    expect(awayLogo.getAttribute("alt")).toBe("");
+    expect(awayLogo.getAttribute("width")).toBe("64");
+    expect(awayLogo.getAttribute("height")).toBe("64");
+    expect(awaySide.style.getPropertyValue("--team-fill")).toBe("#000000");
+    expect(homeSide.style.getPropertyValue("--team-fill")).toBe("#C41E3A");
+    expect(awaySide.style.getPropertyValue("--team-prob-light")).not.toBe("");
+    expect(homeSide.style.getPropertyValue("--team-prob-light")).not.toBe("");
+    expect(awaySide.getAttribute("aria-label")).toContain("Away team Cincinnati Reds");
+    expect(awaySide.getAttribute("aria-label")).toContain("Starting pitcher Away Starter");
+    expect(awaySide.getAttribute("aria-label")).toContain("Lineup projected");
+    expect(awaySide.getAttribute("aria-label")).toContain("Win probability 47.2%");
+    expect(awaySide.getAttribute("aria-label")).toContain("Moneyline +120");
+
+    const bar = /** @type {HTMLElement} */ (document.querySelector(".tot-bar"));
+    expect(bar.style.getPropertyValue("--away-team-fill")).toBe("#000000");
+    expect(bar.style.getPropertyValue("--home-team-fill")).toBe("#C41E3A");
+    expect(bar.getAttribute("aria-label")).toBe("Cincinnati Reds 47.2%, St. Louis Cardinals 52.8%");
+    expect(/** @type {HTMLElement} */ (document.querySelector(".tot-mobile-bar")).style.getPropertyValue("--away-team-fill")).toBe("#000000");
+
+    const summary = /** @type {HTMLElement} */ (document.querySelector(".market-summary-row"));
+    expect(summary.querySelector(".market-summary-selection")).not.toBeNull();
+    expect(summary.querySelector(".market-summary-model")).not.toBeNull();
+    expect(summary.querySelector(".market-summary-edge")).not.toBeNull();
+    expect(summary.querySelector(".market-summary-call")).not.toBeNull();
+    expect(summary.querySelector(".market-summary-chevron")).not.toBeNull();
+    expect(summary.getAttribute("aria-label")).toContain("Model 52.8%");
+    expect(summary.getAttribute("aria-label")).toContain("Edge +4.2%");
+    expect(summary.getAttribute("aria-label")).toContain("Official");
+  });
+
+  it("falls back to the abbreviation when a known logo fails to load", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(payload("classic_mlb", {
+      game_count: 1,
+      games: [
+        {
+          game_label: "Reds at Cardinals",
+          away_team: "Cincinnati Reds",
+          home_team: "St. Louis Cardinals",
+          away_team_abbr: "CIN",
+          home_team_abbr: "STL",
+          favorite_team: "Cardinals",
+          favorite_prob_text: "52.8%",
+          market_dropdowns: [],
+        },
+      ],
+    }));
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector("[data-team-logo]")).not.toBeNull());
+
+    const img = /** @type {HTMLImageElement} */ (document.querySelector(".tot-side.away [data-team-logo]"));
+    img.dispatchEvent(new Event("error"));
+    const mark = /** @type {HTMLElement} */ (img.closest(".tot-team-mark"));
+    expect(mark.classList.contains("logo-failed")).toBe(true);
+    expect(mark.querySelector(".tot-team-fallback")?.textContent).toBe("CIN");
+  });
+
+  it("uses a neutral abbreviation fallback for unknown teams", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(payload("classic_mlb", {
+      game_count: 1,
+      games: [
+        {
+          game_label: "Mystery Club at Red Sox",
+          away_team: "Mystery Club",
+          home_team: "Boston Red Sox",
+          away_team_abbr: "ZZZ",
+          home_team_abbr: "BOS",
+          away_win_prob_text: "45.0%",
+          home_win_prob_text: "55.0%",
+          market_dropdowns: [],
+        },
+      ],
+    }));
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tot-side.away .tot-team-mark")).not.toBeNull());
+
+    const awayMark = /** @type {HTMLElement} */ (document.querySelector(".tot-side.away .tot-team-mark"));
+    expect(awayMark.classList.contains("has-logo")).toBe(false);
+    expect(awayMark.querySelector("[data-team-logo]")).toBeNull();
+    expect(awayMark.querySelector(".tot-team-fallback")?.textContent).toBe("ZZZ");
+    expect(/** @type {HTMLElement} */ (document.querySelector(".tot-side.away")).style.getPropertyValue("--team-fill")).toBe("#667085");
+  });
+
+  it("keeps tracker-only market summaries out of the Official state", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        tracker_markets: {
+          enabled: true,
+          has_markets: true,
+          market_keys: ["nrfi_yrfi"],
+          markets: [{ key: "nrfi_yrfi", label: "NRFI/YRFI" }],
+        },
+        games: [
+          {
+            game_label: "Away at Home",
+            tracker_market_dropdowns: [
+              {
+                market_key: "nrfi_yrfi",
+                outcomes: [
+                  { label: "YRFI", is_official: true, tracking_only: true },
+                  { label: "NRFI", tracking_only: true },
+                ],
+              },
+            ],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tracker-market-dropdown")).not.toBeNull());
+
+    const trackerSummary = document.querySelector(".tracker-market-dropdown .market-summary-row");
+    expect(trackerSummary?.textContent).toContain("Tracking Only");
+    expect(trackerSummary?.textContent).not.toContain("Official");
+    expect(trackerSummary?.getAttribute("aria-label")).toContain("Tracking Only");
+    expect(document.querySelector(".tracker-market-dropdown .market-call-pill.official")).toBeNull();
   });
 
   it("matches Wise Choice boundary fixture labels", async () => {

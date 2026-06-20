@@ -13,6 +13,20 @@ async function fixture(name) {
   return JSON.parse(await readFile(resolve(FIXTURE_DIR, name), "utf8"));
 }
 
+async function waitForTeamMarks(page) {
+  await page.waitForFunction(() => {
+    const marks = [...document.querySelectorAll(".tot-team-mark")];
+    return marks.length > 0 && marks.every((mark) => {
+      const img = mark.querySelector("img[data-team-logo]");
+      const fallback = mark.querySelector(".tot-team-fallback");
+      if (!fallback) return false;
+      if (!img) return window.getComputedStyle(fallback).display !== "none";
+      if (img instanceof HTMLImageElement && img.complete && img.naturalWidth > 0) return true;
+      return mark.classList.contains("logo-failed") && window.getComputedStyle(fallback).display !== "none";
+    });
+  });
+}
+
 async function mockBoard(page, payload, authenticated) {
   await page.addInitScript((now) => {
     Date.now = () => now;
@@ -43,6 +57,7 @@ async function renderDetail(page, payload, authenticated) {
   await page.evaluate(async () => {
     if (document.fonts?.ready) await document.fonts.ready;
   });
+  await waitForTeamMarks(page);
 }
 
 test.describe("MLB game detail visual baselines", () => {
@@ -90,7 +105,7 @@ test.describe("MLB game detail visual baselines", () => {
   });
 
   test("Pro detail has no horizontal overflow across required widths", async ({ page }) => {
-    for (const width of [320, 390, 720, 1024, 1280]) {
+    for (const width of [320, 375, 390, 430, 720, 1024, 1280]) {
       await page.setViewportSize({ width, height: 844 });
       await renderDetail(page, await fixture("mlb-game-detail-payload.json"), true);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
@@ -99,7 +114,7 @@ test.describe("MLB game detail visual baselines", () => {
   });
 
   test("Free detail has no horizontal overflow across required widths", async ({ page }) => {
-    for (const width of [320, 390, 720, 1024, 1280]) {
+    for (const width of [320, 375, 390, 430, 720, 1024, 1280]) {
       await page.setViewportSize({ width, height: 844 });
       await renderDetail(page, await fixture("mlb-game-detail-preview-payload.json"), false);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);

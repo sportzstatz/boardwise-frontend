@@ -138,6 +138,35 @@ test.describe("MLB board accessibility", () => {
     await expectNoA11yViolations(page);
   });
 
+  test("team logos are decorative and probability bars are named", async ({ page }) => {
+    await renderBoard(page, await fixture("mlb-classic-payload.json"));
+
+    await expect(page.locator(".tot-team-logo")).toHaveCount(2);
+    await expect(page.locator(".tot-team-logo").first()).toHaveAttribute("alt", "");
+    await expect(page.locator(".tot-bar").first()).toHaveAttribute("role", "img");
+    await expect(page.locator(".tot-bar").first()).toHaveAttribute("aria-label", /New York Mets .*Chicago Cubs/);
+  });
+
+  test("mobile market summaries preserve hidden call and model context in the accessible name", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await renderBoard(page, await fixture("mlb-classic-payload.json"));
+
+    const summary = page.locator(".market-dropdown:not(.tracker-market-dropdown) .market-summary-row").first();
+    await tabUntilFocused(page, summary);
+    await expect(summary).toBeFocused();
+    await expectVisibleFocus(summary);
+    await expect(summary.locator(".market-summary-model")).toBeHidden();
+    await expect(summary.locator(".market-summary-call")).toBeHidden();
+    const ariaLabel = await summary.getAttribute("aria-label");
+    expect(ariaLabel).toContain("Model 57.4%");
+    expect(ariaLabel).toContain("Edge +3.3%");
+    expect(ariaLabel).toContain("Official");
+    expect(ariaLabel).toContain("Expand market details");
+
+    await page.keyboard.press("Enter");
+    await expect(summary.locator("xpath=..").locator(".option-badge.official").first()).toBeVisible();
+  });
+
   test("hidden Obsidian hero is not keyboard focusable on Classic", async ({ page }) => {
     await renderBoard(page, await fixture("mlb-classic-payload.json"));
 

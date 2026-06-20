@@ -33,6 +33,7 @@ async function loadDetailScript(getMlbBoard) {
   installDetailDom();
   window.BoardWiseApi = /** @type {any} */ ({ getMlbBoard });
   await import("../assets/js/wise-choice.js");
+  await import("../assets/js/mlb-team-branding.js");
   await import("../assets/js/mlb-game-detail.js");
 }
 
@@ -80,7 +81,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
   delete window.BoardWiseApi;
   delete window.BoardWiseWiseChoice;
+  delete window.BoardWiseMlbBranding;
   delete (/** @type {any} */ (window)).__BoardWiseGameDetailTestHooks;
+  delete (/** @type {any} */ (window)).__BoardWiseMlbBrandingTestHooks;
   document.body.innerHTML = "";
   window.history.replaceState({}, "", "/");
 });
@@ -131,6 +134,32 @@ describe("mlb game detail", () => {
     expect(text).not.toContain("[object Object]");
   });
 
+  it("renders shared team branding in the detail hero", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    const payload = clone(FULL_PAYLOAD);
+    const getMlbBoard = vi.fn().mockResolvedValue(payload);
+
+    await loadDetailScript(getMlbBoard);
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    const game = payload.games[0];
+    const expected = window.BoardWiseMlbBranding?.resolveMatchupBranding(game);
+    const awaySide = /** @type {HTMLElement} */ (document.querySelector(".gd-hero .tot-side.away"));
+    const homeSide = /** @type {HTMLElement} */ (document.querySelector(".gd-hero .tot-side.home"));
+    const awayLogo = /** @type {HTMLImageElement} */ (awaySide.querySelector("[data-team-logo]"));
+    const bar = /** @type {HTMLElement} */ (document.querySelector(".gd-hero .tot-bar"));
+
+    expect(awayLogo.getAttribute("src")).toBe("/assets/img/mlb/team-logos/tor.svg");
+    expect(awayLogo.getAttribute("alt")).toBe("");
+    expect(awayLogo.getAttribute("width")).toBe("64");
+    expect(awayLogo.getAttribute("height")).toBe("64");
+    expect(awaySide.style.getPropertyValue("--team-fill")).toBe(expected?.away.fill);
+    expect(homeSide.style.getPropertyValue("--team-fill")).toBe(expected?.home.fill);
+    expect(bar.style.getPropertyValue("--away-team-fill")).toBe(expected?.away.fill);
+    expect(bar.style.getPropertyValue("--home-team-fill")).toBe(expected?.home.fill);
+    expect(bar.getAttribute("aria-label")).toBe("Toronto Blue Jays 45.9%, Boston Red Sox 54.1%");
+  });
+
   it("renders the gated Free detail without premium market data", async () => {
     window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
     const getMlbBoard = vi.fn().mockResolvedValue(previewPayload([clone(PREVIEW_GAME)]));
@@ -158,6 +187,27 @@ describe("mlb game detail", () => {
     expect(text).not.toContain("EV");
     expect(text).not.toContain("-205");
     expect(text).not.toContain("+9.1%");
+  });
+
+  it("keeps logo fallback from revealing premium data in preview detail", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    const getMlbBoard = vi.fn().mockResolvedValue(previewPayload([clone(PREVIEW_GAME)]));
+
+    await loadDetailScript(getMlbBoard);
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    const img = /** @type {HTMLImageElement} */ (document.querySelector(".gd-hero .tot-side.away [data-team-logo]"));
+    img.dispatchEvent(new Event("error"));
+    const mark = /** @type {HTMLElement} */ (img.closest(".tot-team-mark"));
+    expect(mark.classList.contains("logo-failed")).toBe(true);
+    expect(mark.querySelector(".tot-team-fallback")?.textContent).toBe("TOR");
+    const detail = document.querySelector("#gd-detail");
+    const text = detail?.textContent || "";
+    expect(detail?.querySelector(".gd-wise")).toBeNull();
+    expect(detail?.querySelector(".gd-mkt-option")).toBeNull();
+    expect(text).not.toContain("Odds");
+    expect(text).not.toContain("Edge");
+    expect(text).not.toContain("EV");
   });
 
   it("shows a Pro gate when the requested game is missing from a preview board", async () => {

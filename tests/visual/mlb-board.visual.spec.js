@@ -14,6 +14,72 @@ async function fixture(name) {
   return JSON.parse(raw);
 }
 
+async function waitForTeamMarks(page) {
+  await page.waitForFunction(() => {
+    const marks = [...document.querySelectorAll(".tot-team-mark")];
+    return marks.length > 0 && marks.every((mark) => {
+      const img = mark.querySelector("img[data-team-logo]");
+      const fallback = mark.querySelector(".tot-team-fallback");
+      if (!fallback) return false;
+      if (!img) return window.getComputedStyle(fallback).display !== "none";
+      if (img instanceof HTMLImageElement && img.complete && img.naturalWidth > 0) return true;
+      return mark.classList.contains("logo-failed") && window.getComputedStyle(fallback).display !== "none";
+    });
+  });
+}
+
+function collisionPayload(basePayload) {
+  const payload = structuredClone(basePayload);
+  const official = {
+    selection_text: "Cardinals Moneyline",
+    label: "Cardinals Moneyline",
+    sportsbook: "BookA",
+    odds_text: "-125",
+    model_probability_text: "52.8%",
+    market_probability_text: "50.4%",
+    edge_text: "+2.4%",
+    ev_text: "+0.04u",
+    is_official: true,
+  };
+  payload.games[0] = {
+    ...payload.games[0],
+    game_label: "Reds at Cardinals",
+    away_team: "Cincinnati Reds",
+    home_team: "St. Louis Cardinals",
+    away_team_abbr: "CIN",
+    home_team_abbr: "STL",
+    away_pitcher: "Away Starter",
+    home_pitcher: "Home Starter",
+    lineup_status_away: "projected",
+    lineup_status_home: "confirmed",
+    away_win_prob_text: "47.2%",
+    home_win_prob_text: "52.8%",
+    favorite_team: "St. Louis Cardinals",
+    favorite_prob_text: "52.8%",
+    best_card_options: { wise_choice: official },
+    recommendations: [official],
+    market_dropdowns: [
+      {
+        title: "Money Line",
+        market_key: "h2h",
+        options: [
+          official,
+          {
+            selection_text: "Cincinnati Reds Moneyline",
+            label: "Reds Moneyline",
+            sportsbook: "BookA",
+            odds_text: "+115",
+            model_probability_text: "47.2%",
+            market_probability_text: "49.6%",
+            edge_text: "-2.4%",
+          },
+        ],
+      },
+    ],
+  };
+  return payload;
+}
+
 async function mockBoardPayload(page, payload) {
   await page.addInitScript((now) => {
     Date.now = () => now;
@@ -52,6 +118,7 @@ async function renderBoard(page, payload, query = "") {
   await page.evaluate(async () => {
     if (document.fonts?.ready) await document.fonts.ready;
   });
+  await waitForTeamMarks(page);
 }
 
 test.describe("MLB board visual baselines", () => {
@@ -75,7 +142,26 @@ test.describe("MLB board visual baselines", () => {
     await expect(page.locator(".best-card")).toBeVisible();
     await expect(page.locator(".market-summary-head")).toBeHidden();
     await expect(page.locator(".market-summary-selection").first()).toBeVisible();
+    await expect(page.locator(".market-summary-row").first().locator(".market-summary-call")).toBeHidden();
+    await expect(page.locator(".market-summary-row").first().locator(".market-summary-edge")).toBeVisible();
+    await page.locator(".market-dropdown:not(.tracker-market-dropdown)").first().evaluate((dropdown) => {
+      dropdown.setAttribute("open", "");
+    });
+    await expect(page.locator(".market-dropdown:not(.tracker-market-dropdown) .option-badge.official").first()).toBeVisible();
     await expect(page).toHaveScreenshot("mlb-classic-mobile.png", { fullPage: true });
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    expect(overflow).toBe(false);
+  });
+
+  test("Color-collision mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await renderBoard(page, collisionPayload(await fixture("mlb-classic-payload.json")));
+
+    await expect(page.locator(".tot-side.away")).toHaveAttribute("style", /--team-fill:#000000/);
+    await expect(page.locator(".tot-side.home")).toHaveAttribute("style", /--team-fill:#C41E3A/);
+    await expect(page.locator(".market-summary-row").first().locator(".market-summary-call")).toBeHidden();
+    await expect(page.locator(".market-summary-row").first().locator(".market-summary-edge")).toBeVisible();
+    await expect(page).toHaveScreenshot("mlb-color-collision-mobile.png", { fullPage: true });
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
     expect(overflow).toBe(false);
   });
@@ -145,7 +231,7 @@ test.describe("MLB board visual baselines", () => {
   });
 
   test("Classic board has no horizontal overflow across required widths", async ({ page }) => {
-    for (const width of [320, 390, 720, 1024, 1280]) {
+    for (const width of [320, 375, 390, 430, 720, 1024, 1280]) {
       await page.setViewportSize({ width, height: 844 });
       await renderBoard(page, await fixture("mlb-classic-payload.json"));
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);

@@ -39,6 +39,8 @@
 
 html {
   background: var(--bw-page);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -409,7 +411,6 @@ h1 {
 
 .official-plays-pill,
 .gd-official-pill,
-.market-summary-call.official,
 .option-badge.official {
   display: inline-flex;
   align-items: center;
@@ -444,28 +445,54 @@ h1 {
   align-content: start;
 }
 
-.tot-abbr {
+.tot-team-mark {
   width: 52px;
   height: 52px;
-  border-radius: 50%;
   margin: 0 auto 8px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
-  font-weight: 900;
+  overflow: hidden;
+  background: #ffffff;
+  border: 2px solid var(--team-fill, var(--bw-navy));
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.10);
+  flex: none;
+}
+
+.tot-team-logo {
+  display: block;
+  width: 78%;
+  height: 78%;
+  max-width: 78%;
+  max-height: 78%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.tot-team-fallback {
+  display: none;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  background: var(--team-fill, var(--bw-navy));
+  color: var(--team-on-fill, #ffffff);
   font-size: 15px;
-  color: #ffffff;
-  background: var(--bw-navy-muted);
+  font-weight: 800;
+  line-height: 1;
 }
 
-.tot-side.is-favored .tot-abbr {
-  background: var(--bw-navy);
+.tot-team-mark:not(.has-logo) .tot-team-logo,
+.tot-team-mark.logo-failed .tot-team-logo {
+  display: none;
 }
 
-.tot-side.is-underdog .tot-abbr {
-  background: var(--bw-navy-muted);
+.tot-team-mark:not(.has-logo) .tot-team-fallback,
+.tot-team-mark.logo-failed .tot-team-fallback {
+  display: grid;
 }
 
 .tot-team {
+  min-width: 0;
   width: 100%;
   font-size: 14px;
   font-weight: 800;
@@ -475,6 +502,7 @@ h1 {
 }
 
 .tot-pitcher {
+  min-width: 0;
   width: 100%;
   margin-top: 2px;
   color: var(--bw-navy-muted);
@@ -487,6 +515,8 @@ h1 {
 .lineup-tag {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
+  min-width: 0;
   min-height: 20px;
   margin-top: 5px;
   padding: 2px 8px;
@@ -516,18 +546,10 @@ h1 {
 
 .tot-prob {
   margin-top: 8px;
-  color: var(--bw-navy-muted);
+  color: var(--team-prob-light, var(--bw-ink));
   font-size: 42px;
   font-weight: 900;
   line-height: 1;
-}
-
-.tot-side.is-favored .tot-prob {
-  color: var(--bw-navy);
-}
-
-.tot-side.is-underdog .tot-prob {
-  color: var(--bw-navy-muted);
 }
 
 .tot-prob .pct {
@@ -568,21 +590,22 @@ h1 {
   background: var(--bw-underdog-bar);
 }
 
-.tot-bar-away,
-.tot-bar-home,
-.tot-mobile-away,
+.tot-bar-away {
+  background: var(--away-team-fill, var(--bw-underdog-bar));
+  box-shadow: inset 0 -1px rgba(255, 255, 255, 0.86);
+}
+
+.tot-bar-home {
+  background: var(--home-team-fill, var(--bw-navy));
+}
+
+.tot-mobile-away {
+  background: var(--away-team-fill, var(--bw-underdog-bar));
+  box-shadow: inset -1px 0 rgba(255, 255, 255, 0.86);
+}
+
 .tot-mobile-home {
-  background: var(--bw-underdog-bar);
-}
-
-.tot-bar-segment.is-favored,
-.tot-mobile-segment.is-favored {
-  background: var(--bw-navy);
-}
-
-.tot-bar-segment.is-underdog,
-.tot-mobile-segment.is-underdog {
-  background: var(--bw-underdog-bar);
+  background: var(--home-team-fill, var(--bw-navy));
 }
 
 .tot-vs {
@@ -822,7 +845,7 @@ h1 {
 }
 
 .market-summary-head,
-.market-dropdown summary {
+.market-summary-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 76px 76px 92px 18px;
   gap: 10px;
@@ -845,24 +868,25 @@ h1 {
   border-top: 1px solid var(--bw-row-border);
 }
 
-.market-dropdown summary {
+.market-summary-row {
   min-height: 46px;
-  padding: 12px;
+  padding: 10px 12px;
   cursor: pointer;
   list-style: none;
   font-size: 13px;
   font-weight: 800;
 }
 
-.market-dropdown summary::-webkit-details-marker {
+.market-summary-row::-webkit-details-marker {
   display: none;
 }
 
-.market-dropdown summary:hover {
+.market-summary-row:hover {
   background: #fbfaf7;
 }
 
 .market-summary-selection {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -870,8 +894,14 @@ h1 {
 
 .market-summary-model,
 .market-summary-edge,
-.market-summary-call,
-.market-summary-chevron {
+.market-summary-call {
+  min-width: 0;
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.market-summary-model,
+.market-summary-edge {
   text-align: right;
 }
 
@@ -882,14 +912,28 @@ h1 {
   text-transform: uppercase;
 }
 
-.market-summary-call.official {
-  justify-self: end;
+.market-call-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
   padding: 4px 8px;
+}
+
+.market-call-pill.official {
+  justify-self: end;
   background: var(--bw-navy);
   color: #ffffff;
 }
 
+.market-call-pill.pass {
+  color: var(--bw-navy-muted);
+}
+
 .market-summary-chevron {
+  width: 18px;
+  justify-self: end;
+  text-align: center;
   color: var(--bw-navy-muted);
   font-size: 17px;
   line-height: 1;
@@ -1296,13 +1340,17 @@ h1 {
   padding: 0;
 }
 
-.gd-hero .tot-abbr {
+.gd-hero .tot-team-mark {
   width: 58px;
   height: 58px;
+}
+
+.gd-hero .tot-team-fallback {
   font-size: 16px;
 }
 
 .gd-hero .tot-prob {
+  color: var(--team-prob-light, var(--bw-ink));
   font-size: 46px;
 }
 
@@ -1763,11 +1811,14 @@ h1 {
     gap: 6px;
   }
 
-  .tot-abbr {
+  .mlb-board-page .tot-team-mark {
     width: 42px;
     height: 42px;
-    font-size: 13px;
     margin-bottom: 6px;
+  }
+
+  .mlb-board-page .tot-team-fallback {
+    font-size: 12px;
   }
 
   .tot-team {
@@ -1842,10 +1893,11 @@ h1 {
     display: none;
   }
 
-  .market-dropdown summary {
-    min-height: 44px;
-    grid-template-columns: minmax(0, 1fr) 74px 18px;
-    gap: 8px;
+  .market-summary-row {
+    grid-template-columns: minmax(0, 1fr) max-content 18px;
+    gap: 10px;
+    min-height: 48px;
+    padding: 12px;
   }
 
   .market-summary-model,
@@ -1853,8 +1905,25 @@ h1 {
     display: none;
   }
 
+  .market-summary-selection {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .market-summary-edge {
+    display: block;
+    min-width: 62px;
+    justify-self: end;
     text-align: right;
+    white-space: nowrap;
+  }
+
+  .market-summary-chevron {
+    width: 18px;
+    min-width: 18px;
+    justify-self: end;
   }
 
   .option-metrics {
@@ -1926,30 +1995,24 @@ h1 {
     padding: 0 0 10px;
   }
 
-  .gd-hero .tot-abbr {
-    width: 40px;
-    height: 40px;
-    background: var(--bw-navy-soft);
+  .gd-hero .tot-team-mark {
+    width: 44px;
+    height: 44px;
   }
 
-  .gd-hero .tot-side.is-favored .tot-abbr {
-    background: var(--bw-gold);
-    color: #1a1408;
+  .gd-hero .tot-team-fallback {
+    font-size: 12px;
   }
 
   .gd-hero .tot-prob,
   .gd-hero .tot-side.is-favored .tot-prob,
   .gd-hero .tot-side.is-underdog .tot-prob {
-    color: #ffffff;
-  }
-
-  .gd-hero .tot-side.is-favored .tot-prob {
+    color: var(--team-prob-dark, #ffffff);
     font-size: 26px;
   }
 
   .gd-hero .tot-side.is-underdog .tot-prob {
     font-size: 24px;
-    color: var(--bw-navy-on-dark);
   }
 
   .gd-hero .tot-team,
@@ -2047,8 +2110,9 @@ h1 {
     padding: 7px 6px;
   }
 
-  .market-dropdown summary {
-    grid-template-columns: minmax(0, 1fr) 64px 16px;
+  .market-summary-row {
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .gd-locked-row {

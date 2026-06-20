@@ -815,7 +815,71 @@ function teamAbbrText(team, abbr) {
   return "—";
 }
 
-function renderTotSide(game, which, showProbs) {
+function resolveGameBranding(game) {
+  const helper = window.BoardWiseMlbBranding;
+  return helper && typeof helper.resolveMatchupBranding === "function"
+    ? helper.resolveMatchupBranding(game)
+    : { away: null, home: null };
+}
+
+function bindRenderedLogos(root) {
+  const helper = window.BoardWiseMlbBranding;
+  if (helper && typeof helper.bindLogoFallbacks === "function") {
+    helper.bindLogoFallbacks(root);
+  }
+}
+
+function teamBrandStyle(sideBranding) {
+  if (!sideBranding) return "";
+  return [
+    `--team-fill:${sideBranding.fill}`,
+    `--team-prob-light:${sideBranding.textOnLight}`,
+    `--team-prob-dark:${sideBranding.textOnDark}`,
+    `--team-on-fill:${sideBranding.onFill}`,
+  ].join(";");
+}
+
+function teamMarkStyle(sideBranding) {
+  if (!sideBranding) return "";
+  return [
+    `--team-fill:${sideBranding.fill}`,
+    `--team-on-fill:${sideBranding.onFill}`,
+  ].join(";");
+}
+
+function matchupBarStyle(matchupBranding) {
+  if (!matchupBranding?.away || !matchupBranding?.home) return "";
+  return [
+    `--away-team-fill:${matchupBranding.away.fill}`,
+    `--home-team-fill:${matchupBranding.home.fill}`,
+  ].join(";");
+}
+
+function renderTeamMark(team, abbr, sideBranding) {
+  const fallback = teamAbbrText(team, abbr);
+  const logoPath = sideBranding?.brand?.logoPath || "";
+  const className = logoPath ? "tot-team-mark has-logo" : "tot-team-mark";
+  const style = teamMarkStyle(sideBranding);
+  return `
+    <div class="${className}"${style ? ` style="${esc(style)}"` : ""} aria-hidden="true">
+      ${logoPath ? `<img class="tot-team-logo" data-team-logo src="${esc(logoPath)}" alt="" width="64" height="64" decoding="async">` : ""}
+      <span class="tot-team-fallback">${esc(fallback)}</span>
+    </div>
+  `;
+}
+
+function sideAriaLabel({ isHome, team, abbr, pitcher, lineup, prob, showProbs, odds }) {
+  const parts = [
+    `${isHome ? "Home" : "Away"} team ${team || teamAbbrText(team, abbr)}`,
+    `Starting pitcher ${pitcher || "Pitcher TBD"}`,
+  ];
+  if (lineup) parts.push(`Lineup ${lineup}`);
+  parts.push(`Win probability ${percentText(prob, showProbs)}`);
+  if (odds) parts.push(`Moneyline ${odds}`);
+  return `${parts.join(". ")}.`;
+}
+
+function renderTotSide(game, which, showProbs, sideBranding) {
   const isHome = which === "home";
   const team = isHome ? game.home_team : game.away_team;
   const abbr = isHome ? game.home_team_abbr : game.away_team_abbr;
@@ -827,10 +891,11 @@ function renderTotSide(game, which, showProbs) {
   const odds = moneylineOddsFor(game, which);
   const lineupClass = ["confirmed", "projected"].includes(String(lineup)) ? String(lineup) : "unknown";
   const tone = sideToneClass(game, which);
-  const sideLabel = `${isHome ? "Home" : "Away"} team ${team || teamAbbrText(team, abbr)}. Starting pitcher ${pitcher || "TBD"}. Win probability ${percentText(prob, showProbs)}.`;
+  const sideStyle = teamBrandStyle(sideBranding);
+  const sideLabel = sideAriaLabel({ isHome, team, abbr, pitcher, lineup, prob, showProbs, odds });
   return `
-    <div class="tot-side ${which} ${tone}" aria-label="${esc(sideLabel)}">
-      <div class="tot-abbr" aria-hidden="true">${esc(teamAbbrText(team, abbr))}</div>
+    <div class="tot-side ${which} ${tone}"${sideStyle ? ` style="${esc(sideStyle)}"` : ""} aria-label="${esc(sideLabel)}">
+      ${renderTeamMark(team, abbr, sideBranding)}
       <div class="tot-team">${esc(team || (isHome ? "Home" : "Away"))}</div>
       <div class="tot-pitcher">${esc(pitcher || "Pitcher TBD")}</div>
       ${lineup ? `<span class="lineup-tag ${lineupClass}">${esc(lineup)}</span>` : ""}
@@ -840,16 +905,17 @@ function renderTotSide(game, which, showProbs) {
   `;
 }
 
-function renderTotCenter(game, showProbs) {
+function renderTotCenter(game, showProbs, matchupBranding) {
   const split = probabilitySplit(game, showProbs);
   const label = probabilitySplitLabel(game, split, showProbs);
   const awayTone = sideToneClass(game, "away");
   const homeTone = sideToneClass(game, "home");
   const total = game.projected_total_text ? String(game.projected_total_text) : "";
+  const barStyle = matchupBarStyle(matchupBranding);
   return `
     <div class="tot-center">
       <div class="tot-winprob-label">Win Prob</div>
-      <div class="tot-bar" role="img" aria-label="${esc(label)}">
+      <div class="tot-bar" role="img" aria-label="${esc(label)}"${barStyle ? ` style="${esc(barStyle)}"` : ""}>
         <div class="tot-bar-away tot-bar-segment ${awayTone}" style="height:${split.awayPct.toFixed(1)}%"></div>
         <div class="tot-bar-home tot-bar-segment ${homeTone}" style="height:${split.homePct.toFixed(1)}%"></div>
       </div>
@@ -859,15 +925,16 @@ function renderTotCenter(game, showProbs) {
   `;
 }
 
-function renderTotMobileSplit(game, showProbs) {
+function renderTotMobileSplit(game, showProbs, matchupBranding) {
   const split = probabilitySplit(game, showProbs);
   const label = probabilitySplitLabel(game, split, showProbs);
   const awayTone = sideToneClass(game, "away");
   const homeTone = sideToneClass(game, "home");
   const total = game.projected_total_text ? String(game.projected_total_text) : "";
+  const barStyle = matchupBarStyle(matchupBranding);
   return `
     <div class="tot-mobile-split">
-      <div class="tot-mobile-bar" role="img" aria-label="${esc(label)}">
+      <div class="tot-mobile-bar" role="img" aria-label="${esc(label)}"${barStyle ? ` style="${esc(barStyle)}"` : ""}>
         <div class="tot-mobile-away tot-mobile-segment ${awayTone}" style="width:${split.awayPct.toFixed(1)}%"></div>
         <div class="tot-mobile-home tot-mobile-segment ${homeTone}" style="width:${split.homePct.toFixed(1)}%"></div>
       </div>
@@ -878,6 +945,7 @@ function renderTotMobileSplit(game, showProbs) {
 }
 
 function renderTaleOfTape(game, showProbs = true) {
+  const matchupBranding = resolveGameBranding(game);
   const when = [game.commence_time, game.venue].filter(Boolean).join(" · ");
   const label = gameLabel(game);
   const href = gameDetailHref(game);
@@ -892,11 +960,11 @@ function renderTaleOfTape(game, showProbs = true) {
       ${official}
     </div>
     <div class="tot-tape">
-      ${renderTotSide(game, "away", showProbs)}
-      ${renderTotCenter(game, showProbs)}
-      ${renderTotSide(game, "home", showProbs)}
+      ${renderTotSide(game, "away", showProbs, matchupBranding.away)}
+      ${renderTotCenter(game, showProbs, matchupBranding)}
+      ${renderTotSide(game, "home", showProbs, matchupBranding.home)}
     </div>
-    ${renderTotMobileSplit(game, showProbs)}
+    ${renderTotMobileSplit(game, showProbs, matchupBranding)}
     ${game.board_state_label ? `<div class="state-badge">${esc(game.board_state_label)}</div>` : ""}
     ${game.board_state_note ? `<div class="board-state-note">${esc(game.board_state_note)}</div>` : ""}
   `;
@@ -1146,9 +1214,10 @@ function renderTrackerMarketDropdowns(game) {
     <div class="dropdown-stack tracker-dropdown-stack">${dropdowns.map((market) => {
     const outcomes = Array.isArray(market.outcomes) ? market.outcomes : [];
     const title = trackerMarketLabel(market);
+    const summaryLabel = `${title}. Tracking Only. Expand tracking-only market details.`;
     return `
       <details class="market-dropdown tracker-market-dropdown">
-        <summary>
+        <summary class="market-summary-row" aria-label="${esc(summaryLabel)}">
           <span class="market-summary-selection">${esc(title)}</span>
           <span class="market-summary-model"></span>
           <span class="market-summary-edge"></span>
@@ -1207,17 +1276,26 @@ function marketRowSelection(market, option) {
   return `${title} · ${selection}`;
 }
 
+function renderMarketCall(official) {
+  const label = official ? "Official" : "Pass";
+  return `<span class="market-call-pill ${official ? "official" : "pass"}">${label}</span>`;
+}
+
 function renderMarketSummaryRow(market) {
   const representative = representativeMarketOption(market);
   const official = Boolean(representative?.is_official === true && !isTrackingOnlyOption(representative));
+  const selection = marketRowSelection(market, representative);
+  const model = representative?.model_probability_text || representative?.model_prob_text || "—";
   const edge = representative?.edge_text || "";
+  const call = official ? "Official" : "Pass";
+  const summaryLabel = `${selection}. Model ${model}. Edge ${edge || "—"}. ${call}. Expand market details.`;
   return `
     <details class="market-dropdown">
-      <summary>
-        <span class="market-summary-selection">${esc(marketRowSelection(market, representative))}</span>
-        <span class="market-summary-model tnum">${esc(representative?.model_probability_text || representative?.model_prob_text || "—")}</span>
+      <summary class="market-summary-row" aria-label="${esc(summaryLabel)}">
+        <span class="market-summary-selection">${esc(selection)}</span>
+        <span class="market-summary-model tnum">${esc(model)}</span>
         <span class="market-summary-edge ${valueToneClass(edge)} tnum">${esc(edge || "—")}</span>
-        <span class="market-summary-call ${official ? "official" : ""}">${official ? "Official" : "Pass"}</span>
+        <span class="market-summary-call">${renderMarketCall(official)}</span>
         <span class="market-summary-chevron" aria-hidden="true">›</span>
       </summary>
       <div class="dropdown-body">${marketOptions(market).map(renderOptionCard).join("") || `<div class="forecast-only-note">No market options are available for this market yet.</div>`}</div>
@@ -1254,7 +1332,7 @@ function renderModelDetails(game) {
   if (!detailRows.length && !game.model_details_projected_score && !game.model_version) return "";
   return `
     <details class="market-dropdown">
-      <summary>
+      <summary class="market-summary-row" aria-label="Model Details. Auxiliary. Expand model details.">
         <span class="market-summary-selection">Model Details</span>
         <span class="market-summary-model"></span>
         <span class="market-summary-edge"></span>
@@ -1353,6 +1431,7 @@ function renderBoard() {
     gamesEl.innerHTML = games.length
       ? `${games.map(renderPreviewGame).join("")}${renderPreviewUpgradeCard()}`
       : renderPreviewUpgradeCard();
+    bindRenderedLogos(gamesEl);
     return;
   }
   if (state.mode !== "full_board") {
@@ -1361,6 +1440,7 @@ function renderBoard() {
     gamesEl.innerHTML = filteredBets.length
       ? filteredBets.map(renderBetPill).join("")
       : `<article class="empty-state">No recommended bets match this filter.</article>`;
+    bindRenderedLogos(gamesEl);
     return;
   }
   gamesEl.className = "tile-list";
@@ -1368,6 +1448,7 @@ function renderBoard() {
   gamesEl.innerHTML = filtered.length
     ? filtered.map((game) => renderGame(game, "wise_choice")).join("")
     : `<article class="empty-state">No games match this filter.</article>`;
+  bindRenderedLogos(gamesEl);
 }
 
 function showAccessError(error) {
@@ -1449,6 +1530,7 @@ if (["", "localhost", "127.0.0.1"].includes(window.location.hostname)) {
     getTrackerMarketMetadata,
     shouldShowObsidianTreatment,
     favoredSide,
+    resolveGameBranding,
     representativeMarketOption,
     wiseBucketForScore,
     wiseStatusText

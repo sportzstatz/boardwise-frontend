@@ -181,11 +181,45 @@ interface BoardWiseWiseChoiceApi {
   ): BoardWiseWiseChoiceBetItem[];
 }
 
+interface BoardWiseMlbTeamBrand {
+  key: string;
+  teamId: number | null;
+  abbr: string;
+  logoPath: string;
+  primary: string;
+  secondary: string;
+  tertiary: string;
+}
+
+interface BoardWiseMlbResolvedSideBrand {
+  brand: BoardWiseMlbTeamBrand;
+  fill: string;
+  textOnLight: string;
+  textOnDark: string;
+  onFill: string;
+  collisionFallback: "primary" | "secondary" | "tertiary" | "neutral";
+}
+
+interface BoardWiseMlbBrandingApi {
+  getTeamBrand(input: {
+    teamId?: number | string | null;
+    id?: number | string | null;
+    abbr?: string | null;
+    name?: string | null;
+  }): BoardWiseMlbTeamBrand;
+  resolveMatchupBranding(game: any): {
+    away: BoardWiseMlbResolvedSideBrand;
+    home: BoardWiseMlbResolvedSideBrand;
+  };
+  bindLogoFallbacks(root?: Document | Element): void;
+}
+
 interface Window {
   BOARDWISE_API_BASE?: string;
   BoardWiseApi?: BoardWiseApiClient;
   BoardWiseAuth?: BoardWiseAuthApi;
   BoardWiseGates?: BoardWiseGatesApi;
   BoardWiseWiseChoice?: BoardWiseWiseChoiceApi;
+  BoardWiseMlbBranding?: BoardWiseMlbBrandingApi;
   turnstile?: TurnstileApi;
 }

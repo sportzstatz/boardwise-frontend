@@ -18,6 +18,7 @@
     "tests/**/*.js",
     "playwright.a11y.config.js",
     "playwright.contract.config.js",
+    "playwright.mobile-webkit.config.js",
     "playwright.visual.config.js",
     "vite.config.js",
     "vitest.config.js",

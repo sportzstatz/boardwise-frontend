@@ -196,6 +196,70 @@ function teamAbbrText(team, abbr) {
   return "—";
 }
 
+function resolveGameBranding(game) {
+  const helper = window.BoardWiseMlbBranding;
+  return helper && typeof helper.resolveMatchupBranding === "function"
+    ? helper.resolveMatchupBranding(game)
+    : { away: null, home: null };
+}
+
+function bindRenderedLogos(root) {
+  const helper = window.BoardWiseMlbBranding;
+  if (helper && typeof helper.bindLogoFallbacks === "function") {
+    helper.bindLogoFallbacks(root);
+  }
+}
+
+function teamBrandStyle(sideBranding) {
+  if (!sideBranding) return "";
+  return [
+    `--team-fill:${sideBranding.fill}`,
+    `--team-prob-light:${sideBranding.textOnLight}`,
+    `--team-prob-dark:${sideBranding.textOnDark}`,
+    `--team-on-fill:${sideBranding.onFill}`,
+  ].join(";");
+}
+
+function teamMarkStyle(sideBranding) {
+  if (!sideBranding) return "";
+  return [
+    `--team-fill:${sideBranding.fill}`,
+    `--team-on-fill:${sideBranding.onFill}`,
+  ].join(";");
+}
+
+function matchupBarStyle(matchupBranding) {
+  if (!matchupBranding?.away || !matchupBranding?.home) return "";
+  return [
+    `--away-team-fill:${matchupBranding.away.fill}`,
+    `--home-team-fill:${matchupBranding.home.fill}`,
+  ].join(";");
+}
+
+function renderTeamMark(team, abbr, sideBranding) {
+  const fallback = teamAbbrText(team, abbr);
+  const logoPath = sideBranding?.brand?.logoPath || "";
+  const className = logoPath ? "tot-team-mark has-logo" : "tot-team-mark";
+  const style = teamMarkStyle(sideBranding);
+  return `
+    <div class="${className}"${style ? ` style="${esc(style)}"` : ""} aria-hidden="true">
+      ${logoPath ? `<img class="tot-team-logo" data-team-logo src="${esc(logoPath)}" alt="" width="64" height="64" decoding="async">` : ""}
+      <span class="tot-team-fallback">${esc(fallback)}</span>
+    </div>
+  `;
+}
+
+function sideAriaLabel({ isHome, team, abbr, pitcher, lineup, prob, odds }) {
+  const parts = [
+    `${isHome ? "Home" : "Away"} team ${team || teamAbbrText(team, abbr)}`,
+    `Starting pitcher ${pitcher || "Pitcher TBD"}`,
+  ];
+  if (lineup) parts.push(`Lineup ${lineup}`);
+  parts.push(`Win probability ${percentText(prob)}`);
+  if (odds) parts.push(`Moneyline ${odds}`);
+  return `${parts.join(". ")}.`;
+}
+
 function isTrackingOnly(option) {
   return Boolean(option && (option.tracking_only || option.is_tracking_only));
 }
@@ -253,6 +317,7 @@ function lockIcon(size = 20) {
 }
 
 function renderHero(game) {
+  const matchupBranding = resolveGameBranding(game);
   const split = probabilitySplit(game);
   const splitLabel = probabilitySplitLabel(game, split);
   const awayMl = moneylineOddsFor(game, "away");
@@ -268,10 +333,12 @@ function renderHero(game) {
     const odds = isHome ? homeMl : awayMl;
     const lineupClass = ["confirmed", "projected"].includes(String(lineup)) ? String(lineup) : "unknown";
     const tone = sideToneClass(game, which);
-    const sideLabel = `${isHome ? "Home" : "Away"} team ${team || teamAbbrText(team, abbr)}. Starting pitcher ${pitcher || "TBD"}. Win probability ${percentText(prob)}.`;
+    const sideBranding = isHome ? matchupBranding.home : matchupBranding.away;
+    const sideStyle = teamBrandStyle(sideBranding);
+    const sideLabel = sideAriaLabel({ isHome, team, abbr, pitcher, lineup, prob, odds });
     return `
-      <div class="tot-side ${which} ${tone}" aria-label="${esc(sideLabel)}">
-        <div class="tot-abbr" aria-hidden="true">${esc(teamAbbrText(team, abbr))}</div>
+      <div class="tot-side ${which} ${tone}"${sideStyle ? ` style="${esc(sideStyle)}"` : ""} aria-label="${esc(sideLabel)}">
+        ${renderTeamMark(team, abbr, sideBranding)}
         <div class="tot-team">${esc(team || (isHome ? "Home" : "Away"))}</div>
         <div class="tot-pitcher">${esc(pitcher || "Pitcher TBD")}</div>
         ${lineup ? `<span class="lineup-tag ${lineupClass}">${esc(lineup)}</span>` : ""}
@@ -281,13 +348,14 @@ function renderHero(game) {
   };
   const awayTone = sideToneClass(game, "away");
   const homeTone = sideToneClass(game, "home");
+  const barStyle = matchupBarStyle(matchupBranding);
   return `
     <section class="gd-hero">
       <div class="tot-tape">
         ${side("away")}
         <div class="tot-center">
           <div class="tot-winprob-label">Win Prob</div>
-          <div class="tot-bar" role="img" aria-label="${esc(splitLabel)}">
+          <div class="tot-bar" role="img" aria-label="${esc(splitLabel)}"${barStyle ? ` style="${esc(barStyle)}"` : ""}>
             <div class="tot-bar-away tot-bar-segment ${awayTone}" style="height:${split.awayPct.toFixed(1)}%"></div>
             <div class="tot-bar-home tot-bar-segment ${homeTone}" style="height:${split.homePct.toFixed(1)}%"></div>
           </div>
@@ -297,7 +365,7 @@ function renderHero(game) {
         ${side("home")}
       </div>
       <div class="tot-mobile-split">
-        <div class="tot-mobile-bar" role="img" aria-label="${esc(splitLabel)}">
+        <div class="tot-mobile-bar" role="img" aria-label="${esc(splitLabel)}"${barStyle ? ` style="${esc(barStyle)}"` : ""}>
           <div class="tot-mobile-away tot-mobile-segment ${awayTone}" style="width:${split.awayPct.toFixed(1)}%"></div>
           <div class="tot-mobile-home tot-mobile-segment ${homeTone}" style="width:${split.homePct.toFixed(1)}%"></div>
         </div>
@@ -638,6 +706,7 @@ function renderDetail() {
   gdEls.detail.innerHTML = isPreviewPayload(payload)
     ? renderFreeDetail(payload, game)
     : renderProDetail(payload, game);
+  bindRenderedLogos(gdEls.detail);
   setHidden(gdEls.loading, true);
   setHidden(gdEls.error, true);
   setHidden(gdEls.detail, false);
@@ -698,6 +767,7 @@ if (["", "localhost", "127.0.0.1"].includes(window.location.hostname)) {
     winProbs,
     favoriteIsHome,
     favoredSide,
+    resolveGameBranding,
     findGame,
     accessLevel,
   });
