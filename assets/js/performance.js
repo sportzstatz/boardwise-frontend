@@ -346,6 +346,23 @@ const els = {
   marketToggle: elementById("f-market-toggle"),
   marketMenu: elementById("f-market-menu"),
   marketInput: inputById("f-market"),
+  scopeButtons: document.querySelectorAll("[data-performance-scope-button]"),
+  rangeButtons: document.querySelectorAll("[data-range-days]"),
+  advancedToggle: elementById("advanced-filter-toggle"),
+  advancedPanel: elementById("advanced-filters"),
+  filterSummary: elementById("performance-filter-summary"),
+  summaryReset: document.querySelector("[data-filter-reset]"),
+  heroValue: elementById("chart-hero-value"),
+  roiPill: elementById("chart-roi-pill"),
+  chartEyebrow: elementById("chart-eyebrow"),
+  breakdownHeading: elementById("breakdown-heading"),
+  breakdownPrimaryHeading: elementById("breakdown-primary-heading"),
+  breakdownRangeHeading: elementById("breakdown-range-heading"),
+  breakdownHealthHeading: elementById("breakdown-health-heading"),
+  breakdownCards: elementById("breakdown-cards"),
+  picksCards: elementById("picks-cards"),
+  picksSummary: elementById("picks-summary"),
+  bookCmpCards: elementById("book-comparison-cards"),
 };
 
 function esc(value) {
@@ -395,9 +412,18 @@ function clearPerformanceData() {
   if (els.kpiGrid) els.kpiGrid.innerHTML = "";
   if (els.emptySummary) els.emptySummary.textContent = "";
   if (els.breakdownTable) els.breakdownTable.innerHTML = "";
+  if (els.breakdownCards) els.breakdownCards.innerHTML = "";
   if (els.picksTable) els.picksTable.innerHTML = "";
+  if (els.picksCards) els.picksCards.innerHTML = "";
+  if (els.picksSummary) els.picksSummary.textContent = "Showing the latest filtered picks, including pending entries.";
   if (els.bookCmpTable) els.bookCmpTable.innerHTML = "";
+  if (els.bookCmpCards) els.bookCmpCards.innerHTML = "";
   if (els.bookCmpSummary) els.bookCmpSummary.textContent = "";
+  if (els.heroValue) els.heroValue.textContent = "Loading";
+  if (els.roiPill) {
+    els.roiPill.textContent = "ROI loading";
+    els.roiPill.className = "performance-roi-pill tnum";
+  }
   clearChartState();
 }
 
@@ -419,6 +445,11 @@ function showAccessDenied(err) {
   setHidden(els.chartEmpty, false);
   if (els.chartEmpty) els.chartEmpty.textContent = message;
   if (els.chartMeta) els.chartMeta.textContent = "Access required";
+  if (els.heroValue) els.heroValue.textContent = "Access required";
+  if (els.roiPill) {
+    els.roiPill.textContent = "Admin only";
+    els.roiPill.className = "performance-roi-pill tnum";
+  }
 }
 
 function isIsoDate(value) {
@@ -519,6 +550,9 @@ function applyFiltersToForm(filters) {
       ? String(filters[GROUP_KEY])
       : DEFAULT_GROUP;
   }
+  syncScopeButtons(filters.performance_scope);
+  syncRangeButtons(filters);
+  renderBreakdownHeader(filters[GROUP_KEY] || DEFAULT_GROUP);
 }
 
 function readFiltersFromForm() {
@@ -617,6 +651,154 @@ function fmtDelta(value, { digits = 2, asPct = true } = {}) {
   return asPct ? `${sign}${(n * 100).toFixed(digits)}%` : `${sign}${n.toFixed(digits)}`;
 }
 
+function parseRecord(record) {
+  const match = String(record || "").trim().match(/^(\d+)\s*[-–]\s*(\d+)(?:\s*[-–]\s*(\d+))?(?:\s*[-–]\s*(\d+))?$/);
+  if (!match) return null;
+  return {
+    wins: Number(match[1]),
+    losses: Number(match[2]),
+    pushes: Number(match[3] || 0),
+    voids: Number(match[4] || 0),
+  };
+}
+
+function calculateWinRate(record) {
+  const parsed = parseRecord(record);
+  if (!parsed) return null;
+  const denominator = parsed.wins + parsed.losses;
+  if (denominator <= 0) return null;
+  return parsed.wins / denominator;
+}
+
+function toneForNumber(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "";
+  return n > 0 ? "positive" : n < 0 ? "negative" : "";
+}
+
+function todayIso() {
+  return new Date(Date.now()).toISOString().slice(0, 10);
+}
+
+function addDaysIso(value, days) {
+  const base = isIsoDate(value) ? new Date(`${value}T00:00:00Z`) : new Date(`${todayIso()}T00:00:00Z`);
+  base.setUTCDate(base.getUTCDate() + days);
+  return base.toISOString().slice(0, 10);
+}
+
+function dateLabel(value) {
+  if (!isIsoDate(value)) return "";
+  const date = new Date(`${value}T00:00:00Z`);
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+function dateRangeLabel(filters) {
+  const start = filters.start_date || "";
+  const end = filters.end_date || "";
+  if (start && end) return `${dateLabel(start)} - ${dateLabel(end)}`;
+  if (start) return `${dateLabel(start)} onward`;
+  if (end) return `Through ${dateLabel(end)}`;
+  return "Available range";
+}
+
+function activeDatePreset(filters) {
+  const sport = filters.sport || selectedSport();
+  const floor = currentMinVisibleDate(sport);
+  const end = filters.end_date || todayIso();
+  const start = filters.start_date || "";
+  if (floor && start === floor) return "available";
+  if (start === clampStartDate(addDaysIso(end, -29), sport)) return "30";
+  if (start === clampStartDate(addDaysIso(end, -89), sport)) return "90";
+  return "";
+}
+
+function syncScopeButtons(scope) {
+  const active = normalisePerformanceScope(scope);
+  for (const button of els.scopeButtons || []) {
+    if (!(button instanceof HTMLButtonElement)) continue;
+    const key = normalisePerformanceScope(button.getAttribute("data-performance-scope-button"));
+    button.setAttribute("aria-pressed", key === active ? "true" : "false");
+  }
+}
+
+function syncRangeButtons(filters) {
+  const active = activeDatePreset(filters);
+  for (const button of els.rangeButtons || []) {
+    if (!(button instanceof HTMLButtonElement)) continue;
+    button.setAttribute(
+      "aria-pressed",
+      button.getAttribute("data-range-days") === active ? "true" : "false"
+    );
+  }
+}
+
+function setAdvancedFiltersOpen(open) {
+  if (els.advancedToggle) els.advancedToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  setHidden(els.advancedPanel, !open);
+}
+
+function filterValueLabel(selectId, fallback = "All") {
+  const sel = selectById(selectId);
+  if (!sel || !sel.value) return fallback;
+  return sel.selectedOptions && sel.selectedOptions[0]
+    ? sel.selectedOptions[0].textContent || sel.value
+    : sel.value;
+}
+
+function updateFilterSummary(filters) {
+  syncScopeButtons(filters.performance_scope);
+  syncRangeButtons(filters);
+  const sportButton = document.querySelector('[data-filter-shortcut="sport"]');
+  const dateButton = document.querySelector('[data-filter-shortcut="dates"]');
+  const marketButton = document.querySelector('[data-filter-shortcut="markets"]');
+  const bookButton = document.querySelector('[data-filter-shortcut="book"]');
+  if (sportButton) sportButton.textContent = filterValueLabel("f-sport", "MLB").toUpperCase();
+  if (dateButton) dateButton.textContent = dateRangeLabel(filters);
+  if (marketButton) marketButton.textContent = marketSummaryText(filters.market_keys || "");
+  if (bookButton) bookButton.textContent = filterValueLabel("f-book", "All books");
+}
+
+function groupLabel(groupBy) {
+  const labels = {
+    wise_choice_bucket: "Wise Tier",
+    confidence_bucket: "Confidence bucket",
+    model_probability_bucket: "Model probability bucket",
+    model_version: "Model version",
+    model_family: "Model family",
+    sport: "Sport",
+    market: "Market",
+    book: "Bookmaker",
+    prediction_mode: "Prediction mode",
+    date: "Date",
+  };
+  return labels[groupBy] || "Group";
+}
+
+function renderBreakdownHeader(groupBy) {
+  const label = groupLabel(groupBy);
+  const isWiseTier = groupBy === "wise_choice_bucket";
+  if (els.breakdownHeading) els.breakdownHeading.textContent = `By ${label}`;
+  if (els.breakdownPrimaryHeading) els.breakdownPrimaryHeading.textContent = isWiseTier ? "Tier" : label;
+  if (els.breakdownRangeHeading) els.breakdownRangeHeading.textContent = isWiseTier ? "Range" : "Context";
+  if (els.breakdownHealthHeading) els.breakdownHealthHeading.textContent = isWiseTier ? "Tier health" : "Health";
+}
+
+function applyDatePreset(preset) {
+  const next = readFiltersFromForm();
+  const sport = next.sport || selectedSport() || DEFAULT_SPORT;
+  const end = clampEndDate(next.end_date || todayIso(), sport);
+  next.end_date = end;
+  if (preset === "available") {
+    next.start_date = currentMinVisibleDate(sport);
+  } else {
+    const days = Number(preset);
+    if (Number.isFinite(days) && days > 0) {
+      next.start_date = clampStartDate(addDaysIso(end, -(days - 1)), sport);
+    }
+  }
+  refresh(next);
+}
+
 function kpiCard(label, value, sub, tone) {
   const cls = tone ? `kpi ${tone}` : "kpi";
   return `<div class="${cls}">
@@ -626,7 +808,18 @@ function kpiCard(label, value, sub, tone) {
   </div>`;
 }
 
+function updateHeroRoi(summary) {
+  if (!els.roiPill) return;
+  els.roiPill.className = `performance-roi-pill tnum ${toneForNumber(summary && summary.roi)}`.trim();
+  if (!summary || summary.roi === null || summary.roi === undefined || !Number.isFinite(Number(summary.roi))) {
+    els.roiPill.textContent = "ROI N/A";
+    return;
+  }
+  els.roiPill.textContent = `${fmtDelta(summary.roi, { digits: 1, asPct: true })} ROI`;
+}
+
 function renderSummary(summary) {
+  updateHeroRoi(summary);
   if (!summary || summary.pick_count === 0) {
     setHidden(els.kpiGrid, true);
     setHidden(els.emptySummary, false);
@@ -658,6 +851,7 @@ function renderSummary(summary) {
   setHidden(els.emptySummary, true);
   setHidden(els.kpiGrid, false);
 
+  const winRate = calculateWinRate(summary.record);
   const clvCoverage = summary.clv_coverage;
   const avgClv = summary.avg_clv_prob_delta;
   const clvValue = (clvCoverage && Number(clvCoverage) > 0 && avgClv !== null && avgClv !== undefined)
@@ -670,11 +864,10 @@ function renderSummary(summary) {
   els.kpiGrid.innerHTML = [
     kpiCard("Record", summary.record || "0-0-0", `${fmtNumber(settled)} settled`),
     kpiCard("Net units", fmtUnits(summary.units_won), `Risked ${fmtNumber(summary.units_risked)}u`,
-      Number(summary.units_won) > 0 ? "positive" : Number(summary.units_won) < 0 ? "negative" : ""),
-    kpiCard("ROI", fmtPct(summary.roi), `${fmtNumber(summary.units_risked)}u risked`, roiTone),
-    kpiCard("Avg CLV", clvValue, clvSub),
-    kpiCard("CLV coverage", clvCoverage === null || clvCoverage === undefined ? "N/A" : fmtPct(clvCoverage, { digits: 0 }),
-      `${fmtNumber(summary.clv_count)} of ${fmtNumber(settled)} settled`),
+      toneForNumber(summary.units_won)),
+    kpiCard("ROI", summary.roi === null || summary.roi === undefined ? "N/A" : fmtDelta(summary.roi, { digits: 1, asPct: true }), `${fmtNumber(summary.units_risked)}u risked`, roiTone),
+    kpiCard("Win rate", winRate === null ? "N/A" : fmtPct(winRate, { digits: 1 }), "Pushes/voids excluded"),
+    kpiCard("Avg CLV", clvValue, clvSub, toneForNumber(avgClv)),
     kpiCard("Settled / Pending", `${fmtNumber(settled)} / ${fmtNumber(pending)}`,
       `${fmtNumber(summary.pick_count)} total`),
   ].join("");
@@ -683,8 +876,10 @@ function renderSummary(summary) {
 function renderBreakdown(payload) {
   const tbody = els.breakdownTable;
   tbody.innerHTML = "";
+  if (els.breakdownCards) els.breakdownCards.innerHTML = "";
   const groups = (payload && Array.isArray(payload.groups)) ? payload.groups : [];
   const isWiseTier = payload && payload.group_by === "wise_choice_bucket";
+  renderBreakdownHeader(payload && payload.group_by ? payload.group_by : DEFAULT_GROUP);
   if (!groups.length) {
     setHidden(els.breakdownEmpty, false);
     els.breakdownEmpty.textContent = "No grouped rows for these filters yet.";
@@ -702,18 +897,51 @@ function renderBreakdown(payload) {
     const avgClv = (g.clv_coverage && Number(g.clv_coverage) > 0 && g.avg_clv_prob_delta !== null && g.avg_clv_prob_delta !== undefined)
       ? fmtDelta(g.avg_clv_prob_delta, { digits: 2, asPct: true })
       : "N/A";
+    const unitsTone = toneForNumber(g.units_won);
+    const roiTone = toneForNumber(g.roi);
+    const clvTone = toneForNumber(g.avg_clv_prob_delta);
     return `<tr>
       <td>${esc(tierMeta.tier)}</td>
       <td>${esc(tierMeta.range)}</td>
       <td><span class="pill-tag">${esc(tierStatus)}</span></td>
       <td class="num">${esc(fmtNumber(g.pick_count))}</td>
       <td>${esc(g.record || "0-0-0")}</td>
-      <td class="num">${esc(fmtUnits(g.units_won))}</td>
-      <td class="num">${esc(roi)}</td>
-      <td class="num">${esc(avgClv)}</td>
+      <td class="num ${esc(unitsTone)}">${esc(fmtUnits(g.units_won))}</td>
+      <td class="num ${esc(roiTone)}">${esc(roi)}</td>
+      <td class="num ${esc(clvTone)}">${esc(avgClv)}</td>
     </tr>`;
   }).join("");
   tbody.innerHTML = html;
+
+  if (els.breakdownCards) {
+    els.breakdownCards.innerHTML = groups.map((g) => {
+      const label = g.group_value === null || g.group_value === undefined || g.group_value === ""
+        ? "(unknown)"
+        : g.group_value;
+      const tierMeta = isWiseTier ? wiseTierMetaFromGroup(g) : { tier: label, range: "—" };
+      const tierStatus = isWiseTier ? tierHealthStatus(g) : "Tracking";
+      const avgClv = (g.clv_coverage && Number(g.clv_coverage) > 0 && g.avg_clv_prob_delta !== null && g.avg_clv_prob_delta !== undefined)
+        ? fmtDelta(g.avg_clv_prob_delta, { digits: 2, asPct: true })
+        : "N/A";
+      return `<article class="performance-data-card">
+        <div class="performance-data-card__head">
+          <div>
+            <div class="performance-data-card__title">${esc(tierMeta.tier)}</div>
+            <div class="performance-data-card__sub">${esc(isWiseTier ? `Range ${tierMeta.range}` : groupLabel(payload.group_by))}</div>
+          </div>
+          <span class="pill-tag">${esc(tierStatus)}</span>
+        </div>
+        <div class="performance-data-card__grid">
+          <div class="performance-data-card__metric"><span>Picks</span><strong class="tnum">${esc(fmtNumber(g.pick_count))}</strong></div>
+          <div class="performance-data-card__metric"><span>Record</span><strong class="tnum">${esc(g.record || "0-0-0")}</strong></div>
+          <div class="performance-data-card__metric"><span>Units</span><strong class="tnum ${esc(toneForNumber(g.units_won))}">${esc(fmtUnits(g.units_won))}</strong></div>
+          <div class="performance-data-card__metric"><span>ROI</span><strong class="tnum ${esc(toneForNumber(g.roi))}">${esc(g.roi === null || g.roi === undefined ? "N/A" : fmtPct(g.roi))}</strong></div>
+          <div class="performance-data-card__metric"><span>Avg CLV</span><strong class="tnum ${esc(toneForNumber(g.avg_clv_prob_delta))}">${esc(avgClv)}</strong></div>
+          <div class="performance-data-card__metric"><span>Health</span><strong>${esc(tierStatus)}</strong></div>
+        </div>
+      </article>`;
+    }).join("");
+  }
 }
 
 function statusPill(pick) {
@@ -733,51 +961,131 @@ function fmtAmerican(price) {
   return n > 0 ? `+${n}` : `${n}`;
 }
 
+function pickSelection(pick) {
+  return [pick.outcome_name || pick.outcome_side, pick.line !== null && pick.line !== undefined ? pick.line : ""]
+    .filter((x) => x !== "" && x !== null && x !== undefined).join(" ");
+}
+
+function renderPickDetails(pick, index) {
+  const modelPct = pick.model_probability === null || pick.model_probability === undefined
+    ? "N/A"
+    : fmtPct(pick.model_probability, { digits: 1 });
+  const kellyPct = pick.kelly_fraction === null || pick.kelly_fraction === undefined
+    ? "N/A"
+    : fmtPct(pick.kelly_fraction, { digits: 1 });
+  return `<div class="pick-detail-grid">
+    <div><span>Market</span><strong>${esc(pick.market_key || "—")}</strong></div>
+    <div><span>Kelly</span><strong class="tnum">${esc(kellyPct)}</strong></div>
+    <div><span>EV rating</span><strong>${esc(pick.ev_rating_label || "—")}</strong></div>
+    <div><span>Model confidence</span><strong>${esc(pick.confidence_bucket_label || pick.confidence_bucket_key || "—")}</strong></div>
+    <div><span>Result detail</span><strong>${esc((pick.result_status || "").toUpperCase() || (pick.is_settled ? "—" : "Pending"))}</strong></div>
+    <div><span>Model version</span><strong>${esc(pick.model_version || "—")}</strong></div>
+    <div><span>Model family</span><strong>${esc(modelFamilyLabel(pick.model_family))}</strong></div>
+    <div><span>Detail id</span><strong class="tnum">${esc(String(index + 1))}</strong></div>
+    <div><span>Model probability</span><strong class="tnum">${esc(modelPct)}</strong></div>
+    <div><span>Book</span><strong>${esc(pick.bookmaker_title || pick.bookmaker_key || "—")}</strong></div>
+  </div>`;
+}
+
 function renderPicks(payload) {
   const tbody = els.picksTable;
   tbody.innerHTML = "";
+  if (els.picksCards) els.picksCards.innerHTML = "";
   const picks = (payload && Array.isArray(payload.picks)) ? payload.picks : [];
   if (!picks.length) {
     setHidden(els.picksEmpty, false);
     els.picksEmpty.textContent = "No picks for these filters.";
+    if (els.picksSummary) els.picksSummary.textContent = "No picks match the current filters.";
     return;
   }
   setHidden(els.picksEmpty, true);
-  const html = picks.map((p) => {
+  if (els.picksSummary) {
+    els.picksSummary.textContent = `Showing the latest ${picks.length} pick${picks.length === 1 ? "" : "s"}. Refine filters to narrow this history.`;
+  }
+  const html = picks.map((p, index) => {
     const game = p.game_label || "";
-    const selection = [p.outcome_name || p.outcome_side, p.line !== null && p.line !== undefined ? p.line : ""]
-      .filter((x) => x !== "" && x !== null && x !== undefined).join(" ");
+    const selection = pickSelection(p);
     const modelPct = p.model_probability === null || p.model_probability === undefined
       ? "N/A"
       : fmtPct(p.model_probability, { digits: 1 });
     const wiseText = wiseStatusText(p.wise_choice_bucket_key || p.wise_choice_status);
-    const kellyPct = p.kelly_fraction === null || p.kelly_fraction === undefined
-      ? "N/A"
-      : fmtPct(p.kelly_fraction, { digits: 1 });
     const unitsWon = p.is_settled ? fmtUnits(p.units_won) : "—";
     const clv = (p.clv_prob_delta === null || p.clv_prob_delta === undefined)
       ? "N/A"
       : fmtDelta(p.clv_prob_delta, { digits: 2, asPct: true });
+    const detailId = `pick-detail-${index}`;
     return `<tr>
       <td>${esc(p.target_date || "")}</td>
       <td>${esc(modelFamilyLabel(p.model_family))}</td>
       <td>${esc(game)}</td>
-      <td>${esc(p.market_key || "")}</td>
       <td>${esc(selection)}</td>
-      <td>${esc(p.bookmaker_title || p.bookmaker_key || "")}</td>
-      <td class="num">${esc(fmtAmerican(p.price_american))}</td>
+      <td>${esc(p.bookmaker_title || p.bookmaker_key || "")} <span class="tnum">${esc(fmtAmerican(p.price_american))}</span></td>
       <td class="num">${esc(modelPct)}</td>
       <td>${esc(wiseText)}</td>
-      <td class="num">${esc(kellyPct)}</td>
-      <td>${esc(p.ev_rating_label || "—")}</td>
-      <td>${esc(p.confidence_bucket_label || p.confidence_bucket_key || "—")}</td>
       <td>${statusPill(p)}</td>
-      <td>${esc((p.result_status || "").toUpperCase() || (p.is_settled ? "—" : ""))}</td>
-      <td class="num">${esc(unitsWon)}</td>
-      <td class="num">${esc(clv)}</td>
+      <td class="num ${esc(toneForNumber(p.units_won))}">${esc(unitsWon)}</td>
+      <td class="num ${esc(toneForNumber(p.clv_prob_delta))}">${esc(clv)}</td>
+      <td><button class="pick-details-toggle" type="button" aria-expanded="false" aria-controls="${esc(detailId)}">Details</button></td>
+    </tr>
+    <tr id="${esc(detailId)}" class="pick-detail-row" hidden>
+      <td colspan="11" class="pick-detail-cell">${renderPickDetails(p, index)}</td>
     </tr>`;
   }).join("");
   tbody.innerHTML = html;
+
+  tbody.querySelectorAll(".pick-details-toggle").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (!(button instanceof HTMLButtonElement)) return;
+      const detailId = button.getAttribute("aria-controls") || "";
+      const detail = document.getElementById(detailId);
+      const open = button.getAttribute("aria-expanded") === "true";
+      button.setAttribute("aria-expanded", open ? "false" : "true");
+      setHidden(detail, open);
+    });
+  });
+
+  if (els.picksCards) {
+    els.picksCards.innerHTML = picks.map((p, index) => {
+      const selection = pickSelection(p);
+      const modelPct = p.model_probability === null || p.model_probability === undefined
+        ? "N/A"
+        : fmtPct(p.model_probability, { digits: 1 });
+      const wiseText = wiseStatusText(p.wise_choice_bucket_key || p.wise_choice_status);
+      const unitsWon = p.is_settled ? fmtUnits(p.units_won) : "—";
+      const clv = (p.clv_prob_delta === null || p.clv_prob_delta === undefined)
+        ? "N/A"
+        : fmtDelta(p.clv_prob_delta, { digits: 2, asPct: true });
+      const detailId = `pick-card-detail-${index}`;
+      return `<article class="performance-data-card">
+        <div class="performance-data-card__head">
+          <div>
+            <div class="performance-data-card__title">${esc(p.game_label || "Game")}</div>
+            <div class="performance-data-card__sub">${esc(p.target_date || "")}</div>
+          </div>
+          ${statusPill(p)}
+        </div>
+        <div class="performance-data-card__grid">
+          <div class="performance-data-card__metric"><span>Selection</span><strong>${esc(selection || "—")} <span class="tnum">${esc(fmtAmerican(p.price_american))}</span></strong></div>
+          <div class="performance-data-card__metric"><span>Book</span><strong>${esc(p.bookmaker_title || p.bookmaker_key || "—")}</strong></div>
+          <div class="performance-data-card__metric"><span>Model %</span><strong class="tnum">${esc(modelPct)}</strong></div>
+          <div class="performance-data-card__metric"><span>Wise Tier</span><strong>${esc(wiseText)}</strong></div>
+          <div class="performance-data-card__metric"><span>Units</span><strong class="tnum ${esc(toneForNumber(p.units_won))}">${esc(unitsWon)}</strong></div>
+          <div class="performance-data-card__metric"><span>CLV</span><strong class="tnum ${esc(toneForNumber(p.clv_prob_delta))}">${esc(clv)}</strong></div>
+        </div>
+        <button class="pick-details-toggle" type="button" aria-expanded="false" aria-controls="${esc(detailId)}">Details</button>
+        <div id="${esc(detailId)}" class="pick-detail-panel" hidden>${renderPickDetails(p, index)}</div>
+      </article>`;
+    }).join("");
+    els.picksCards.querySelectorAll(".pick-details-toggle").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (!(button instanceof HTMLButtonElement)) return;
+        const detail = document.getElementById(button.getAttribute("aria-controls") || "");
+        const open = button.getAttribute("aria-expanded") === "true";
+        button.setAttribute("aria-expanded", open ? "false" : "true");
+        setHidden(detail, open);
+      });
+    });
+  }
 }
 
 function fmtUnitsSigned(n, digits = 2) {
@@ -825,6 +1133,7 @@ function renderChart(payload) {
     els.chartEmpty.textContent =
       "No settled picks for these filters yet — the curve will appear once results post.";
     if (els.chartMeta) els.chartMeta.textContent = "0 settled days";
+    if (els.heroValue) els.heroValue.textContent = "0.00u";
     return;
   }
   setHidden(els.chartEmpty, true);
@@ -906,7 +1215,7 @@ function renderChart(payload) {
     .join("");
 
   const svg = `
-<svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Cumulative units curve">
+<svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Cumulative units from ${esc(series[0].date)} through ${esc(series[series.length - 1].date)} ending at ${esc(fmtUnitsSigned(series[series.length - 1].cumulative))}">
   <defs>
     <clipPath id="chart-clip-pos"><rect x="0" y="0" width="${W}" height="${Math.max(0, zeroY).toFixed(2)}"></rect></clipPath>
     <clipPath id="chart-clip-neg"><rect x="0" y="${zeroY.toFixed(2)}" width="${W}" height="${Math.max(0, H - zeroY).toFixed(2)}"></rect></clipPath>
@@ -976,6 +1285,10 @@ function renderChart(payload) {
       `<strong class="${cumCls}">${esc(fmtUnitsSigned(last.cumulative))}</strong> over ${esc(String(series.length))} settled day${series.length === 1 ? "" : "s"}` +
       ` · ${esc(String(totalSettled))} pick${totalSettled === 1 ? "" : "s"}` +
       ` · ${esc(totalRisked.toFixed(2))}u risked`;
+  }
+  if (els.heroValue) {
+    const last = series[series.length - 1];
+    els.heroValue.textContent = fmtUnitsSigned(last.cumulative);
   }
 }
 
@@ -1054,6 +1367,7 @@ function renderBookComparison(payload) {
   const tbody = els.bookCmpTable;
   if (!tbody) return;
   tbody.innerHTML = "";
+  if (els.bookCmpCards) els.bookCmpCards.innerHTML = "";
   const rows = (payload && Array.isArray(payload.rows)) ? payload.rows : [];
 
   if (els.bookCmpSummary) {
@@ -1091,8 +1405,8 @@ function renderBookComparison(payload) {
       <td class="num">${esc(fmtNumber(r.pick_count))}</td>
       <td>${esc(r.record || "0-0-0")}</td>
       <td class="num">${esc(fmtNumber(r.units_risked))}</td>
-      <td class="num">${esc(fmtUnits(r.units_won))}</td>
-      <td class="num">${esc(roi)}</td>
+      <td class="num ${esc(toneForNumber(r.units_won))}">${esc(fmtUnits(r.units_won))}</td>
+      <td class="num ${esc(toneForNumber(r.roi))}">${esc(roi)}</td>
       <td class="num">${esc(avgPrice)}</td>
       <td class="num">${esc(fmtNumber(r.best_price_count))}</td>
       <td class="num">${esc(bestRate)}</td>
@@ -1100,6 +1414,34 @@ function renderBookComparison(payload) {
     </tr>`;
   }).join("");
   tbody.innerHTML = html;
+
+  if (els.bookCmpCards) {
+    els.bookCmpCards.innerHTML = rows.map((r) => {
+      const roi = r.roi === null || r.roi === undefined ? "N/A" : fmtPct(r.roi);
+      const avgPrice = r.avg_price_decimal === null || r.avg_price_decimal === undefined
+        ? "N/A"
+        : Number(r.avg_price_decimal).toFixed(3);
+      const bestRate = r.best_price_rate === null || r.best_price_rate === undefined
+        ? "N/A"
+        : fmtPct(r.best_price_rate, { digits: 0 });
+      return `<article class="performance-data-card">
+        <div class="performance-data-card__head">
+          <div>
+            <div class="performance-data-card__title">${esc(r.pricing_bookmaker_title || r.pricing_bookmaker_key || "Book")}</div>
+            <div class="performance-data-card__sub">${esc(fmtNumber(r.pick_count))} comparable pick${Number(r.pick_count) === 1 ? "" : "s"}</div>
+          </div>
+        </div>
+        <div class="performance-data-card__grid">
+          <div class="performance-data-card__metric"><span>ROI</span><strong class="tnum ${esc(toneForNumber(r.roi))}">${esc(roi)}</strong></div>
+          <div class="performance-data-card__metric"><span>Units</span><strong class="tnum ${esc(toneForNumber(r.units_won))}">${esc(fmtUnits(r.units_won))}</strong></div>
+          <div class="performance-data-card__metric"><span>Record</span><strong class="tnum">${esc(r.record || "0-0-0")}</strong></div>
+          <div class="performance-data-card__metric"><span>Risked</span><strong class="tnum">${esc(fmtNumber(r.units_risked))}u</strong></div>
+          <div class="performance-data-card__metric"><span>Avg price</span><strong class="tnum">${esc(avgPrice)}</strong></div>
+          <div class="performance-data-card__metric"><span>Best price</span><strong class="tnum">${esc(fmtNumber(r.best_price_count))} (${esc(bestRate)})</strong></div>
+        </div>
+      </article>`;
+    }).join("");
+  }
 }
 
 async function loadBookComparison(filters) {
@@ -1114,6 +1456,7 @@ async function loadBookComparison(filters) {
     setHidden(els.bookCmpEmpty, false);
     els.bookCmpEmpty.textContent = `Could not load book comparison: ${err.message}`;
     els.bookCmpTable.innerHTML = "";
+    if (els.bookCmpCards) els.bookCmpCards.innerHTML = "";
   }
 }
 
@@ -1238,6 +1581,7 @@ async function loadFilters(filters, { preloaded = null } = {}) {
     fillSelect("f-model-family", data.model_families || [], { currentValue: filters.model_family || "" });
     fillSelect("f-mode", data.prediction_modes || [], { currentValue: filters.prediction_mode || "" });
     populateBookComparisonBooks(data.bookmakers || []);
+    updateFilterSummary(filters);
     return true;
   } catch (err) {
     if (isAccessDeniedError(err)) {
@@ -1365,6 +1709,7 @@ async function refresh(filters, { preloadedFilters = null } = {}) {
   if (normalized.end_date) normalized.end_date = clampEndDate(normalized.end_date, normalized.sport || "");
   applyFiltersToForm(normalized);
   writeFiltersToUrl(normalized);
+  updateFilterSummary(normalized);
 
   await loadAll(normalized);
 }
@@ -1395,6 +1740,7 @@ async function init() {
 
   const filters = readFilters();
   applyFiltersToForm(filters);
+  updateFilterSummary(filters);
 
   els.form.addEventListener("submit", (ev) => {
     ev.preventDefault();
@@ -1402,7 +1748,7 @@ async function init() {
     refresh(next);
   });
 
-  els.reset.addEventListener("click", () => {
+  function resetPerformanceFilters() {
     const next = {
       official_only: true,
       settled_only: true,
@@ -1413,6 +1759,53 @@ async function init() {
     const floor = currentMinVisibleDate(DEFAULT_SPORT);
     if (floor) next.start_date = floor;
     refresh(next);
+  }
+
+  els.reset.addEventListener("click", resetPerformanceFilters);
+
+  if (els.summaryReset) {
+    els.summaryReset.addEventListener("click", resetPerformanceFilters);
+  }
+
+  if (els.advancedToggle) {
+    els.advancedToggle.addEventListener("click", () => {
+      const open = els.advancedToggle?.getAttribute("aria-expanded") === "true";
+      setAdvancedFiltersOpen(!open);
+    });
+  }
+
+  for (const button of els.scopeButtons || []) {
+    if (!(button instanceof HTMLButtonElement)) continue;
+    button.addEventListener("click", () => {
+      const scope = normalisePerformanceScope(button.getAttribute("data-performance-scope-button"));
+      const scopeEl = fieldById("f-performance-scope");
+      if (scopeEl) scopeEl.value = scope;
+      const next = readFiltersFromForm();
+      refresh(next);
+    });
+  }
+
+  for (const button of els.rangeButtons || []) {
+    if (!(button instanceof HTMLButtonElement)) continue;
+    button.addEventListener("click", () => {
+      applyDatePreset(button.getAttribute("data-range-days") || "");
+    });
+  }
+
+  document.querySelectorAll("[data-filter-shortcut]").forEach((button) => {
+    button.addEventListener("click", () => {
+      setAdvancedFiltersOpen(true);
+      const key = button.getAttribute("data-filter-shortcut");
+      const focusMap = {
+        sport: "f-sport",
+        dates: "f-start",
+        markets: "f-market-toggle",
+        book: "f-book",
+      };
+      const targetId = focusMap[key] || "";
+      const target = targetId ? document.getElementById(targetId) : null;
+      if (target instanceof HTMLElement) target.focus();
+    });
   });
 
   const sportEl = document.getElementById("f-sport");
@@ -1447,7 +1840,19 @@ async function init() {
   });
 
   document.addEventListener("keydown", (ev) => {
-    if (ev.key === "Escape") setMarketMenuOpen(false);
+    if (ev.key === "Escape") {
+      setMarketMenuOpen(false);
+      const target = ev.target;
+      if (
+        els.advancedPanel &&
+        !els.advancedPanel.hasAttribute("hidden") &&
+        target instanceof Node &&
+        els.advancedPanel.contains(target)
+      ) {
+        setAdvancedFiltersOpen(false);
+        if (els.advancedToggle instanceof HTMLElement) els.advancedToggle.focus();
+      }
+    }
   });
 
   const modelFamilyEl = document.getElementById("f-model-family");
@@ -1457,6 +1862,23 @@ async function init() {
       refresh(next);
     });
   }
+
+  const settledEl = inputById("f-settled");
+  if (settledEl) {
+    settledEl.addEventListener("change", () => {
+      const next = readFiltersFromForm();
+      refresh(next);
+    });
+  }
+
+  ["f-start", "f-end"].forEach((id) => {
+    const input = inputById(id);
+    if (input) {
+      input.addEventListener("change", () => {
+        updateFilterSummary(readFiltersFromForm());
+      });
+    }
+  });
 
   els.groupBy.addEventListener("change", () => {
     const next = readFiltersFromForm();

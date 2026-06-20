@@ -5,87 +5,252 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BoardWise</title>
   <meta name="description" content="BoardWise turns sportsbook odds into ranked betting opportunities.">
-  <style>
-    :root { --bg:#f7f7f5; --panel:#ffffff; --ink:#101828; --muted:#667085; --line:#d0d5dd; --accent:#0f4c81; --shadow:0 10px 24px rgba(16,24,40,0.07); }
-    * { box-sizing: border-box; }
-    [hidden] { display: none !important; }
-    body { margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--ink); }
-    .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 18px 48px; }
-    .hero { background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 1px solid var(--line); border-radius: 18px; padding: 24px; box-shadow: var(--shadow); }
-    h1 { margin: 0 0 10px; font-size: clamp(30px, 4vw, 48px); line-height: 1.05; }
-    .subtitle { margin: 0; color: var(--muted); line-height: 1.5; max-width: 72ch; }
-    .pill-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
-    .pill { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 8px 12px; color: var(--muted); font-size: 13px; }
-    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
-    .card { display: grid; gap: 12px; padding: 20px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
-    .label { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-    .title { font-size: 26px; font-weight: 800; line-height: 1.1; }
-    .body { color: var(--muted); line-height: 1.5; }
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
-    .button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border-radius: 999px; text-decoration: none; font-weight: 700; border: 1px solid var(--line); color: var(--ink); background: #fcfcfd; }
-    .button.primary { background: var(--accent); border-color: var(--accent); color: #ffffff; }
-    .button.disabled { color: var(--muted); cursor: not-allowed; opacity: 0.7; }
-    .footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
-    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
-  </style>
+  <link rel="stylesheet" href="/assets/css/boardwise-theme.css">
+  <link rel="stylesheet" href="/assets/css/landing.css">
 </head>
-<body>
-  <div class="wrap">
-    <section class="hero">
-      <h1>BoardWise</h1>
-      <p class="subtitle">BoardWise turns sportsbook odds into ranked betting opportunities.</p>
-      <p class="subtitle">Every pick is scored by expected value, Kelly strength, model probability, and line quality — then tracked publicly by record, units, ROI, and CLV.</p>
-      <div class="pill-row">
-        <div class="pill">Model-rated picks</div>
-        <div class="pill">Transparent performance</div>
-        <div class="pill">EV, Kelly, and probability</div>
-        <div class="pill">Tracked results</div>
+<body class="landing-page">
+  <header class="landing-topbar">
+    <div class="landing-topbar__inner">
+      <a class="bw-brand bw-brand--light" href="/" aria-label="BoardWise home">
+        <span class="bw-brand__mark" aria-hidden="true">B</span>
+        <span class="bw-brand__name">BoardWise</span>
+      </a>
+      <nav class="landing-anchor-nav" aria-label="Landing page">
+        <a href="#boards">Boards</a>
+        <a href="#proof">Transparency</a>
+        <a href="#how">How it works</a>
+      </nav>
+      <div class="landing-account-actions">
+        <a class="bw-button bw-button--secondary" href="/login/" data-auth-guest>Sign in</a>
+        <a class="bw-button bw-button--gold" href="/pricing/" data-auth-guest>Join beta</a>
+        <a class="bw-button bw-button--secondary" href="/account/" data-auth-authenticated hidden>
+          <span data-auth-label>Account</span>
+          <span class="bw-account-avatar" data-auth-initials aria-hidden="true">A</span>
+        </a>
       </div>
-      <div class="actions" style="margin-top: 16px;">
-        <a class="button primary" href="/mlb/">View Today’s MLB Forecast</a>
-        <a class="button" href="/performance/" data-feature-visible="performance_summary" hidden>See Performance</a>
-        <a class="button" href="/account/" data-auth-authenticated data-auth-label>Account</a>
+    </div>
+  </header>
+
+  <main class="landing-shell">
+    <section class="landing-hero" aria-labelledby="landing-title">
+      <div class="landing-hero__inner">
+        <div>
+          <div class="landing-hero__badge" id="landing-hero-status" role="status" aria-atomic="true">
+            <span class="landing-hero__badge-dot" aria-hidden="true"></span>
+            <span>Daily MLB model board</span>
+          </div>
+          <h1 id="landing-title">Every board.<br>Every edge.<br><span>One read.</span></h1>
+          <p class="landing-hero__copy">BoardWise compares model probability with market price and ranks opportunities by edge, expected value, and Kelly strength so each board has one clear read.</p>
+          <div class="landing-hero__actions">
+            <a id="landing-primary-cta" class="bw-button bw-button--gold" href="/login/?return_to=/mlb/">View today's MLB board</a>
+            <a class="bw-button bw-button--ghost-dark" href="#how">See how scoring works</a>
+          </div>
+          <div class="landing-hero__facts">
+            <span>No credit card to sign in</span>
+            <span>Plan-based board access</span>
+          </div>
+        </div>
+
+        <div class="landing-preview" aria-label="Illustrative BoardWise matchup card">
+          <div class="landing-preview__top">
+            <div>
+              <div class="landing-preview__meta">Sample matchup - model preview</div>
+              <div class="landing-preview__matchup">Blue Jays at Red Sox</div>
+            </div>
+            <span class="landing-preview__label">Illustrative</span>
+          </div>
+          <div class="landing-preview__body">
+            <div class="landing-preview__team" style="--team-color:#1f5fa8;--team-prob-color:#7d8a98">
+              <div class="landing-preview__team-mark" aria-hidden="true">TOR</div>
+              <div class="landing-preview__team-name">Blue Jays</div>
+              <div class="landing-preview__prob tnum">45.9<span>%</span></div>
+              <div class="landing-preview__odds tnum">ML +106</div>
+            </div>
+            <div class="landing-preview__bar-wrap">
+              <div class="landing-preview__bar" role="img" aria-label="Example win probability split">
+                <div class="landing-preview__bar-away"></div>
+                <div class="landing-preview__bar-home"></div>
+              </div>
+              <div class="landing-preview__vs">vs</div>
+            </div>
+            <div class="landing-preview__team" style="--team-color:#13243c;--team-prob-color:#11263b">
+              <div class="landing-preview__team-mark" aria-hidden="true">BOS</div>
+              <div class="landing-preview__team-name">Red Sox</div>
+              <div class="landing-preview__prob tnum">54.1<span>%</span></div>
+              <div class="landing-preview__odds tnum">ML -124</div>
+            </div>
+          </div>
+          <div class="landing-preview__choice">
+            <div class="landing-preview__choice-head">
+              <span class="landing-preview__choice-label">Wise Choice</span>
+              <span class="landing-preview__choice-pill">Example</span>
+            </div>
+            <div class="landing-preview__pick">
+              <div class="landing-preview__pick-main">Red Sox -1.5 <span>- sample book</span></div>
+              <div class="landing-preview__pick-price tnum">-205</div>
+            </div>
+            <div class="landing-preview__metrics">
+              <div class="landing-preview__metric">
+                <div class="landing-preview__metric-label">Win</div>
+                <div class="landing-preview__metric-value tnum">73.4%</div>
+              </div>
+              <div class="landing-preview__metric">
+                <div class="landing-preview__metric-label">Edge</div>
+                <div class="landing-preview__metric-value tnum">+9.1%</div>
+              </div>
+              <div class="landing-preview__metric">
+                <div class="landing-preview__metric-label">EV</div>
+                <div class="landing-preview__metric-value tnum">+0.09u</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
-    <section class="grid">
-      <article class="card">
-        <div class="label">MLB</div>
-        <div class="title">MLB Forecast</div>
-        <div class="body">Today’s baseball board with forecasts, ranked opportunities, Kelly strength, model probability, and line quality visible on every card.</div>
-        <div class="actions">
-          <a class="button primary" href="/mlb/">Open MLB Board</a>
-        </div>
-      </article>
+    <section id="boards" class="landing-section landing-boards" aria-labelledby="boards-title">
+      <div class="landing-section__head">
+        <p class="bw-kicker">Boards</p>
+        <p id="boards-title">Open the board for a sport that is available today.</p>
+      </div>
+      <div class="landing-card-grid">
+        <a id="landing-mlb-card" class="landing-board-card" href="/login/?return_to=/mlb/">
+          <div class="landing-board-card__top">
+            <span class="landing-board-card__icon" aria-hidden="true">MLB</span>
+            <span class="bw-pill bw-pill--positive">Available</span>
+          </div>
+          <h3>MLB</h3>
+          <p id="landing-mlb-status" role="status" aria-atomic="true">Today's model board</p>
+          <div class="landing-board-card__count" id="landing-mlb-count" hidden>
+            <strong class="tnum">0</strong>
+            <span>games on the board</span>
+          </div>
+          <div class="landing-board-card__cta" id="landing-mlb-cta">Sign in to open</div>
+        </a>
 
-      <article class="card">
-        <div class="label">NHL</div>
-        <div class="title">Hockey Board</div>
-        <div class="body">NHL recommendations use the same ranked board views, Best Value, Kelly Edge, and Full Board controls as the baseball board.</div>
-        <div class="actions">
-          <a class="button primary" href="/nhl/">Open NHL Board</a>
-        </div>
-      </article>
+        <a class="landing-board-card" href="/nhl/">
+          <div class="landing-board-card__top">
+            <span class="landing-board-card__icon" aria-hidden="true">NHL</span>
+            <span class="bw-pill bw-pill--positive">Available</span>
+          </div>
+          <h3>NHL</h3>
+          <p id="landing-nhl-status" role="status" aria-atomic="true">Current hockey board</p>
+          <div class="landing-board-card__count" id="landing-nhl-count" hidden>
+            <strong class="tnum">0</strong>
+            <span>games on the board</span>
+          </div>
+          <div class="landing-board-card__cta">Open board</div>
+        </a>
 
-      <article class="card">
-        <div class="label">Performance</div>
-        <div class="title">Record, ROI, and CLV</div>
-        <div class="body">Public tracking for published picks by Wise Tier, sport, market, book, model version, and date.</div>
-        <div class="actions">
-          <a class="button primary" href="/performance/" data-feature-visible="performance_summary" hidden>Open Performance</a>
-        </div>
-      </article>
+        <article class="landing-board-card landing-board-card--planned" aria-label="NBA planned board">
+          <div class="landing-board-card__top">
+            <span class="landing-board-card__icon" aria-hidden="true">NBA</span>
+            <span class="bw-pill">Planned</span>
+          </div>
+          <h3>NBA</h3>
+          <p>BoardWise coverage is not available yet.</p>
+          <div class="landing-board-card__cta">Planned coverage</div>
+        </article>
+
+        <article class="landing-board-card landing-board-card--planned" aria-label="NFL planned board">
+          <div class="landing-board-card__top">
+            <span class="landing-board-card__icon" aria-hidden="true">NFL</span>
+            <span class="bw-pill">Planned</span>
+          </div>
+          <h3>NFL</h3>
+          <p>BoardWise coverage is not available yet.</p>
+          <div class="landing-board-card__cta">Planned coverage</div>
+        </article>
+      </div>
     </section>
 
-    <footer class="footer">
-  <div><strong>BoardWise Analytics LLC</strong> &copy; 2026. BoardWise is for informational and entertainment purposes only. No pick is guaranteed. Not gambling, financial, legal, or investment advice.</div>
-  <div style="margin-top:6px">Must be 21+ and legally permitted to use wagering-related content. If gambling is a problem, call <strong>1-800-GAMBLER</strong> or Iowa <strong>1-800-BETS-OFF</strong>.</div>
-  <div style="margin-top:6px"><a href="/privacy/">Privacy Policy</a> · <a href="/terms/">Terms</a> · <a href="/responsible-gaming/">Responsible Gaming</a> · <a href="mailto:support@useboardwise.com">support@useboardwise.com</a></div>
-</footer>
-  </div>
+    <section id="proof" class="landing-section" aria-labelledby="proof-title">
+      <div class="landing-proof-panel">
+        <div class="landing-proof-panel__head">
+          <div>
+            <p class="bw-kicker">Transparent by design</p>
+            <h2 id="proof-title">Every recommendation is preserved with its posted line.</h2>
+          </div>
+          <div>
+            <a id="landing-proof-cta" class="bw-button bw-button--secondary" href="#how">Learn how scoring works</a>
+          </div>
+        </div>
+        <div class="landing-proof-panel__body">
+          <article class="landing-info-card">
+            <div class="landing-info-card__label">Posted pick</div>
+            <h3>The published side is recorded.</h3>
+            <p>Recommendations are saved with the selection, market, model context, and posting date.</p>
+          </article>
+          <article class="landing-info-card">
+            <div class="landing-info-card__label">Book and price</div>
+            <h3>The number matters.</h3>
+            <p>BoardWise stores the available book price so later analysis can compare market movement.</p>
+          </article>
+          <article class="landing-info-card">
+            <div class="landing-info-card__label">Settled outcome</div>
+            <h3>Win, loss, push, or void.</h3>
+            <p>Settlement status separates pending volume from results that count toward ROI.</p>
+          </article>
+          <article class="landing-info-card">
+            <div class="landing-info-card__label">Units and CLV</div>
+            <h3>Results need context.</h3>
+            <p>Units, return on risk, and closing-line value help separate signal from short samples.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="how" class="landing-section landing-method" aria-labelledby="how-title">
+      <div class="landing-section__head">
+        <p class="bw-kicker">How every line gets scored</p>
+        <p>The pre-pick signals BoardWise uses to rank the board.</p>
+      </div>
+      <div class="landing-card-grid">
+        <article class="landing-info-card">
+          <div class="landing-info-card__label">Model probability</div>
+          <h3>What the model estimates.</h3>
+          <p>A win probability before comparing the play with the sportsbook price.</p>
+        </article>
+        <article class="landing-info-card">
+          <div class="landing-info-card__label">Market edge</div>
+          <h3>Price versus probability.</h3>
+          <p>The gap between model probability and the probability implied by the posted line.</p>
+        </article>
+        <article class="landing-info-card">
+          <div class="landing-info-card__label">Expected value</div>
+          <h3>The edge in return terms.</h3>
+          <p>Expected return at the available price, shown before a pick is made.</p>
+        </article>
+        <article class="landing-info-card">
+          <div class="landing-info-card__label">Kelly strength</div>
+          <h3>Sizing signal, not certainty.</h3>
+          <p>A stake-strength input derived from probability and price, used to compare edges.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="landing-cta" aria-labelledby="landing-cta-title">
+      <div class="landing-cta__content">
+        <h2 id="landing-cta-title">Today's board is ready when you are.</h2>
+        <p>Sign in for the MLB preview, then use your account access to open the markets available to your plan.</p>
+      </div>
+      <div class="landing-cta__actions">
+        <a id="landing-cta-primary" class="bw-button bw-button--gold" href="/login/?return_to=/mlb/">Sign in to view the board</a>
+        <a id="landing-cta-secondary" class="bw-button bw-button--ghost-dark" href="/pricing/">Join the beta</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bw-footer">
+    <div><strong>BoardWise Analytics LLC</strong> &copy; 2026. BoardWise is for informational and entertainment purposes only. No pick is guaranteed. Not gambling, financial, legal, or investment advice.</div>
+    <div class="bw-footer__line">Must be 21+ and legally permitted to use wagering-related content. If gambling is a problem, call <strong>1-800-GAMBLER</strong> or Iowa <strong>1-800-BETS-OFF</strong>.</div>
+    <div class="bw-footer__line"><a href="/privacy/">Privacy Policy</a> · <a href="/terms/">Terms</a> · <a href="/responsible-gaming/">Responsible Gaming</a> · <a href="mailto:support@useboardwise.com">support@useboardwise.com</a></div>
+  </footer>
+
   <script src="/assets/js/api-client.js"></script>
   <script src="/assets/js/auth-state.js"></script>
   <script src="/assets/js/gates.js"></script>
+  <script src="/assets/js/landing.js"></script>
   <script src="/assets/js/apply-gates.js"></script>
 </body>
 </html>

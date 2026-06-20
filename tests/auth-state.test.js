@@ -70,5 +70,35 @@ describe("auth-state", () => {
     expect(state.features.performance_picks).toBe(true);
     expect(auth.hasFeature(state, "performance_picks")).toBe(true);
     expect(auth.displayName(state)).toBe("Founder");
+    expect(auth.initials(state)).toBe("FO");
+  });
+
+  it("builds initials from display name, email local-part, then fallback", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce(
+          jsonResponse({
+            authenticated: true,
+            user: { email: "william@example.test", display_name: "William Mayer" },
+            features: {},
+          })
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            authenticated: true,
+            user: { email: "solo@example.test", display_name: "" },
+            features: {},
+          })
+        )
+    );
+
+    const auth = await loadAuthStateScript();
+    const named = await auth.loadAuthState({ force: true });
+    const emailOnly = await auth.loadAuthState({ force: true });
+
+    expect(auth.initials(named)).toBe("WM");
+    expect(auth.initials(emailOnly)).toBe("SO");
+    expect(auth.initials(auth.guestState)).toBe("A");
   });
 });

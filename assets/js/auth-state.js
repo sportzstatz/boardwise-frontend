@@ -58,10 +58,27 @@
     return "Sign in";
   }
 
+  function initials(state) {
+    const user = state && state.authenticated && state.user ? state.user : null;
+    const source =
+      (user && String(user.display_name || "").trim()) ||
+      (user && String(user.email || "").split("@")[0].trim()) ||
+      "A";
+    const words = source
+      .split(/[^A-Za-z0-9]+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const chars = words.length > 1
+      ? words.map((part) => part[0]).join("")
+      : (words[0] || "A").slice(0, 2);
+    return chars.slice(0, 2).toUpperCase() || "A";
+  }
+
   window.BoardWiseAuth = {
     loadAuthState,
     hasFeature,
     displayName,
+    initials,
     guestState,
   };
 })();

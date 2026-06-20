@@ -48,7 +48,7 @@ body {
   overflow-x: hidden;
   color: var(--bw-ink);
   background: var(--bw-page);
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--bw-font-sans, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
 }
 
 a {
@@ -136,6 +136,17 @@ h1 {
 
 .nav-row {
   margin-bottom: 16px;
+}
+
+.board-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.board-controls .meta {
+  flex: 1 1 320px;
 }
 
 .pill,
@@ -464,8 +475,8 @@ h1 {
 }
 
 .tot-team-logo-mark {
-  width: 168px;
-  height: 120px;
+  width: 184px;
+  height: 132px;
   background: transparent;
   border: 0;
   box-shadow: none;
@@ -479,8 +490,8 @@ h1 {
 
 .tot-team-logo {
   display: block;
-  width: 168px;
-  height: 120px;
+  width: 184px;
+  height: 132px;
   max-width: none;
   max-height: none;
   object-fit: contain;
@@ -1366,13 +1377,13 @@ h1 {
 }
 
 .gd-hero .tot-team-logo-mark {
-  width: 178px;
-  height: 126px;
+  width: 196px;
+  height: 140px;
 }
 
 .gd-hero .tot-team-logo {
-  width: 178px;
-  height: 126px;
+  width: 196px;
+  height: 140px;
 }
 
 .gd-hero .tot-team-fallback {
@@ -1849,14 +1860,14 @@ h1 {
   }
 
   .mlb-board-page .tot-team-logo-mark {
-    width: 124px;
-    height: 88px;
+    width: 136px;
+    height: 96px;
     margin-bottom: 6px;
   }
 
   .mlb-board-page .tot-team-logo {
-    width: 124px;
-    height: 88px;
+    width: 136px;
+    height: 96px;
   }
 
   .mlb-board-page .tot-team-fallback {
@@ -2044,13 +2055,13 @@ h1 {
   }
 
   .gd-hero .tot-team-logo-mark {
-    width: 130px;
-    height: 92px;
+    width: 142px;
+    height: 100px;
   }
 
   .gd-hero .tot-team-logo {
-    width: 130px;
-    height: 92px;
+    width: 142px;
+    height: 100px;
   }
 
   .gd-hero .tot-team-fallback {

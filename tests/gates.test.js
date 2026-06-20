@@ -33,6 +33,7 @@ describe("feature gates", () => {
       }),
       hasFeature: (state, featureKey) => Boolean(state.features[featureKey]),
       displayName: () => "Sign in",
+      initials: () => "A",
     };
 
     const gates = await loadGates();
@@ -59,11 +60,44 @@ describe("feature gates", () => {
       }),
       hasFeature: (state, featureKey) => Boolean(state.features[featureKey]),
       displayName: () => "Admin",
+      initials: () => "AD",
     };
 
     const gates = await loadGates();
     await gates.applyFeatureGates();
 
     expect(document.querySelector("#performance-link")?.hasAttribute("hidden")).toBe(false);
+  });
+
+  it("populates authenticated account labels and initials", async () => {
+    document.body.innerHTML = `
+      <a id="account-link" href="/account/" data-auth-authenticated hidden>
+        <span data-auth-label>Account</span>
+        <span data-auth-initials>A</span>
+      </a>
+    `;
+    window.BoardWiseAuth = {
+      loadAuthState: vi.fn().mockResolvedValue({
+        authenticated: true,
+        user: { display_name: "William Mayer", email: "william@example.test" },
+        features: {},
+      }),
+      hasFeature: (state, featureKey) => Boolean(state.features[featureKey]),
+      displayName: () => "William Mayer",
+      initials: () => "WM",
+      guestState: {
+        authenticated: false,
+        user: null,
+        plan: "guest",
+        features: {},
+      },
+    };
+
+    const gates = await loadGates();
+    await gates.applyFeatureGates();
+
+    expect(document.querySelector("#account-link")?.hasAttribute("hidden")).toBe(false);
+    expect(document.querySelector("[data-auth-label]")?.textContent).toBe("William Mayer");
+    expect(document.querySelector("[data-auth-initials]")?.textContent).toBe("WM");
   });
 });

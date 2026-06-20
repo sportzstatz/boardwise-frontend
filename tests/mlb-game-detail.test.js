@@ -151,8 +151,8 @@ describe("mlb game detail", () => {
 
     expect(awayLogo.getAttribute("src")).toBe("/assets/img/mlb/team-logos/tor.svg");
     expect(awayLogo.getAttribute("alt")).toBe("");
-    expect(awayLogo.getAttribute("width")).toBe("168");
-    expect(awayLogo.getAttribute("height")).toBe("120");
+    expect(awayLogo.getAttribute("width")).toBe("184");
+    expect(awayLogo.getAttribute("height")).toBe("132");
     expect(awayLogo.closest(".tot-team-logo-mark")).not.toBeNull();
     expect(awayLogo.closest(".tot-team-mark")).toBeNull();
     expect(document.querySelector(".tot-team-mark.has-logo")).toBeNull();

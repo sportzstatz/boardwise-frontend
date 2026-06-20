@@ -33,6 +33,12 @@
       el.textContent = window.BoardWiseAuth.displayName(auth);
     });
 
+    root.querySelectorAll("[data-auth-initials]").forEach((el) => {
+      el.textContent = typeof window.BoardWiseAuth.initials === "function"
+        ? window.BoardWiseAuth.initials(auth)
+        : "A";
+    });
+
     root.querySelectorAll("[data-auth-guest]").forEach((el) => {
       setHidden(el, Boolean(auth.authenticated));
     });

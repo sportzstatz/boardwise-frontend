@@ -2,12 +2,56 @@
   const form = /** @type {HTMLFormElement | null} */ (document.getElementById("login-form"));
   const msg = document.getElementById("login-message");
   const DEFAULT_RETURN_TO = "/account/";
+  const DEFAULT_SUBMIT_LABEL = "Send my sign-in link";
+  let requestInFlight = false;
+
+  function submitButton() {
+    return /** @type {HTMLButtonElement | null} */ (
+      document.getElementById("login-submit") ||
+      (form ? form.querySelector('button[type="submit"]') : null)
+    );
+  }
+
+  function submitLabel() {
+    const button = submitButton();
+    return button ? button.querySelector("[data-login-submit-label]") : null;
+  }
 
   function setMessage(text, kind = "info") {
     if (!msg) return;
     msg.textContent = text;
     msg.dataset.kind = kind;
+    msg.setAttribute("role", kind === "error" ? "alert" : "status");
+    msg.setAttribute("aria-live", kind === "error" ? "assertive" : "polite");
+    msg.setAttribute("aria-atomic", "true");
     msg.removeAttribute("hidden");
+  }
+
+  function setFormAvailable(isAvailable) {
+    if (!form) return;
+    for (const control of form.querySelectorAll("input, button, select, textarea")) {
+      if (
+        control instanceof HTMLInputElement ||
+        control instanceof HTMLButtonElement ||
+        control instanceof HTMLSelectElement ||
+        control instanceof HTMLTextAreaElement
+      ) {
+        control.disabled = !isAvailable;
+      }
+    }
+    form.setAttribute("aria-busy", isAvailable ? "false" : "true");
+  }
+
+  function setSubmitting(isSubmitting, label = "Sending sign-in link…") {
+    requestInFlight = isSubmitting;
+    const button = submitButton();
+    const labelEl = submitLabel();
+    if (button) {
+      button.disabled = isSubmitting;
+      button.setAttribute("aria-busy", isSubmitting ? "true" : "false");
+    }
+    if (labelEl) labelEl.textContent = isSubmitting ? label : DEFAULT_SUBMIT_LABEL;
+    else if (button) button.textContent = isSubmitting ? label : DEFAULT_SUBMIT_LABEL;
   }
 
   function hasControlCharacter(value) {
@@ -101,29 +145,36 @@
     scrubTokenFromUrl();
 
     setMessage("Signing you in…");
+    setFormAvailable(false);
     try {
       await window.BoardWiseApi.verifyMagicLink(token);
       safeAssign(destination);
       return true;
     } catch (err) {
+      setFormAvailable(true);
       if (isApiError(err)) {
         setMessage(
           "That sign-in link is invalid or expired. Request a new link.",
           "error"
         );
-        return true;
+        return false;
       }
       setMessage(
         "Could not verify that sign-in link. Request a new link.",
         "error"
       );
-      return true;
+      return false;
     }
   }
 
   async function startLogin(event) {
     event.preventDefault();
+    if (requestInFlight) return;
     const emailInput = /** @type {HTMLInputElement | null} */ (document.getElementById("email"));
+    if (form && typeof form.checkValidity === "function" && !form.checkValidity()) {
+      if (typeof form.reportValidity === "function") form.reportValidity();
+      return;
+    }
     const email = emailInput ? String(emailInput.value || "").trim() : "";
     if (!email) return;
 
@@ -134,6 +185,7 @@
     }
 
     setMessage("Sending sign-in link…");
+    setSubmitting(true);
     try {
       const body = await window.BoardWiseApi.startMagicLink({
         email,
@@ -143,18 +195,21 @@
       setMessage(
         body && body.message
           ? String(body.message)
-          : "If that email can sign in or create an account, a link has been sent."
+          : "If that email can sign in or create an account, a link has been sent.",
+        "success"
       );
       if (form) form.reset();
       resetTurnstile();
     } catch (_err) {
       resetTurnstile();
       setMessage("Could not request a sign-in link. Try again shortly.", "error");
+    } finally {
+      setSubmitting(false);
     }
   }
 
-  verifyTokenIfPresent().then((handled) => {
-    if (!handled && form) form.addEventListener("submit", startLogin);
+  verifyTokenIfPresent().then((redirecting) => {
+    if (!redirecting && form) form.addEventListener("submit", startLogin);
     if (window.BoardWiseGates) window.BoardWiseGates.applyFeatureGates();
   });
 })();

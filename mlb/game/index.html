@@ -5,19 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MLB Game Detail</title>
   <meta name="description" content="BoardWise MLB game detail: tale-of-the-tape win probability, the Wise Choice pick, full markets with edge, and the model breakdown.">
+  <link rel="stylesheet" href="/assets/css/boardwise-theme.css">
   <link rel="stylesheet" href="/assets/css/mlb-navy-gold.css">
 </head>
 <body class="gd-page mlb-game-detail-page">
-  <div class="wrap">
-    <div class="nav-row">
-      <a class="nav-link" href="/">All Sports</a>
-      <a class="nav-link" href="/mlb/">MLB Board</a>
-      <a class="nav-link" href="/nhl/">NHL Board</a>
-      <a class="nav-link" href="/pricing/" data-auth-guest>Join beta</a>
-      <a class="nav-link" href="/login/" data-auth-guest>Sign in</a>
-      <a class="nav-link" href="/account/" data-auth-authenticated data-auth-label hidden>Account</a>
+  <header class="bw-app-banner">
+    <div class="bw-app-banner__inner">
+      <a class="bw-brand bw-brand--dark" href="/" aria-label="BoardWise home">
+        <span class="bw-brand__mark" aria-hidden="true">B</span>
+        <span class="bw-brand__name">BoardWise</span>
+      </a>
+      <nav class="bw-app-nav" aria-label="Primary">
+        <a href="/">All Sports</a>
+        <a href="/mlb/" aria-current="page">MLB Board</a>
+        <a href="/nhl/">NHL Board</a>
+        <a href="/performance/" data-feature-visible="performance_summary" hidden>Performance</a>
+      </nav>
+      <div class="bw-app-account">
+        <a href="/pricing/" data-auth-guest>Join beta</a>
+        <a href="/login/" data-auth-guest>Sign in</a>
+        <a href="/account/" data-auth-authenticated hidden>
+          <span data-auth-label>Account</span>
+          <span class="bw-account-avatar" data-auth-initials aria-hidden="true">A</span>
+        </a>
+      </div>
     </div>
-
+  </header>
+  <div class="wrap">
     <main class="gd-shell-frame">
       <div id="gd-back" class="gd-game-top-band">
         <a class="gd-back-link" href="/mlb/">← Today's Board</a>
