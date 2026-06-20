@@ -15,7 +15,7 @@ async function fixture(name) {
 
 async function waitForTeamMarks(page) {
   await page.waitForFunction(() => {
-    const marks = [...document.querySelectorAll(".tot-team-mark")];
+    const marks = [...document.querySelectorAll(".tot-team-logo-mark, .tot-team-mark")];
     return marks.length > 0 && marks.every((mark) => {
       const img = mark.querySelector("img[data-team-logo]");
       const fallback = mark.querySelector(".tot-team-fallback");

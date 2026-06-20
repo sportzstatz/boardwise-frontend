@@ -239,13 +239,20 @@ function matchupBarStyle(matchupBranding) {
 function renderTeamMark(team, abbr, sideBranding) {
   const fallback = teamAbbrText(team, abbr);
   const logoPath = sideBranding?.brand?.logoPath || "";
-  const className = logoPath ? "tot-team-mark has-logo" : "tot-team-mark";
   const style = teamMarkStyle(sideBranding);
+  if (logoPath) {
+    return `
+      <span class="tot-team-logo-mark"${style ? ` style="${esc(style)}"` : ""} aria-hidden="true">
+        <img class="tot-team-logo" data-team-logo src="${esc(logoPath)}" alt="" width="168" height="120" decoding="async">
+        <span class="tot-team-fallback">${esc(fallback)}</span>
+      </span>
+    `;
+  }
+
   return `
-    <div class="${className}"${style ? ` style="${esc(style)}"` : ""} aria-hidden="true">
-      ${logoPath ? `<img class="tot-team-logo" data-team-logo src="${esc(logoPath)}" alt="" width="64" height="64" decoding="async">` : ""}
+    <span class="tot-team-mark"${style ? ` style="${esc(style)}"` : ""} aria-hidden="true">
       <span class="tot-team-fallback">${esc(fallback)}</span>
-    </div>
+    </span>
   `;
 }
 

@@ -1440,8 +1440,11 @@ describe("mlb-board model selector", () => {
     expect(awayLogo.getAttribute("src")).toBe("/assets/img/mlb/team-logos/cin.svg");
     expect(homeLogo.getAttribute("src")).toBe("/assets/img/mlb/team-logos/stl.svg");
     expect(awayLogo.getAttribute("alt")).toBe("");
-    expect(awayLogo.getAttribute("width")).toBe("64");
-    expect(awayLogo.getAttribute("height")).toBe("64");
+    expect(awayLogo.getAttribute("width")).toBe("168");
+    expect(awayLogo.getAttribute("height")).toBe("120");
+    expect(awayLogo.closest(".tot-team-logo-mark")).not.toBeNull();
+    expect(awayLogo.closest(".tot-team-mark")).toBeNull();
+    expect(document.querySelector(".tot-team-mark.has-logo")).toBeNull();
     expect(awaySide.style.getPropertyValue("--team-fill")).toBe("#000000");
     expect(homeSide.style.getPropertyValue("--team-fill")).toBe("#C41E3A");
     expect(awaySide.style.getPropertyValue("--team-prob-light")).not.toBe("");
@@ -1492,7 +1495,7 @@ describe("mlb-board model selector", () => {
 
     const img = /** @type {HTMLImageElement} */ (document.querySelector(".tot-side.away [data-team-logo]"));
     img.dispatchEvent(new Event("error"));
-    const mark = /** @type {HTMLElement} */ (img.closest(".tot-team-mark"));
+    const mark = /** @type {HTMLElement} */ (img.closest(".tot-team-logo-mark"));
     expect(mark.classList.contains("logo-failed")).toBe(true);
     expect(mark.querySelector(".tot-team-fallback")?.textContent).toBe("CIN");
   });
@@ -1519,7 +1522,6 @@ describe("mlb-board model selector", () => {
     await vi.waitFor(() => expect(document.querySelector(".tot-side.away .tot-team-mark")).not.toBeNull());
 
     const awayMark = /** @type {HTMLElement} */ (document.querySelector(".tot-side.away .tot-team-mark"));
-    expect(awayMark.classList.contains("has-logo")).toBe(false);
     expect(awayMark.querySelector("[data-team-logo]")).toBeNull();
     expect(awayMark.querySelector(".tot-team-fallback")?.textContent).toBe("ZZZ");
     expect(/** @type {HTMLElement} */ (document.querySelector(".tot-side.away")).style.getPropertyValue("--team-fill")).toBe("#667085");
