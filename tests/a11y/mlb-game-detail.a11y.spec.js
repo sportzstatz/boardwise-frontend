@@ -84,4 +84,13 @@ test.describe("MLB game detail accessibility", () => {
     );
     await expectNoA11yViolations(page);
   });
+
+  test("detail team logos are decorative and probability bars are named", async ({ page }) => {
+    await renderDetail(page, await fixture("mlb-game-detail-payload.json"));
+
+    await expect(page.locator(".gd-hero .tot-team-logo")).toHaveCount(2);
+    await expect(page.locator(".gd-hero .tot-team-logo").first()).toHaveAttribute("alt", "");
+    await expect(page.locator(".gd-hero .tot-bar")).toHaveAttribute("role", "img");
+    await expect(page.locator(".gd-hero .tot-bar")).toHaveAttribute("aria-label", /Toronto Blue Jays .*Boston Red Sox/);
+  });
 });

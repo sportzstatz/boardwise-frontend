@@ -39,6 +39,7 @@ export default [
       "vitest.config.js",
       "playwright.a11y.config.js",
       "playwright.contract.config.js",
+      "playwright.mobile-webkit.config.js",
       "playwright.visual.config.js",
       "eslint.config.js",
       "scripts/**/*.mjs",
