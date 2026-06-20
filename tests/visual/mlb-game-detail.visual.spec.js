@@ -8,7 +8,10 @@ import { expect, test } from "@playwright/test";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURE_DIR = resolve(HERE, "../fixtures");
 const FROZEN_NOW = new Date("2026-06-18T12:00:00-05:00").valueOf();
-const MOBILE_LONG_PAGE_SCREENSHOT = { fullPage: true, maxDiffPixelRatio: 0.06 };
+const MOBILE_VIEWPORT = { width: 390, height: 844 };
+const PRO_MOBILE_SNAPSHOT_VIEWPORT = { width: 390, height: 3248 };
+const FREE_MOBILE_SNAPSHOT_VIEWPORT = { width: 390, height: 1850 };
+const MOBILE_LONG_PAGE_SCREENSHOT = { maxDiffPixelRatio: 0.06 };
 
 async function fixture(name) {
   return JSON.parse(await readFile(resolve(FIXTURE_DIR, name), "utf8"));
@@ -70,7 +73,7 @@ test.describe("MLB game detail visual baselines", () => {
   });
 
   test("Pro mobile", async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize(MOBILE_VIEWPORT);
     await renderDetail(page, await fixture("mlb-game-detail-payload.json"), true);
 
     await expect(page.locator(".gd-hero .tot-mobile-bar")).toBeVisible();
@@ -78,6 +81,7 @@ test.describe("MLB game detail visual baselines", () => {
     await expect(page.locator(".gd-section-chip").first()).toBeVisible();
     const optionBoxes = await page.locator(".gd-market-options").first().locator(".gd-mkt-option").evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().top));
     expect(optionBoxes[1]).toBeGreaterThan(optionBoxes[0]);
+    await page.setViewportSize(PRO_MOBILE_SNAPSHOT_VIEWPORT);
     await expect(page).toHaveScreenshot("mlb-game-detail-pro-mobile.png", MOBILE_LONG_PAGE_SCREENSHOT);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
     expect(overflow).toBe(false);
@@ -91,7 +95,7 @@ test.describe("MLB game detail visual baselines", () => {
   });
 
   test("Free mobile", async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize(MOBILE_VIEWPORT);
     await renderDetail(page, await fixture("mlb-game-detail-preview-payload.json"), false);
 
     await expect(page.locator(".gd-hero .tot-mobile-bar")).toBeVisible();
@@ -100,6 +104,7 @@ test.describe("MLB game detail visual baselines", () => {
     await expect(page.locator(".gd-section-nav")).toHaveCount(0);
     await expect(page.locator(".gd-mkt-option")).toHaveCount(0);
     await expect(page.locator("#gd-detail")).not.toContainText("+9.1%");
+    await page.setViewportSize(FREE_MOBILE_SNAPSHOT_VIEWPORT);
     await expect(page).toHaveScreenshot("mlb-game-detail-free-mobile.png", MOBILE_LONG_PAGE_SCREENSHOT);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
     expect(overflow).toBe(false);
