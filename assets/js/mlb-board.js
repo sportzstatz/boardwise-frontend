@@ -204,7 +204,7 @@ function obsidianHeroCopy(payload = state.payload) {
   if (variant === "shadow") {
     return [
       "Obsidian Steed Shadow",
-      "Live tracking model under review before public grading."
+      "Tracking model under review before public grading."
     ];
   }
   if (variant === "public") {

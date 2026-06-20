@@ -528,7 +528,7 @@ describe("mlb-board model selector", () => {
     expect(hero?.getAttribute("aria-labelledby")).toBe("obsidian-hero-title");
     expect(hero?.querySelector("h2#obsidian-hero-title")?.textContent).toBe("Obsidian Steed Shadow");
     expect(hero?.textContent).toContain("Obsidian Steed Shadow");
-    expect(hero?.textContent).toContain("Live tracking model under review before public grading.");
+    expect(hero?.textContent).toContain("Tracking model under review before public grading.");
     expect(hero?.textContent).not.toContain("Next-generation MLB model");
     expect(document.body.classList.contains("obsidian-treatment")).toBe(true);
     expect(document.body.dataset.obsidianVariant).toBe("shadow");
