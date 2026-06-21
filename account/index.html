@@ -4,50 +4,58 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Account - BoardWise</title>
-  <meta name="description" content="BoardWise account status and feature access.">
-  <link rel="stylesheet" href="/assets/css/site.css">
-  <style>
-    :root { --bg:#f7f7f5; --panel:#ffffff; --ink:#101828; --muted:#667085; --line:#d0d5dd; --accent:#0f4c81; --good:#156f3c; --good-soft:#edf9f0; --shadow:0 10px 24px rgba(16,24,40,0.07); }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--ink); }
-    .wrap { max-width: 900px; margin: 0 auto; padding: 28px 18px 48px; }
-    .nav-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
-    .nav-link { border: 1px solid var(--line); background: var(--panel); padding: 8px 12px; border-radius: 999px; font-size: 13px; text-decoration: none; color: var(--ink); font-weight: 700; }
-    .button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border-radius: 999px; text-decoration: none; font-weight: 700; border: 1px solid var(--line); color: var(--ink); background: #fcfcfd; }
-    .button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .muted { color: var(--muted); line-height: 1.5; }
-  </style>
+  <meta name="description" content="BoardWise account profile and product access.">
+  <link rel="stylesheet" href="/assets/css/boardwise-theme.css">
+  <link rel="stylesheet" href="/assets/css/account.css">
 </head>
 <body>
-  <div class="wrap">
-    <nav class="nav-row">
-      <a class="nav-link" href="/">All Sports</a>
-      <a class="nav-link" href="/mlb/">MLB Board</a>
-      <a class="nav-link" href="/nhl/">NHL Board</a>
-      <a class="nav-link" href="/performance/" data-feature-visible="performance_summary" hidden>Performance</a>
-      <a class="nav-link" href="/login/" data-auth-guest>Sign in</a>
-      <a class="nav-link" href="/pricing/" data-auth-guest>Join beta</a>
-      <a class="nav-link" href="/account/" data-auth-authenticated data-auth-label>Account</a>
-    </nav>
+  <main class="account-shell" aria-labelledby="account-title">
+    <div class="account-heading">
+      <p class="bw-kicker">BoardWise · Account</p>
+      <h1 id="account-title" class="account-title">Account</h1>
+    </div>
 
-    <main class="account-panel">
-      <h1>Account</h1>
-      <p id="account-status" class="muted">Checking account state...</p>
-      <div id="account-actions"></div>
-      <h2>Feature access</h2>
-      <ul id="feature-list" class="feature-list"></ul>
-    </main>
-    <footer class="footer">
-  <div><strong>BoardWise Analytics LLC</strong> &copy; 2026. BoardWise is for informational and entertainment purposes only. No pick is guaranteed. Not gambling, financial, legal, or investment advice.</div>
-  <div style="margin-top:6px">Must be 21+ and legally permitted to use wagering-related content. If gambling is a problem, call <strong>1-800-GAMBLER</strong> or Iowa <strong>1-800-BETS-OFF</strong>.</div>
-  <div style="margin-top:6px"><a href="/privacy/">Privacy Policy</a> · <a href="/terms/">Terms</a> · <a href="/responsible-gaming/">Responsible Gaming</a> · <a href="mailto:support@useboardwise.com">support@useboardwise.com</a></div>
-</footer>
-  </div>
+    <div class="account-grid">
+      <section class="account-identity-card" aria-labelledby="account-profile-heading">
+        <div class="account-profile">
+          <span id="account-avatar" class="account-avatar" data-auth-initials aria-hidden="true">A</span>
+          <div class="account-profile__text">
+            <h2 id="account-profile-heading">
+              <span id="account-name" data-auth-label>Checking account...</span>
+            </h2>
+            <p id="account-email">Loading account state...</p>
+          </div>
+        </div>
+
+        <div class="account-pills" aria-label="Account labels">
+          <span id="account-plan" class="account-pill account-pill--gold">Checking access</span>
+          <span id="account-auth-state" class="account-pill account-pill--outline">Secure profile</span>
+        </div>
+
+        <p id="account-status" class="sr-only">Checking account state...</p>
+        <div id="account-actions" class="account-actions" aria-label="Account actions"></div>
+      </section>
+
+      <div class="account-side">
+        <section class="account-access" aria-labelledby="account-access-heading">
+          <h2 id="account-access-heading" class="sr-only">Product Access</h2>
+          <div id="account-access-list" class="account-access-list" aria-live="polite">
+            <article class="account-access-card" aria-busy="true">
+              <span class="account-access-icon" aria-hidden="true">BW</span>
+              <div class="account-access-main">
+                <h3>Checking access</h3>
+                <p>Loading BoardWise products.</p>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
 
   <script src="/assets/js/api-client.js"></script>
   <script src="/assets/js/auth-state.js"></script>
   <script src="/assets/js/gates.js"></script>
   <script src="/assets/js/account.js"></script>
-
 </body>
 </html>

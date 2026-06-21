@@ -3,6 +3,10 @@ interface BoardWiseAuthState {
   user: null | {
     email?: string;
     display_name?: string;
+    member_since?: string;
+    memberSince?: string;
+    created_at?: string;
+    createdAt?: string;
   };
   plan: string;
   features: Record<string, boolean>;
