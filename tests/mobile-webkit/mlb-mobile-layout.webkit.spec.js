@@ -176,6 +176,26 @@ async function mockPerformancePage(page) {
   });
 }
 
+async function mockAccountPage(page) {
+  await page.route("**/api/v1/me", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        authenticated: true,
+        user: { email: "admin@example.test", display_name: "Admin User", member_since: "2024" },
+        plan: "admin",
+        features: {
+          account_profile: true,
+          mlb_board_basic: true,
+          mlb_board_advanced: true,
+          performance_summary: true,
+          performance_picks: true,
+        },
+      }),
+    });
+  });
+}
+
 test.describe("MLB mobile WebKit layout", () => {
   test("keeps market summary columns separated and direct team logos visible", async ({ page }) => {
     await renderBoard(page, await fixture("mlb-classic-payload.json"));
@@ -300,5 +320,32 @@ test.describe("MLB mobile WebKit layout", () => {
     await expect(page.locator("#f-start")).toBeVisible();
     await expect(page.locator("#breakdown-cards .performance-data-card").first()).toBeVisible();
     await expect(page.locator("#picks-cards .performance-data-card").first()).toBeVisible();
+  });
+
+  test("account redesign keeps the profile and access cards usable", async ({ page }) => {
+    await mockAccountPage(page);
+    await page.goto("/account/");
+    await expect(page.locator(".bw-app-banner")).toHaveCount(0);
+    await expect(page.locator(".bw-footer")).toHaveCount(0);
+    await expect(page.locator("#feature-list")).toHaveCount(0);
+    await expect(page.locator("#account-status")).toContainText("Signed in as Admin User");
+    await expect(page.locator(".account-identity-card")).toBeVisible();
+    await expect(page.locator('[data-access-card="mlb"]')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+    const boxes = await page.evaluate(() => {
+      const card = document.querySelector('[data-access-card="mlb"]')?.getBoundingClientRect();
+      const action = document.querySelector('[data-access-card="mlb"] .account-access-action')?.getBoundingClientRect();
+      return {
+        cardLeft: card?.left || 0,
+        cardRight: card?.right || 0,
+        actionLeft: action?.left || 0,
+        actionRight: action?.right || 0,
+      };
+    });
+    expect(boxes.cardLeft).toBeGreaterThanOrEqual(0);
+    expect(boxes.cardRight).toBeLessThanOrEqual(390);
+    expect(boxes.actionLeft).toBeGreaterThanOrEqual(boxes.cardLeft);
+    expect(boxes.actionRight).toBeLessThanOrEqual(boxes.cardRight);
   });
 });
