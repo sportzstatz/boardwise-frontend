@@ -325,12 +325,14 @@ test.describe("MLB mobile WebKit layout", () => {
   test("account redesign keeps the profile and access cards usable", async ({ page }) => {
     await mockAccountPage(page);
     await page.goto("/account/");
-    await expect(page.locator(".bw-app-banner")).toHaveCount(0);
-    await expect(page.locator(".bw-footer")).toHaveCount(0);
+    await expect(page.locator(".bw-app-banner")).toBeVisible();
+    await expect(page.locator(".bw-footer")).toHaveCount(1);
     await expect(page.locator("#feature-list")).toHaveCount(0);
     await expect(page.locator("#account-status")).toContainText("Signed in as Admin User");
+    await expect(page.locator("#account-name")).toHaveText("Admin User");
     await expect(page.locator(".account-identity-card")).toBeVisible();
     await expect(page.locator('[data-access-card="mlb"]')).toBeVisible();
+    await expect(page.locator("[data-access-card]")).toHaveCount(3);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
     const boxes = await page.evaluate(() => {
