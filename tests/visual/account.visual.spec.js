@@ -26,6 +26,10 @@ async function renderAccount(page) {
   await mockAccount(page);
   await page.goto("/account/");
   await expect(page.locator("#account-status")).toContainText("Signed in as Admin User");
+  await expect(page.locator("#account-name")).toHaveText("Admin User");
+  await expect(page.locator("#account-plan")).toHaveText("Admin access");
+  await expect(page.locator("[data-access-card]")).toHaveCount(3);
+  await expect(page.locator("#account-access-list")).not.toContainText("Checking access");
   await page.evaluate(async () => {
     if (document.fonts?.ready) await document.fonts.ready;
   });
@@ -34,10 +38,12 @@ async function renderAccount(page) {
 test.describe("account visual baselines", () => {
   test("desktop", async ({ page }) => {
     await renderAccount(page);
+    await expect(page.locator('link[href*="/assets/css/account.css?v=20260621-account-banner-footer"]')).toHaveCount(1);
+    await expect(page.locator('script[src*="/assets/js/account.js?v=20260621-account-banner-footer"]')).toHaveCount(1);
     await expect(page.locator(".account-identity-card")).toBeVisible();
     await expect(page.locator("#feature-list")).toHaveCount(0);
-    await expect(page.locator(".bw-app-banner")).toHaveCount(0);
-    await expect(page.locator(".bw-footer")).toHaveCount(0);
+    await expect(page.locator(".bw-app-banner")).toBeVisible();
+    await expect(page.locator(".bw-footer")).toBeVisible();
     await expect(page).toHaveScreenshot("account-desktop.png", { fullPage: true });
   });
 
@@ -46,8 +52,8 @@ test.describe("account visual baselines", () => {
     await renderAccount(page);
     await expect(page.locator(".account-identity-card")).toBeVisible();
     await expect(page.locator("#feature-list")).toHaveCount(0);
-    await expect(page.locator(".bw-app-banner")).toHaveCount(0);
-    await expect(page.locator(".bw-footer")).toHaveCount(0);
+    await expect(page.locator(".bw-app-banner")).toBeVisible();
+    await expect(page.locator(".bw-footer")).toHaveCount(1);
     await expect(page).toHaveScreenshot("account-mobile.png");
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
     expect(overflow).toBe(false);

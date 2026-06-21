@@ -28,6 +28,9 @@ async function renderAccount(page) {
   await mockAccount(page);
   await page.goto("/account/");
   await expect(page.locator("#account-status")).toContainText("Signed in as Admin User");
+  await expect(page.locator("#account-name")).toHaveText("Admin User");
+  await expect(page.locator("[data-access-card]")).toHaveCount(3);
+  await expect(page.locator("#feature-list")).toHaveCount(0);
 }
 
 async function expectNoA11yViolations(page) {
