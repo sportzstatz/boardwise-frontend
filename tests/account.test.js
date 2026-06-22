@@ -108,7 +108,8 @@ describe("account page", () => {
     expect(document.querySelector("#logout-button")).not.toBeNull();
     expect(document.querySelector('[data-access-card="mlb"] .account-access-status')?.textContent).toBe("Full access");
     expect(document.querySelector('[data-access-card="performance"] .account-access-status')?.textContent).toBe("Available");
-    expect(document.querySelector('[data-access-card="nhl"] .account-access-status')?.textContent).toBe("Locked · upgrade to unlock");
+    expect(document.querySelector('[data-access-card="nhl"] .account-access-status')?.textContent).toBe("Off-season · returns Oct 2026");
+    expect(document.querySelector('[data-access-card="nhl"] .account-access-action')).toBeNull();
     expect(document.querySelector('[data-access-card="performance"] .account-access-action')?.getAttribute("href")).toBe(
       "/performance/"
     );

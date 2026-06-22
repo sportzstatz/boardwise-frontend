@@ -97,17 +97,14 @@ describe("api-client", () => {
     expect(url.searchParams.get("model")).toBe("obsidian_steed");
   });
 
-  it("loads the NHL dated endpoint", async () => {
-    const fetch = vi.fn().mockResolvedValue(jsonResponse({ games: [] }));
-    vi.stubGlobal("fetch", fetch);
+  it("does not expose retired NHL board transport", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ games: [] })));
 
     const api = await loadApiClient();
-    await api.getNhlBoard("2026-05-18");
+    const endpointText = Object.values(api.endpoints).join(" ");
 
-    expect(fetch).toHaveBeenCalledWith(
-      `${DEFAULT_API_BASE}/api/v1/boards/nhl/2026-05-18`,
-      expect.any(Object)
-    );
+    expect(api.getNhlBoard).toBeUndefined();
+    expect(endpointText).not.toContain("/api/v1/boards/nhl/");
   });
 
   it("/me uses credentials include and cache no-store", async () => {
@@ -219,7 +216,7 @@ describe("api-client", () => {
 
     const api = await loadApiClient();
 
-    await expect(api.getNhlBoard()).rejects.toMatchObject({
+    await expect(api.getMlbBoard()).rejects.toMatchObject({
       name: "BoardWiseApiError",
       status: 503,
       statusText: "Service Unavailable",

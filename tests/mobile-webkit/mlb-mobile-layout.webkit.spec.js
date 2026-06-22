@@ -142,9 +142,6 @@ async function mockLandingPage(page) {
       }),
     });
   });
-  await page.route("**/api/v1/boards/nhl/current", async (route) => {
-    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ games: [] }) });
-  });
 }
 
 async function mockLoginPage(page) {
@@ -343,6 +340,8 @@ test.describe("MLB mobile WebKit layout", () => {
     await page.goto("/");
     await expect(page.locator("#landing-preview")).toHaveAttribute("data-state", "ready");
     await expect(page.locator("#proof")).toBeVisible();
+    await expect(page.getByLabel("NHL off-season board")).toContainText("Off-season");
+    await expect(page.locator('a[href="/nhl/"]')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     const previewBox = await page.locator("#landing-preview .landing-preview").boundingBox();
     expect(previewBox).not.toBeNull();

@@ -1,14 +1,11 @@
 // @ts-check
 import { expect, test } from "@playwright/test";
 import {
-  expectArray,
   expectBoolean,
   expectJsonResponse,
   expectNoOperatorLeak,
-  expectNumberLike,
   expectPlainObject,
   expectString,
-  expectVisibilityIfPresent,
 } from "./contract-helpers.js";
 
 const SPORT = process.env.BOARDWISE_CONTRACT_SPORT || "mlb";
@@ -99,36 +96,6 @@ test.describe("BoardWise public API contract", () => {
   }) => {
     const response = await request.get("/api/v1/boards/mlb/current");
     await expectMlbBasicRequiredResponse(response, "mlb current board");
-  });
-
-  test("GET /api/v1/boards/nhl/current returns board payload shape", async ({
-    request,
-  }) => {
-    const response = await request.get("/api/v1/boards/nhl/current");
-    const body = await expectJsonResponse(response, "nhl current board");
-
-    expectArray(body.games, "nhl.games");
-    expectVisibilityIfPresent(body, "nhl board");
-
-    if (
-      "game_count" in body &&
-      body.game_count !== null &&
-      body.game_count !== undefined
-    ) {
-      expectNumberLike(body.game_count, "nhl.game_count");
-    }
-
-    if (
-      "target_date" in body &&
-      body.target_date !== null &&
-      body.target_date !== undefined
-    ) {
-      expectString(body.target_date, "nhl.target_date");
-    }
-
-    if (body.games.length > 0) {
-      expectPlainObject(body.games[0], "nhl.games[0]");
-    }
   });
 
   test("GET /api/v1/performance/filters requires admin auth", async ({

@@ -152,7 +152,7 @@ interface BoardWiseApiClient {
     targetDate?: string,
     options?: { model?: string }
   ): Promise<BoardWiseBoardPayload>;
-  getNhlBoard(targetDate?: string): Promise<BoardWiseBoardPayload>;
+  getNhlBoard?(targetDate?: string): Promise<BoardWiseBoardPayload>;
   getPerformanceFilters(
     sport?: string,
     options?: { model_family?: string; performance_scope?: string }

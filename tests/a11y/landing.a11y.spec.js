@@ -107,9 +107,6 @@ async function mockLanding(page, { authenticated = false, mlb = false } = {}) {
   await page.route("**/api/v1/public/landing/mlb", async (route) => {
     await route.fulfill({ contentType: "application/json", body: JSON.stringify(landingSnapshot()) });
   });
-  await page.route("**/api/v1/boards/nhl/current", async (route) => {
-    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ games: [] }) });
-  });
 }
 
 async function expectNoA11yViolations(page) {
@@ -122,6 +119,8 @@ async function expectLandingSemantics(page) {
   await expect(page.locator("#proof")).toBeVisible();
   await expect(page.locator(".landing-results-summary")).toHaveJSProperty("tagName", "DL");
   await expect(page.locator(".landing-board-card__icon[aria-hidden='true']")).toHaveCount(4);
+  await expect(page.getByLabel("NHL off-season board")).toContainText("Off-season");
+  await expect(page.locator('a[href="/nhl/"]')).toHaveCount(0);
   await expect(page.locator(".landing-preview__bar")).toHaveAttribute("aria-label", /Blue Jays 45\.9%/);
   await expect(page.locator(".landing-result-card__status").first()).toHaveText("Win");
   await expect(page.locator(".landing-result-card__status").nth(1)).toHaveText("Loss");
