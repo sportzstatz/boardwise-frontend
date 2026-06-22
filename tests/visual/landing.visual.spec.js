@@ -147,12 +147,6 @@ async function mockLanding(page, { authenticated = false, mlb = false } = {}) {
     });
   });
 
-  await page.route("**/api/v1/boards/nhl/current", async (route) => {
-    await route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({ games: [{ id: "nhl-1" }] }),
-    });
-  });
 }
 
 test.describe("landing visual baselines", () => {
@@ -166,6 +160,8 @@ test.describe("landing visual baselines", () => {
     await expect(page.locator("#landing-preview")).toHaveAttribute("data-state", "ready");
     await expect(page.locator("#proof")).toBeVisible();
     await expect(page.locator(".landing-preview__label")).toHaveText("Official");
+    await expect(page.getByLabel("NHL off-season board")).toContainText("Off-season");
+    await expect(page.locator('a[href="/nhl/"]')).toHaveCount(0);
     await expect(page).toHaveScreenshot("landing-desktop.png", {
       fullPage: true,
       maxDiffPixels: 35_000,
@@ -183,6 +179,8 @@ test.describe("landing visual baselines", () => {
     await expect(page.locator("#landing-preview")).toHaveAttribute("data-state", "ready");
     await expect(page.locator("#proof")).toBeVisible();
     await expect(page.locator(".landing-preview__label")).toHaveText("Official");
+    await expect(page.getByLabel("NHL off-season board")).toContainText("Off-season");
+    await expect(page.locator('a[href="/nhl/"]')).toHaveCount(0);
     await expect(page).toHaveScreenshot("landing-mobile.png", { fullPage: true });
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
     expect(overflow).toBe(false);

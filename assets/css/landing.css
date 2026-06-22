@@ -403,7 +403,8 @@
   text-decoration: none;
 }
 
-.landing-board-card--planned {
+.landing-board-card--planned,
+.landing-board-card--offseason {
   background: #f1efe9;
   color: var(--bw-muted);
 }
@@ -429,7 +430,8 @@
   line-height: 1;
 }
 
-.landing-board-card--planned .landing-board-card__icon {
+.landing-board-card--planned .landing-board-card__icon,
+.landing-board-card--offseason .landing-board-card__icon {
   background: #dcd6c8;
   filter: saturate(.7);
 }
@@ -460,10 +462,16 @@
 }
 
 .landing-board-card__count span,
-.landing-board-card__cta {
+.landing-board-card__cta,
+.landing-board-card__return {
   color: var(--bw-muted);
   font-size: 12px;
   font-weight: 800;
+}
+
+.landing-board-card__return {
+  margin-top: 14px;
+  color: var(--bw-muted-light);
 }
 
 .landing-board-card__cta {

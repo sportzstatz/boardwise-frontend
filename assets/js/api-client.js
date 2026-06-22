@@ -14,8 +14,6 @@
     landingMlb: "/api/v1/public/landing/mlb",
     mlbBoardCurrent: "/api/v1/boards/mlb/current",
     mlbBoardDate: "/api/v1/boards/mlb/",
-    nhlBoardCurrent: "/api/v1/boards/nhl/current",
-    nhlBoardDate: "/api/v1/boards/nhl/",
     performanceFilters: "/api/v1/performance/filters",
     performanceSummary: "/api/v1/performance/summary",
     performanceBreakdown: "/api/v1/performance/breakdown",
@@ -205,15 +203,6 @@
           credentials: "include",
           cache: "no-store",
         }
-      );
-    },
-
-    /**
-     * @param {string} [targetDate]
-     */
-    getNhlBoard(targetDate) {
-      return jsonRequest(
-        boardPath(ENDPOINTS.nhlBoardDate, targetDate, ENDPOINTS.nhlBoardCurrent)
       );
     },
 

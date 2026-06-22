@@ -37,7 +37,6 @@ BOARDWISE_CONTRACT_SPORT=mlb npm run test:contracts
 
 - `/api/v1/me`
 - `/api/v1/boards/mlb/current`
-- `/api/v1/boards/nhl/current`
 - `/api/v1/performance/filters`
 - `/api/v1/performance/summary`
 - `/api/v1/performance/breakdown`
@@ -52,6 +51,7 @@ BOARDWISE_CONTRACT_SPORT=mlb npm run test:contracts
 - Operator/admin endpoints
 - Endpoints requiring secrets
 - Endpoints that send email or mutate production state
+- Retired off-season board endpoints, including NHL board transport
 - Exact game counts
 - Exact ROI, pick counts, records, dates, or book availability
 

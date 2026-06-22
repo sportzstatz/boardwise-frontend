@@ -115,8 +115,11 @@ function installLandingDom() {
     <div id="landing-hero-status"><span></span><span>Daily MLB model board</span></div>
     <p id="landing-mlb-status"></p>
     <div id="landing-mlb-count" hidden><strong>0</strong><span>games on the board</span></div>
-    <p id="landing-nhl-status"></p>
-    <div id="landing-nhl-count" hidden><strong>0</strong><span>games on the board</span></div>
+    <article class="landing-board-card landing-board-card--offseason" aria-label="NHL off-season board">
+      <p id="landing-nhl-status">Hockey</p>
+      <div class="landing-board-card__return">Returns Oct 2026</div>
+      <div class="landing-board-card__cta">Notify me</div>
+    </article>
     <div id="landing-preview-loading" class="landing-preview landing-preview--loading" role="status">Loading today's featured matchup...</div>
     <div id="landing-preview" hidden></div>
     <div id="landing-preview-empty" class="landing-preview landing-preview--empty" hidden></div>
@@ -191,6 +194,7 @@ describe("landing page", () => {
 
     expect(api.getMlbLanding).toHaveBeenCalledTimes(1);
     expect(api.getMlbBoard).not.toHaveBeenCalled();
+    expect(api.getNhlBoard).not.toHaveBeenCalled();
     expect(document.querySelector("#landing-primary-cta")?.getAttribute("href")).toBe("/login/?return_to=/mlb/");
     expect(document.querySelector("#landing-mlb-card")?.getAttribute("href")).toBe("/login/?return_to=/mlb/");
   });
@@ -399,6 +403,15 @@ describe("landing page", () => {
     expect(html).toContain('aria-hidden="true">🏒</span>');
     expect(html).toContain('aria-hidden="true">🏀</span>');
     expect(html).toContain('aria-hidden="true">🏈</span>');
+  });
+
+  it("ships NHL as an off-season non-link card", async () => {
+    const html = await readFile(resolve(process.cwd(), "index.html"), "utf8");
+    expect(html).toContain('class="landing-board-card landing-board-card--offseason"');
+    expect(html).toContain("Off-season");
+    expect(html).toContain("Returns Oct 2026");
+    expect(html).toContain("Notify me");
+    expect(html).not.toContain('href="/nhl/"');
   });
 
   it("shipped landing HTML has no hardcoded sample teams, picks, or transparency panel copy", async () => {

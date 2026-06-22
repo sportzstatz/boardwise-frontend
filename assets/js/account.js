@@ -24,10 +24,11 @@
       key: 'nhl',
       title: 'NHL Board',
       icon: 'hex',
-      href: '/nhl/',
+      href: '',
       feature: 'nhl_board_basic',
-      lockedBody: 'Sign in or join beta to unlock NHL board access.',
-      statusAvailable: 'Available',
+      retired: true,
+      lockedBody: 'Off-season · returns Oct 2026',
+      statusAvailable: 'Off-season',
     },
   ];
 
@@ -85,6 +86,16 @@
   }
 
   function productAccess(product, state) {
+    if (product.retired) {
+      return {
+        available: false,
+        ctaHref: '',
+        ctaText: '',
+        status: product.lockedBody,
+        statusClass: 'is-locked',
+      };
+    }
+
     const available = hasFeature(state, product.feature);
     const advanced = product.advancedFeature ? hasFeature(state, product.advancedFeature) : false;
     const authenticated = Boolean(state.authenticated);

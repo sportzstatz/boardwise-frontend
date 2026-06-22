@@ -407,26 +407,6 @@
     if (link) link.setAttribute("href", performanceHref(results, auth));
   }
 
-  async function hydrateNhlBoard() {
-    if (!window.BoardWiseApi || typeof window.BoardWiseApi.getNhlBoard !== "function") return;
-    try {
-      const payload = await window.BoardWiseApi.getNhlBoard();
-      renderBoardCount(
-        document.getElementById("landing-nhl-count"),
-        gameCount(payload),
-        document.getElementById("landing-nhl-status"),
-        "Current hockey board"
-      );
-    } catch (_err) {
-      renderBoardCount(
-        document.getElementById("landing-nhl-count"),
-        0,
-        document.getElementById("landing-nhl-status"),
-        "Current hockey board"
-      );
-    }
-  }
-
   function renderLandingBoardCount(board) {
     const count = Number(board?.game_count || 0);
     renderBoardCount(
@@ -507,10 +487,7 @@
       ? await window.BoardWiseAuth.loadAuthState()
       : { authenticated: false, features: {} };
     updateCtas(auth);
-    await Promise.all([
-      hydrateLandingSnapshot(auth),
-      hydrateNhlBoard(),
-    ]);
+    await hydrateLandingSnapshot(auth);
   }
 
   window.BoardWiseLanding = {
