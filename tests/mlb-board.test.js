@@ -154,7 +154,7 @@ describe("mlb-board model selector", () => {
     await loadMlbBoardScript(getMlbBoard);
 
     await vi.waitFor(() => expect(document.querySelectorAll(".preview-tile").length).toBe(2));
-    expect(document.querySelector("#games")?.textContent).toContain("Full MLB board requires Pro access");
+    expect(document.querySelector("#games")?.textContent).toContain("Full MLB board requires Founder access");
     expect(document.querySelector("#games")?.textContent).toContain("your 2 MLB cards for today");
     expect(document.querySelector("#games a.button")?.getAttribute("href")).toBe("/pricing/");
     expect(/** @type {HTMLElement | null} */ (document.querySelector("#model-selector"))?.hidden).toBe(true);
@@ -178,7 +178,7 @@ describe("mlb-board model selector", () => {
 
     await loadMlbBoardScript(getMlbBoard);
 
-    await vi.waitFor(() => expect(document.querySelector("#games a.button")?.textContent).toBe("Upgrade"));
+    await vi.waitFor(() => expect(document.querySelector("#games a.button")?.textContent).toBe("Become a Founder"));
     expect(document.querySelector("#games a.button")?.getAttribute("href")).toBe("/pricing/");
   });
 
@@ -199,7 +199,7 @@ describe("mlb-board model selector", () => {
 
     await loadMlbBoardScript(getMlbBoard);
 
-    await vi.waitFor(() => expect(document.querySelector("#games a.button")?.textContent).toBe("Upgrade"));
+    await vi.waitFor(() => expect(document.querySelector("#games a.button")?.textContent).toBe("Become a Founder"));
     expect(document.querySelector("#games a.button")?.getAttribute("href")).toBe("/pricing/");
   });
 
@@ -216,7 +216,7 @@ describe("mlb-board model selector", () => {
     });
   });
 
-  it("shows pro-access copy for paid-only MLB views", async () => {
+  it("shows founder-access copy for paid-only MLB views", async () => {
     window.history.replaceState({}, "", "/mlb/?date=2026-05-27");
     vi.spyOn(console, "error").mockImplementation(() => {});
     const error = Object.assign(new Error("403 Forbidden"), { status: 403 });
@@ -225,7 +225,7 @@ describe("mlb-board model selector", () => {
     await loadMlbBoardScript(getMlbBoard);
 
     await vi.waitFor(() => {
-      expect(document.querySelector("#error")?.textContent).toContain("requires Pro access");
+      expect(document.querySelector("#error")?.textContent).toContain("requires Founder access");
     });
   });
 

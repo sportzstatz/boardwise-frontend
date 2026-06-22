@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 function installPerformanceDom() {
   document.body.innerHTML = `
@@ -143,6 +143,56 @@ function installDeniedPerformanceApi(status = 401) {
   });
 }
 
+function installAuthState(features) {
+  const state = {
+    authenticated: Boolean(features),
+    user: features ? { email: "admin@example.test", display_name: "Admin" } : null,
+    plan: features && features.performance_summary ? "admin" : "free",
+    features: features || {},
+  };
+  window.BoardWiseAuth = /** @type {any} */ ({
+    loadAuthState: vi.fn().mockResolvedValue(state),
+    hasFeature: (s, key) => Boolean(s && s.features && s.features[key]),
+  });
+  return state;
+}
+
+// Default: an admin context so the concealed startup guard passes and the
+// existing init() behavior is exercised. Non-admin redirect is covered by its
+// own tests.
+function installAdminAuth() {
+  return installAuthState({
+    performance_summary: true,
+    performance_breakdown: true,
+    performance_picks: true,
+    performance_book_comparison: true,
+    mlb_board_basic: true,
+    mlb_board_advanced: true,
+  });
+}
+
+// jsdom does not allow spying on the non-configurable window.location.replace,
+// so stub the whole location object. vi.unstubAllGlobals() (afterEach) restores
+// it. The fields init() reads (search/href/origin/pathname) are populated.
+function stubLocation() {
+  const replace = vi.fn();
+  vi.stubGlobal("location", {
+    href: "http://localhost/performance/",
+    origin: "http://localhost",
+    protocol: "http:",
+    host: "localhost",
+    hostname: "localhost",
+    port: "",
+    pathname: "/performance/",
+    search: "",
+    hash: "",
+    replace,
+    assign: vi.fn(),
+    reload: vi.fn(),
+  });
+  return replace;
+}
+
 function checkedMarketValues() {
   return Array.from(document.querySelectorAll("#f-market-menu input[type='checkbox']"))
     .filter((el) => el instanceof HTMLInputElement && el.checked)
@@ -168,11 +218,18 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.resetModules();
   delete window.BoardWiseApi;
+  delete window.BoardWiseAuth;
   document.body.innerHTML = "";
   window.history.replaceState({}, "", "/");
 });
 
 describe("performance page", () => {
+  beforeEach(() => {
+    // Admin context by default so the concealed startup guard passes and the
+    // page initializes. Individual tests override for non-admin behavior.
+    installAdminAuth();
+  });
+
   it("shows a clean admin sign-in state when performance is denied", async () => {
     window.history.replaceState({}, "", "/performance/");
     installPerformanceDom();
@@ -551,5 +608,66 @@ describe("performance page", () => {
 
     expect(document.querySelector("#advanced-filter-toggle")?.getAttribute("aria-expanded")).toBe("false");
     expect(document.querySelector("#advanced-filters")?.hasAttribute("hidden")).toBe(true);
+  });
+
+  it("redirects a non-admin to home without fetching performance endpoints", async () => {
+    window.history.replaceState({}, "", "/performance/");
+    installPerformanceDom();
+    // Mark the app container so we can assert it is never revealed.
+    const appRoot = document.createElement("div");
+    appRoot.setAttribute("data-performance-app", "");
+    appRoot.setAttribute("hidden", "");
+    document.body.appendChild(appRoot);
+
+    // Non-admin (Founder): no performance_summary feature.
+    installAuthState({ mlb_board_basic: true, mlb_board_advanced: true });
+    const calls = [];
+    installMockApi(calls);
+    const replace = stubLocation();
+
+    await import("../assets/js/performance.js");
+
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+    expect(window.BoardWiseApi.getPerformanceFilters).not.toHaveBeenCalled();
+    expect(window.BoardWiseApi.getPerformanceSummary).not.toHaveBeenCalled();
+    // The performance application container is never unhidden.
+    expect(appRoot.hasAttribute("hidden")).toBe(true);
+  });
+
+  it("redirects a guest to home without fetching performance endpoints", async () => {
+    window.history.replaceState({}, "", "/performance/");
+    installPerformanceDom();
+    installAuthState(null); // guest
+    const calls = [];
+    installMockApi(calls);
+    const replace = stubLocation();
+
+    await import("../assets/js/performance.js");
+
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+    expect(window.BoardWiseApi.getPerformanceFilters).not.toHaveBeenCalled();
+  });
+
+  it("initializes for an admin and reveals the performance app container", async () => {
+    // No location stub here: the admin path runs full init(), which manipulates
+    // window.history, so the real location/history must stay in place. The guard
+    // never calls location.replace for an admin, so staying on /performance/
+    // (and the API being called) proves there was no redirect.
+    window.history.replaceState({}, "", "/performance/");
+    installPerformanceDom();
+    const appRoot = document.createElement("div");
+    appRoot.setAttribute("data-performance-app", "");
+    appRoot.setAttribute("hidden", "");
+    document.body.appendChild(appRoot);
+
+    installAdminAuth();
+    const calls = [];
+    installMockApi(calls);
+
+    await import("../assets/js/performance.js");
+
+    await vi.waitFor(() => expect(window.BoardWiseApi.getPerformanceSummary).toHaveBeenCalled());
+    expect(window.location.pathname).toBe("/performance/");
+    expect(appRoot.hasAttribute("hidden")).toBe(false);
   });
 });

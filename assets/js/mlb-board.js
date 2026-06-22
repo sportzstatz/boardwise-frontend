@@ -1397,7 +1397,7 @@ function renderPreviewGame(game) {
   return `
     <article class="tile preview-tile">
       ${renderTaleOfTape(game, true)}
-      <div class="forecast-only-note preview-note">Preview card — go Pro to unlock full markets, the model breakdown, and the Wise Choice™ pick.</div>
+      <div class="forecast-only-note preview-note">Preview card — become a Founder to unlock full markets, the model breakdown, and the Wise Choice™ pick.</div>
       ${detailHref ? `<a class="tot-detail-link" href="${esc(detailHref)}">Full game detail &rarr;</a>` : ""}
     </article>
   `;
@@ -1417,9 +1417,9 @@ function renderPreviewUpgradeCard(payload = state.payload) {
   const href = safePreviewUpgradePath(access.upgrade_path);
   return `
     <article class="empty-state">
-      <strong>Full MLB board requires Pro access.</strong>
+      <strong>Full MLB board requires Founder access.</strong>
       <div class="preview-upgrade-copy">The preview shows your ${esc(access.max_preview_games || 2)} MLB cards for today.</div>
-      <a class="button primary" href="${esc(href)}">Upgrade</a>
+      <a class="button primary" href="${esc(href)}">Become a Founder</a>
     </article>
   `;
 }
@@ -1465,7 +1465,7 @@ function showAccessError(error) {
     return;
   }
   if (status === 403) {
-    showError("This MLB board view requires Pro access.");
+    showError("This MLB board view requires Founder access.");
     return;
   }
   showError("Could not load the MLB board right now. Please try again in a moment.");

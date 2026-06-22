@@ -96,7 +96,7 @@ async function mockLanding(page, { authenticated = false, mlb = false } = {}) {
       body: JSON.stringify({
         authenticated,
         user: authenticated ? { email: "founder@example.test", display_name: "Founder" } : null,
-        plan: authenticated ? "founder_beta" : "guest",
+        plan: authenticated ? "founder" : "guest",
         features: {
           mlb_board_basic: mlb,
           performance_summary: false,

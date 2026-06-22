@@ -7,7 +7,7 @@
       href: '/mlb/',
       feature: 'mlb_board_basic',
       advancedFeature: 'mlb_board_advanced',
-      lockedBody: 'Sign in or join beta to unlock MLB board access.',
+      lockedBody: 'Sign in or become a Founder to unlock MLB board access.',
       statusAvailable: 'Preview access',
       statusAdvanced: 'Full access',
     },
@@ -160,7 +160,7 @@
     if (!state.authenticated) {
       actions.innerHTML = [
         '<a class="bw-button bw-button--gold" href="/login/">Sign in</a>',
-        '<a class="bw-button bw-button--ghost-dark" href="/pricing/">Join beta</a>',
+        '<a class="bw-button bw-button--ghost-dark" href="/pricing/">View Founder access</a>',
       ].join('');
       return;
     }

@@ -75,7 +75,7 @@ describe("account page", () => {
     expect(document.querySelector("#account-auth-state")?.textContent).toBe("Guest mode");
     expect(document.querySelector("#account-status")?.textContent).toContain("browsing as a guest");
     expect(document.querySelector("#account-actions")?.textContent).toContain("Sign in");
-    expect(document.querySelector("#account-actions")?.textContent).toContain("Join beta");
+    expect(document.querySelector("#account-actions")?.textContent).toContain("View Founder access");
     expect(document.querySelectorAll(".account-access-card.is-locked")).toHaveLength(3);
     expect(document.querySelector('[data-access-card="mlb"] .account-access-action')?.getAttribute("href")).toBe(
       "/login/?return_to=%2Fmlb%2F"

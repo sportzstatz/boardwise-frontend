@@ -603,10 +603,10 @@ function renderUpsell(payload) {
     <section class="gd-upsell">
       <div class="gd-upsell-lock">${lockIcon(22)}</div>
       <div class="gd-upsell-copy">
-        <div class="gd-upsell-title">Unlock the full game with BoardWise Pro</div>
+        <div class="gd-upsell-title">Unlock the full game with BoardWise Founder</div>
         <div class="gd-upsell-sub">Full market context, the Wise Choice™ pick, model breakdown, pitching and more.</div>
       </div>
-      <a class="button primary" href="${esc(href)}">Go Pro</a>
+      <a class="button primary" href="${esc(href)}">Become a Founder</a>
     </section>`;
 }
 
@@ -615,7 +615,7 @@ function lockedRow(title, copy) {
     <div class="gd-locked-row">
       <div class="gd-locked-icon">${lockIcon(14)}</div>
       <div class="gd-locked-copy"><div class="gd-locked-title">${esc(title)}</div><div class="gd-locked-sub">${esc(copy)}</div></div>
-      <span class="gd-locked-tag">Pro</span>
+      <span class="gd-locked-tag">Founder</span>
     </div>`;
 }
 
@@ -626,13 +626,13 @@ function renderFreeDetail(payload, game) {
       ${renderUpsell(payload)}
       <div class="gd-sections">
         <section class="gd-block">
-          ${sectionTitle("Locked with Pro")}
+          ${sectionTitle("Locked with Founder")}
           <div class="gd-locked-list">
             ${lockedRow("Full Markets", "Every supported market side and model call.")}
             ${lockedRow("Wise Choice™ Pick", "The official playable pick context.")}
             ${lockedRow("Model Breakdown", "Projected score, win probability and model cells.")}
             ${lockedRow("Pitching Matchup", "Starters, lineup status and future pitching metrics.")}
-            ${lockedRow("Player Props / Weather / Trends", "Additional Pro sections as payloads become available.")}
+            ${lockedRow("Player Props / Weather / Trends", "Additional Founder sections as payloads become available.")}
           </div>
         </section>
         ${renderComingSoon("player-props", "Player Props", [["Player props", "Coming soon."]])}
@@ -646,7 +646,7 @@ function renderNav(payload, game) {
   if (!gdEls.back) return;
   const planBadge = isPreviewPayload(payload)
     ? `<span class="gd-plan free">Free</span>`
-    : `<span class="gd-plan pro">Pro</span>`;
+    : `<span class="gd-plan founder">Founder</span>`;
   const official = game && hasOfficialPlay(game)
     ? `<span class="official-plays-pill">Official Plays</span>`
     : "";
@@ -688,7 +688,7 @@ function showAccessError(error) {
     return;
   }
   if (status === 403) {
-    showError("This game detail view requires Pro access.", { cta: { href: "/pricing/", label: "Go Pro" } });
+    showError("This game detail view requires Founder access.", { cta: { href: "/pricing/", label: "Become a Founder" } });
     return;
   }
   showError("Could not load this game right now. Please try again in a moment.", {
@@ -698,7 +698,7 @@ function showAccessError(error) {
 
 function renderGameNotFound(payload) {
   if (isPreviewPayload(payload)) {
-    showError("This game's full detail requires Pro access.", { cta: { href: safeUpgradePath(payload), label: "Go Pro" } });
+    showError("This game's full detail requires Founder access.", { cta: { href: safeUpgradePath(payload), label: "Become a Founder" } });
     return;
   }
   showError("We couldn't find that game on the selected date.", { cta: { href: boardHref(), label: "Back to board" } });

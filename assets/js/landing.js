@@ -478,7 +478,7 @@
     });
     setCta(document.getElementById("landing-cta-secondary"), {
       href: isAuthed ? "/account/" : "/pricing/",
-      label: isAuthed ? "Manage account" : "Join the beta",
+      label: isAuthed ? "Manage account" : "View Founder access",
     });
   }
 

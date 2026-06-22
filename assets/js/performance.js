@@ -393,7 +393,11 @@ function clearError() {
 }
 
 function isAccessDeniedError(err) {
-  return Boolean(err && (err.status === 401 || err.status === 403));
+  // Performance is concealed Admin-only. Non-admins are turned away by the
+  // startup guard, so a 401/403/404 reaching the data layer means access was
+  // lost mid-session. A 404 is the concealed admin-only response and must never
+  // be reinterpreted as "upgrade required".
+  return Boolean(err && (err.status === 401 || err.status === 403 || err.status === 404));
 }
 
 function clearChartState() {
@@ -1895,4 +1899,35 @@ async function init() {
   refresh(filters, { preloadedFilters });
 }
 
-init().catch((err) => showError(`Failed to initialize performance page: ${err.message}`));
+// Concealed Admin-only page guard.
+//
+// The /performance/ page is static, so the API remains the true data security
+// boundary, but the UI must never render or describe performance to a
+// non-admin. Before touching any performance UI or data call, resolve the
+// current account state through the shared auth-state helper and require the
+// performance_summary feature. If the visitor is not an admin, redirect to "/"
+// without showing an upgrade card or any performance description. Only an admin
+// unhides the app container and initializes the performance data calls.
+async function bootstrapPerformancePage() {
+  let auth;
+  try {
+    auth = await window.BoardWiseAuth.loadAuthState();
+  } catch (_err) {
+    window.location.replace("/");
+    return;
+  }
+
+  if (!window.BoardWiseAuth.hasFeature(auth, "performance_summary")) {
+    window.location.replace("/");
+    return;
+  }
+
+  const appRoot = document.querySelector("[data-performance-app]");
+  if (appRoot) appRoot.removeAttribute("hidden");
+
+  await init();
+}
+
+bootstrapPerformancePage().catch((err) =>
+  showError(`Failed to initialize performance page: ${err.message}`)
+);

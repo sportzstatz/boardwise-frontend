@@ -108,7 +108,7 @@ function installLandingDom() {
     <a id="landing-primary-cta" href="/login/?return_to=/mlb/">View today's MLB board</a>
     <a id="landing-secondary-cta" href="#proof">See yesterday's results</a>
     <a id="landing-cta-primary" href="/login/?return_to=/mlb/">Sign in to view the board</a>
-    <a id="landing-cta-secondary" href="/pricing/">Join the beta</a>
+    <a id="landing-cta-secondary" href="/pricing/">View Founder access</a>
     <a id="landing-mlb-card" href="/login/?return_to=/mlb/">
       <span id="landing-mlb-cta">Sign in to open</span>
     </a>
