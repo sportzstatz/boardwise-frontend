@@ -172,6 +172,17 @@ At startup, before any performance UI or API call, the page resolves
 performance description. Only an admin unhides the `[data-performance-app]`
 container and initializes the performance API calls.
 
+The shell additionally carries `data-feature-visible="performance_summary"`, so
+the shared, always-fresh `apply-gates` pipeline reveals it for admins and keeps
+it hidden for non-admins **independently of `performance.js`**. This is
+deliberate resilience: assets are long-cached at the edge while the HTML is
+served `max-age=0`, so a browser can run a *stale* `performance.js` against
+fresh HTML. Without the attribute, a stale `performance.js` that predates the
+startup guard never un-hides the shell and the page blanks for admins. Routing
+the reveal through the HTML attribute + `apply-gates` (which every page already
+loads) keeps the page working across an asset/HTML version skew; the
+`performance.js` guard remains for the non-admin redirect and as belt-and-suspenders.
+
 The API enforces the same boundary: performance routes return an
 indistinguishable `404 Not Found` (never `internal_admin`, never an upgrade
 path) to guests, Free, and Founder. Because non-admins are redirected at
