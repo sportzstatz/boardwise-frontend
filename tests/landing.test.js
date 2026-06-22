@@ -374,6 +374,43 @@ describe("landing page", () => {
     expect(document.querySelector("#landing-results-cards")?.innerHTML).toBe("");
   });
 
+  it.each([
+    ["a guest", { authenticated: false, features: {} }],
+    [
+      "an authenticated non-admin (Founder)",
+      { authenticated: true, features: { mlb_board_basic: true, mlb_board_advanced: true } },
+    ],
+  ])(
+    "conceals the tracked-record /performance/ link from %s while keeping the public summary",
+    async (_label, auth) => {
+      await loadLanding({ auth });
+
+      const link = document.querySelector("#landing-results-link");
+      // Performance is concealed Admin-only: non-admins must never be linked to
+      // or told about the /performance/ dashboard.
+      expect(link?.hasAttribute("hidden")).toBe(true);
+      expect(link?.getAttribute("href")).toBeNull();
+      // The public results summary itself still renders (guest-readable snapshot).
+      expect(document.querySelector("#proof")?.hasAttribute("hidden")).toBe(false);
+      expect(document.querySelector("#landing-results-record")?.textContent).toBe("6-2");
+    }
+  );
+
+  it("shows the tracked-record link only to an admin, deep-linked to /performance/", async () => {
+    await loadLanding({
+      auth: {
+        authenticated: true,
+        features: { mlb_board_basic: true, performance_summary: true },
+      },
+    });
+
+    const link = document.querySelector("#landing-results-link");
+    expect(link?.hasAttribute("hidden")).toBe(false);
+    const href = link?.getAttribute("href") || "";
+    expect(href).toContain("/performance/");
+    expect(href).toContain("start_date=2026-06-21");
+  });
+
   it("public snapshot failure leaves the page usable", async () => {
     vi.resetModules();
     installLandingDom();

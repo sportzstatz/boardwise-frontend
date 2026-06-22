@@ -315,12 +315,6 @@
     return `/performance/?sport=mlb&performance_scope=official&start_date=${date}&end_date=${date}&settled_only=true`;
   }
 
-  function performanceHref(results, auth) {
-    if (results && canLoadPerformance(auth)) return dateScopedPerformanceHref(results);
-    if (auth?.authenticated) return "/pricing/";
-    return "/login/?return_to=/performance/";
-  }
-
   function titleCase(value) {
     const text = String(value || "");
     return text ? text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() : "Settled";
@@ -403,8 +397,20 @@
       cards.innerHTML = highlights.map(renderResultCard).join("");
     }
 
+    // Performance is concealed Admin-only. Only an admin (performance_summary)
+    // may see or be linked to the tracked-record dashboard; never describe it
+    // to, or route, guests / Free / Founder toward /performance/ (or send them
+    // to /pricing or /login for it). The link starts hidden in the markup.
     const link = document.getElementById("landing-results-link");
-    if (link) link.setAttribute("href", performanceHref(results, auth));
+    if (link) {
+      if (canLoadPerformance(auth)) {
+        link.setAttribute("href", dateScopedPerformanceHref(results));
+        link.removeAttribute("hidden");
+      } else {
+        link.setAttribute("hidden", "");
+        link.removeAttribute("href");
+      }
+    }
   }
 
   function renderLandingBoardCount(board) {

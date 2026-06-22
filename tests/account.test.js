@@ -76,11 +76,33 @@ describe("account page", () => {
     expect(document.querySelector("#account-status")?.textContent).toContain("browsing as a guest");
     expect(document.querySelector("#account-actions")?.textContent).toContain("Sign in");
     expect(document.querySelector("#account-actions")?.textContent).toContain("View Founder access");
-    expect(document.querySelectorAll(".account-access-card.is-locked")).toHaveLength(3);
+    // Performance is concealed Admin-only: a guest sees only the mlb + nhl
+    // locked cards, never a "Performance & ROI" card or a link toward it.
+    expect(document.querySelectorAll(".account-access-card.is-locked")).toHaveLength(2);
+    expect(document.querySelector('[data-access-card="performance"]')).toBeNull();
+    expect(document.querySelector("#account-access-list")?.textContent).not.toContain("Performance");
     expect(document.querySelector('[data-access-card="mlb"] .account-access-action')?.getAttribute("href")).toBe(
       "/login/?return_to=%2Fmlb%2F"
     );
     expect(window.BoardWiseGates.applyFeatureGates).toHaveBeenCalledTimes(1);
+  });
+
+  it("conceals the performance access card from an authenticated non-admin (Founder)", async () => {
+    await renderAccount({
+      authenticated: true,
+      user: { email: "founder@example.test", display_name: "Founder", member_since: "2025" },
+      plan: "founder",
+      features: {
+        account_profile: true,
+        mlb_board_basic: true,
+        mlb_board_advanced: true,
+      },
+    });
+
+    expect(document.querySelector('[data-access-card="performance"]')).toBeNull();
+    expect(document.querySelector("#account-access-list")?.textContent).not.toContain("Performance");
+    // The non-concealed MLB card is still present (full access for Founder).
+    expect(document.querySelector('[data-access-card="mlb"]')).not.toBeNull();
   });
 
   it("renders authenticated profile and product links without the feature-access section", async () => {

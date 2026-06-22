@@ -20,7 +20,11 @@ function performanceQuery(overrides = {}) {
 }
 
 async function expectAdminOnlyPerformanceResponse(response, label) {
-  expect(response.status(), `${label} status`).toBe(401);
+  // Performance + internal routes are concealed Admin-only: guests and all
+  // authenticated non-admins (Free, Founder) receive an indistinguishable
+  // 404 — never 401/403, never `required_feature: internal_admin`, and never an
+  // upgrade/pricing path. The body must be exactly {"detail": "Not Found"}.
+  expect(response.status(), `${label} status`).toBe(404);
 
   const contentType = response.headers()["content-type"] || "";
   expect(
@@ -34,13 +38,23 @@ async function expectAdminOnlyPerformanceResponse(response, label) {
 
   const body = await response.json();
   expectPlainObject(body, label);
-  expectPlainObject(body.detail, `${label}.detail`);
-  expect(body.detail.error, `${label}.detail.error`).toBe(
-    "authentication_required"
-  );
-  expect(body.detail.required_feature, `${label}.detail.required_feature`).toBe(
-    "internal_admin"
-  );
+  expect(body.detail, `${label}.detail`).toBe("Not Found");
+
+  const serialized = JSON.stringify(body).toLowerCase();
+  for (const forbidden of [
+    "internal_admin",
+    "performance",
+    "upgrade",
+    "pricing",
+    "required_feature",
+    "authentication_required",
+    "entitlement",
+  ]) {
+    expect(
+      serialized.includes(forbidden),
+      `${label} body must not reveal "${forbidden}"`
+    ).toBe(false);
+  }
   expectNoOperatorLeak(body, label);
 }
 

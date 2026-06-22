@@ -206,7 +206,13 @@
 
     const accessList = document.getElementById('account-access-list');
     if (accessList) {
-      accessList.innerHTML = PRODUCTS.map((product) => renderAccessCard(product, state)).join('');
+      // Performance is concealed Admin-only: never render, name, or link the
+      // performance card to a non-admin. Only an account with performance_summary
+      // (admin) sees it.
+      accessList.innerHTML = PRODUCTS
+        .filter((product) => product.key !== 'performance' || hasFeature(state, 'performance_summary'))
+        .map((product) => renderAccessCard(product, state))
+        .join('');
     }
 
     if (window.BoardWiseGates) {

@@ -14,5 +14,8 @@ describe("NHL off-season page", () => {
     expect(html).not.toContain("/assets/js/api-client.js");
     expect(html).not.toContain('id="date-form"');
     expect(html).not.toContain('id="games"');
+    // Performance is concealed Admin-only. This static, script-free page cannot
+    // gate a link, so it must not link to /performance/ at all.
+    expect(html).not.toContain("/performance/");
   });
 });
