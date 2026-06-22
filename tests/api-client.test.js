@@ -69,6 +69,22 @@ describe("api-client", () => {
     expect(endpointText).not.toContain("/api/mlb/board");
   });
 
+  it("loads the public MLB landing snapshot without a no-store override", async () => {
+    const fetch = vi.fn().mockResolvedValue(jsonResponse({ sport: "mlb" }));
+    vi.stubGlobal("fetch", fetch);
+
+    const api = await loadApiClient();
+    await api.getMlbLanding();
+
+    expect(fetch).toHaveBeenCalledWith(
+      `${DEFAULT_API_BASE}/api/v1/public/landing/mlb`,
+      expect.objectContaining({
+        credentials: "omit",
+      })
+    );
+    expect(fetch.mock.calls[0][1]).not.toHaveProperty("cache");
+  });
+
   it("serializes the MLB model selector", async () => {
     const fetch = vi.fn().mockResolvedValue(jsonResponse({ games: [] }));
     vi.stubGlobal("fetch", fetch);

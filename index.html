@@ -17,7 +17,7 @@
       </a>
       <nav class="landing-anchor-nav" aria-label="Landing page">
         <a href="#boards">Boards</a>
-        <a href="#proof">Transparency</a>
+        <a href="#proof">Results</a>
         <a href="#how">How it works</a>
       </nav>
       <div class="landing-account-actions">
@@ -43,7 +43,7 @@
           <p class="landing-hero__copy">BoardWise compares model probability with market price and ranks opportunities by edge, expected value, and Kelly strength so each board has one clear read.</p>
           <div class="landing-hero__actions">
             <a id="landing-primary-cta" class="bw-button bw-button--gold" href="/login/?return_to=/mlb/">View today's MLB board</a>
-            <a class="bw-button bw-button--ghost-dark" href="#how">See how scoring works</a>
+            <a id="landing-secondary-cta" class="bw-button bw-button--ghost-dark" href="#proof">See yesterday's results</a>
           </div>
           <div class="landing-hero__facts">
             <span>No credit card to sign in</span>
@@ -51,58 +51,13 @@
           </div>
         </div>
 
-        <div class="landing-preview" aria-label="Illustrative BoardWise matchup card">
-          <div class="landing-preview__top">
-            <div>
-              <div class="landing-preview__meta">Sample matchup - model preview</div>
-              <div class="landing-preview__matchup">Blue Jays at Red Sox</div>
-            </div>
-            <span class="landing-preview__label">Illustrative</span>
+        <div class="landing-preview-slot">
+          <div id="landing-preview-loading" class="landing-preview landing-preview--loading" role="status">
+            Loading today's featured matchup...
           </div>
-          <div class="landing-preview__body">
-            <div class="landing-preview__team" style="--team-color:#1f5fa8;--team-prob-color:#7d8a98">
-              <div class="landing-preview__team-mark" aria-hidden="true">TOR</div>
-              <div class="landing-preview__team-name">Blue Jays</div>
-              <div class="landing-preview__prob tnum">45.9<span>%</span></div>
-              <div class="landing-preview__odds tnum">ML +106</div>
-            </div>
-            <div class="landing-preview__bar-wrap">
-              <div class="landing-preview__bar" role="img" aria-label="Example win probability split">
-                <div class="landing-preview__bar-away"></div>
-                <div class="landing-preview__bar-home"></div>
-              </div>
-              <div class="landing-preview__vs">vs</div>
-            </div>
-            <div class="landing-preview__team" style="--team-color:#13243c;--team-prob-color:#11263b">
-              <div class="landing-preview__team-mark" aria-hidden="true">BOS</div>
-              <div class="landing-preview__team-name">Red Sox</div>
-              <div class="landing-preview__prob tnum">54.1<span>%</span></div>
-              <div class="landing-preview__odds tnum">ML -124</div>
-            </div>
-          </div>
-          <div class="landing-preview__choice">
-            <div class="landing-preview__choice-head">
-              <span class="landing-preview__choice-label">Wise Choice</span>
-              <span class="landing-preview__choice-pill">Example</span>
-            </div>
-            <div class="landing-preview__pick">
-              <div class="landing-preview__pick-main">Red Sox -1.5 <span>- sample book</span></div>
-              <div class="landing-preview__pick-price tnum">-205</div>
-            </div>
-            <div class="landing-preview__metrics">
-              <div class="landing-preview__metric">
-                <div class="landing-preview__metric-label">Win</div>
-                <div class="landing-preview__metric-value tnum">73.4%</div>
-              </div>
-              <div class="landing-preview__metric">
-                <div class="landing-preview__metric-label">Edge</div>
-                <div class="landing-preview__metric-value tnum">+9.1%</div>
-              </div>
-              <div class="landing-preview__metric">
-                <div class="landing-preview__metric-label">EV</div>
-                <div class="landing-preview__metric-value tnum">+0.09u</div>
-              </div>
-            </div>
+          <div id="landing-preview" hidden></div>
+          <div id="landing-preview-empty" class="landing-preview landing-preview--empty" role="status" hidden>
+            Today's featured matchup is not available yet.
           </div>
         </div>
       </div>
@@ -116,7 +71,7 @@
       <div class="landing-card-grid">
         <a id="landing-mlb-card" class="landing-board-card" href="/login/?return_to=/mlb/">
           <div class="landing-board-card__top">
-            <span class="landing-board-card__icon" aria-hidden="true">MLB</span>
+            <span class="landing-board-card__icon" aria-hidden="true">⚾️</span>
             <span class="bw-pill bw-pill--positive">Available</span>
           </div>
           <h3>MLB</h3>
@@ -130,7 +85,7 @@
 
         <a class="landing-board-card" href="/nhl/">
           <div class="landing-board-card__top">
-            <span class="landing-board-card__icon" aria-hidden="true">NHL</span>
+            <span class="landing-board-card__icon" aria-hidden="true">🏒</span>
             <span class="bw-pill bw-pill--positive">Available</span>
           </div>
           <h3>NHL</h3>
@@ -144,7 +99,7 @@
 
         <article class="landing-board-card landing-board-card--planned" aria-label="NBA planned board">
           <div class="landing-board-card__top">
-            <span class="landing-board-card__icon" aria-hidden="true">NBA</span>
+            <span class="landing-board-card__icon" aria-hidden="true">🏀</span>
             <span class="bw-pill">Planned</span>
           </div>
           <h3>NBA</h3>
@@ -154,7 +109,7 @@
 
         <article class="landing-board-card landing-board-card--planned" aria-label="NFL planned board">
           <div class="landing-board-card__top">
-            <span class="landing-board-card__icon" aria-hidden="true">NFL</span>
+            <span class="landing-board-card__icon" aria-hidden="true">🏈</span>
             <span class="bw-pill">Planned</span>
           </div>
           <h3>NFL</h3>
@@ -164,39 +119,34 @@
       </div>
     </section>
 
-    <section id="proof" class="landing-section" aria-labelledby="proof-title">
-      <div class="landing-proof-panel">
-        <div class="landing-proof-panel__head">
+    <section id="proof" class="landing-section" aria-labelledby="landing-results-title" hidden>
+      <div class="landing-results-panel">
+        <div class="landing-results-panel__head">
           <div>
-            <p class="bw-kicker">Transparent by design</p>
-            <h2 id="proof-title">Every recommendation is preserved with its posted line.</h2>
+            <p id="landing-results-kicker" class="bw-kicker">Latest official plays · settled</p>
+            <h2 id="landing-results-title">Official results</h2>
           </div>
-          <div>
-            <a id="landing-proof-cta" class="bw-button bw-button--secondary" href="#how">Learn how scoring works</a>
-          </div>
+          <dl class="landing-results-summary" aria-label="Settled slate summary">
+            <div>
+              <dt>Record</dt>
+              <dd id="landing-results-record" class="bc tnum">—</dd>
+            </div>
+            <div>
+              <dt>Units</dt>
+              <dd id="landing-results-units" class="bc tnum">—</dd>
+            </div>
+            <div>
+              <dt>ROI</dt>
+              <dd id="landing-results-roi" class="bc tnum">—</dd>
+            </div>
+          </dl>
         </div>
-        <div class="landing-proof-panel__body">
-          <article class="landing-info-card">
-            <div class="landing-info-card__label">Posted pick</div>
-            <h3>The published side is recorded.</h3>
-            <p>Recommendations are saved with the selection, market, model context, and posting date.</p>
-          </article>
-          <article class="landing-info-card">
-            <div class="landing-info-card__label">Book and price</div>
-            <h3>The number matters.</h3>
-            <p>BoardWise stores the available book price so later analysis can compare market movement.</p>
-          </article>
-          <article class="landing-info-card">
-            <div class="landing-info-card__label">Settled outcome</div>
-            <h3>Win, loss, push, or void.</h3>
-            <p>Settlement status separates pending volume from results that count toward ROI.</p>
-          </article>
-          <article class="landing-info-card">
-            <div class="landing-info-card__label">Units and CLV</div>
-            <h3>Results need context.</h3>
-            <p>Units, return on risk, and closing-line value help separate signal from short samples.</p>
-          </article>
-        </div>
+
+        <div id="landing-results-cards" class="landing-results-grid"></div>
+
+        <a id="landing-results-link" class="landing-results-panel__footer" href="/performance/">
+          See the full tracked record — ROI, units &amp; CLV <span aria-hidden="true">→</span>
+        </a>
       </div>
     </section>
 
@@ -250,6 +200,7 @@
   <script src="/assets/js/api-client.js"></script>
   <script src="/assets/js/auth-state.js"></script>
   <script src="/assets/js/gates.js"></script>
+  <script src="/assets/js/mlb-team-branding.js"></script>
   <script src="/assets/js/landing.js"></script>
   <script src="/assets/js/apply-gates.js"></script>
 </body>

@@ -140,6 +140,22 @@
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
+.landing-preview-slot {
+  min-width: 0;
+}
+
+.landing-preview--loading,
+.landing-preview--empty {
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  color: var(--bw-muted);
+  font-size: 14px;
+  font-weight: 900;
+  text-align: center;
+}
+
 .landing-preview__top {
   display: flex;
   align-items: center;
@@ -266,6 +282,10 @@
   background: #fff;
 }
 
+.landing-preview__choice--empty {
+  border-color: var(--bw-border);
+}
+
 .landing-preview__choice-head {
   display: flex;
   align-items: center;
@@ -336,6 +356,14 @@
   font-weight: 900;
 }
 
+.landing-preview__metric-value.positive {
+  color: #15803d;
+}
+
+.landing-preview__metric-value.negative {
+  color: #b42318;
+}
+
 .landing-section {
   padding-top: 54px;
 }
@@ -395,12 +423,15 @@
   place-items: center;
   background: var(--bw-navy);
   color: #fff;
-  font-weight: 900;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1;
 }
 
 .landing-board-card--planned .landing-board-card__icon {
   background: #dcd6c8;
-  color: #11263b;
+  filter: saturate(.7);
 }
 
 .landing-board-card h3 {
@@ -445,35 +476,195 @@
   font-weight: 900;
 }
 
-.landing-proof-panel {
+.landing-results-panel {
   overflow: hidden;
-  border: 1px solid var(--bw-border);
+  border: 1px solid #eee7da;
   border-radius: 22px;
-  background: var(--bw-panel);
-  box-shadow: var(--bw-shadow);
+  background: #fbfaf7;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, .10);
 }
 
-.landing-proof-panel__head {
+.landing-results-panel__head {
   display: flex;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
   padding: 24px 28px;
-  border-bottom: 1px solid var(--bw-row-border);
+  border-bottom: 1px solid #f0ece2;
 }
 
-.landing-proof-panel h2,
+.landing-results-panel__head h2,
 .landing-method h2,
 .landing-cta h2 {
   margin: 8px 0 0;
   font-size: 28px;
   font-weight: 900;
+  letter-spacing: 0;
 }
 
-.landing-proof-panel__body {
+.landing-results-summary {
+  display: flex;
+  gap: 24px;
+  margin: 0;
+  text-align: right;
+}
+
+.landing-results-summary div {
+  min-width: 72px;
+}
+
+.landing-results-summary dt {
+  color: #526174;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.landing-results-summary dd {
+  margin: 2px 0 0;
+  color: #11263b;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.landing-results-summary dd.positive,
+.landing-result-card.is-win .landing-result-card__units strong {
+  color: #15803d;
+}
+
+.landing-results-summary dd.negative,
+.landing-result-card.is-loss .landing-result-card__units strong {
+  color: #b42318;
+}
+
+.landing-results-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   padding: 22px 28px 26px;
+}
+
+.landing-result-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #eee7da;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.landing-result-card__accent {
+  height: 4px;
+  background: #98a2b3;
+}
+
+.landing-result-card.is-win .landing-result-card__accent {
+  background: #15803d;
+}
+
+.landing-result-card.is-loss .landing-result-card__accent {
+  background: #c94f45;
+}
+
+.landing-result-card.is-loss {
+  background: #fefefd;
+}
+
+.landing-result-card__body {
+  padding: 14px;
+}
+
+.landing-result-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.landing-result-card__game {
+  min-width: 0;
+  overflow: hidden;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.landing-result-card__status {
+  flex: none;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.landing-result-card.is-win .landing-result-card__status {
+  background: #edf7ee;
+  color: #15803d;
+}
+
+.landing-result-card.is-loss .landing-result-card__status {
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.landing-result-card.is-neutral .landing-result-card__status {
+  background: #f2f4f7;
+  color: #475467;
+}
+
+.landing-result-card__selection {
+  margin-top: 8px;
+  color: #11263b;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.landing-result-card__price {
+  margin-top: 1px;
+  color: #4f5f6f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.landing-result-card__units {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #f0ece2;
+}
+
+.landing-result-card__units span {
+  color: #664a0c;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.landing-result-card__units strong {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.landing-results-panel__footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border-top: 1px solid #f0ece2;
+  background: #f6f3ec;
+  color: #13243c;
+  font-size: 14px;
+  font-weight: 900;
+  text-align: center;
+  text-decoration: none;
 }
 
 .landing-info-card__label {
@@ -531,8 +722,11 @@
     grid-template-columns: 1fr;
   }
 
-  .landing-card-grid,
-  .landing-proof-panel__body {
+  .landing-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .landing-results-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -594,10 +788,25 @@
     height: 82px;
   }
 
-  .landing-proof-panel__head,
   .landing-section__head,
   .landing-cta {
     display: grid;
+  }
+
+  .landing-results-panel__head {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .landing-results-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    text-align: left;
+  }
+
+  .landing-results-summary div {
+    min-width: 0;
   }
 
   .landing-cta {
@@ -606,9 +815,17 @@
 }
 
 @media (max-width: 520px) {
-  .landing-card-grid,
-  .landing-proof-panel__body {
+  .landing-card-grid {
     grid-template-columns: 1fr;
+  }
+
+  .landing-results-grid {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .landing-results-panel__head {
+    padding: 20px 16px;
   }
 
   .landing-hero h1 {
@@ -620,8 +837,7 @@
     display: grid;
   }
 
-  .landing-proof-panel__head,
-  .landing-proof-panel__body {
-    padding-inline: 18px;
+  .landing-results-panel__footer {
+    padding-inline: 14px;
   }
 }

@@ -11,6 +11,7 @@
     magicLinkStart: "/api/v1/auth/magic-link/start",
     magicLinkVerify: "/api/v1/auth/magic-link/verify",
     logout: "/api/v1/auth/logout",
+    landingMlb: "/api/v1/public/landing/mlb",
     mlbBoardCurrent: "/api/v1/boards/mlb/current",
     mlbBoardDate: "/api/v1/boards/mlb/",
     nhlBoardCurrent: "/api/v1/boards/nhl/current",
@@ -154,6 +155,12 @@
       return jsonRequest(ENDPOINTS.me, {
         credentials: "include",
         cache: "no-store",
+      });
+    },
+
+    getMlbLanding() {
+      return jsonRequest(ENDPOINTS.landingMlb, {
+        credentials: "omit",
       });
     },
 
