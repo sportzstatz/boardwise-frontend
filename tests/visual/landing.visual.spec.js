@@ -162,6 +162,7 @@ test.describe("landing visual baselines", () => {
     await page.evaluate(async () => {
       if (document.fonts?.ready) await document.fonts.ready;
     });
+    await page.addStyleTag({ content: "html, body { min-height: 1903px; }" });
     await expect(page.locator("#landing-preview")).toHaveAttribute("data-state", "ready");
     await expect(page.locator("#proof")).toBeVisible();
     await expect(page.locator(".landing-preview__label")).toHaveText("Official");
