@@ -172,6 +172,20 @@ At startup, before any performance UI or API call, the page resolves
 performance description. Only an admin unhides the `[data-performance-app]`
 container and initializes the performance API calls.
 
+The shell additionally carries `data-feature-visible="performance_summary"`, so
+the shared `apply-gates` pass reveals it for admins and keeps it hidden for
+non-admins **independently of `performance.js`**. This is deliberate resilience:
+the shell's reveal must never depend solely on one page script, which a client
+could load in a version out of step with the current markup. If a browser ran a
+stale `performance.js` (one predating the startup guard, so it never un-hides the
+shell) against current HTML, the page would blank for admins. Routing the reveal
+through the always-applied `apply-gates` pass (which every page loads) keeps
+`/performance/` working regardless of which `performance.js` a client has; the
+`performance.js` guard remains for the non-admin redirect and as
+belt-and-suspenders. `apply-gates` and `performance.js` both resolve auth
+through the shared, request-deduped `loadAuthState`, so the two checks always
+agree and a later check can never re-hide what an earlier one revealed.
+
 The API enforces the same boundary: performance routes return an
 indistinguishable `404 Not Found` (never `internal_admin`, never an upgrade
 path) to guests, Free, and Founder. Because non-admins are redirected at

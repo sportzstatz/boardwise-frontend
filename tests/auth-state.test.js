@@ -101,4 +101,37 @@ describe("auth-state", () => {
     expect(auth.initials(emailOnly)).toBe("SO");
     expect(auth.initials(auth.guestState)).toBe("A");
   });
+
+  it("dedupes concurrent requests so callers share one auth state", async () => {
+    /** @type {(value?: unknown) => void} */
+    let resolveFetch = () => {};
+    const gate = new Promise((resolve) => {
+      resolveFetch = resolve;
+    });
+    const fetchMock = vi.fn().mockReturnValue(
+      gate.then(() =>
+        jsonResponse({
+          authenticated: true,
+          user: { email: "admin@example.test", display_name: "Admin" },
+          plan: "admin",
+          features: { performance_summary: true },
+        })
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const auth = await loadAuthStateScript();
+    // Two concurrent callers (a page's own bootstrap + the shared apply-gates
+    // pass) before the request resolves.
+    const p1 = auth.loadAuthState();
+    const p2 = auth.loadAuthState();
+    resolveFetch();
+    const [s1, s2] = await Promise.all([p1, p2]);
+
+    // One /api/v1/me request; both callers get the SAME state object, so a
+    // second auth check can never diverge and re-hide what the first revealed.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(s1).toBe(s2);
+    expect(s1.features.performance_summary).toBe(true);
+  });
 });

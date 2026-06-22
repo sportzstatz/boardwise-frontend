@@ -21,6 +21,7 @@
   });
 
   let cachedState = null;
+  let inflightRequest = null;
 
   function normaliseState(payload) {
     const features = Object.assign(
@@ -38,13 +39,22 @@
 
   async function loadAuthState(options = {}) {
     if (cachedState && !options.force) return cachedState;
-    try {
-      cachedState = normaliseState(await window.BoardWiseApi.getMe());
+    // Share a single in-flight request so concurrent callers (e.g. a page's
+    // own bootstrap and the shared apply-gates pass) resolve to the SAME auth
+    // state. Without this they each issue their own account-state request; a
+    // transient failure on one would diverge — e.g. re-hiding a feature-gated
+    // element a prior caller already revealed for an admin.
+    if (inflightRequest && !options.force) return inflightRequest;
+    inflightRequest = (async () => {
+      try {
+        cachedState = normaliseState(await window.BoardWiseApi.getMe());
+      } catch (_err) {
+        cachedState = normaliseState(guestState);
+      }
+      inflightRequest = null;
       return cachedState;
-    } catch (_err) {
-      cachedState = normaliseState(guestState);
-      return cachedState;
-    }
+    })();
+    return inflightRequest;
   }
 
   function hasFeature(state, featureKey) {
