@@ -89,7 +89,7 @@ afterEach(() => {
 });
 
 describe("mlb game detail", () => {
-  it("renders the full Pro detail for the requested game", async () => {
+  it("renders the full Founder detail for the requested game", async () => {
     window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
     const getMlbBoard = vi.fn().mockResolvedValue(clone(FULL_PAYLOAD));
 
@@ -125,8 +125,8 @@ describe("mlb game detail", () => {
     // Coming soon honesty
     expect(text).toContain("Player Props");
     expect(text).toContain("Soon");
-    // Pro plan badge + title
-    expect(document.querySelector("#gd-back .gd-plan.pro")).not.toBeNull();
+    // Founder plan badge + title
+    expect(document.querySelector("#gd-back .gd-plan.founder")).not.toBeNull();
     expect(document.title).toContain("Blue Jays at Red Sox");
     expect(document.querySelector("#gd-heading")?.textContent).toBe("Blue Jays at Red Sox");
     // no raw leakage
@@ -177,7 +177,8 @@ describe("mlb game detail", () => {
     expect(text).toContain("54.1");
     // Upsell + locked rows, Free badge
     expect(detail?.querySelector(".gd-upsell")).not.toBeNull();
-    expect(text).toContain("Go Pro");
+    expect(text).toContain("Become a Founder");
+    expect(text).not.toContain("Go Pro");
     expect(text).toContain("Full Markets");
     expect(text).toContain("Wise Choice");
     expect(document.querySelector("#gd-back .gd-plan.free")).not.toBeNull();
@@ -213,7 +214,7 @@ describe("mlb game detail", () => {
     expect(text).not.toContain("EV");
   });
 
-  it("shows a Pro gate when the requested game is missing from a preview board", async () => {
+  it("shows a Founder gate when the requested game is missing from a preview board", async () => {
     window.history.replaceState({}, "", "/mlb/game/?game_pk=999999");
     const getMlbBoard = vi.fn().mockResolvedValue(previewPayload([clone(PREVIEW_GAME)]));
 
@@ -221,7 +222,7 @@ describe("mlb game detail", () => {
     await vi.waitFor(() => expect(isHidden("#gd-error")).toBe(false));
 
     const error = document.querySelector("#gd-error");
-    expect(error?.textContent).toContain("requires Pro access");
+    expect(error?.textContent).toContain("requires Founder access");
     expect(error?.querySelector("a.button.primary")?.getAttribute("href")).toBe("/pricing/");
   });
 
@@ -248,7 +249,7 @@ describe("mlb game detail", () => {
     expect(document.querySelector("#gd-error a.button.primary")?.getAttribute("href")).toBe("/login/");
   });
 
-  it("shows Pro-access copy for paid-only views", async () => {
+  it("shows Founder-access copy for paid-only views", async () => {
     window.history.replaceState({}, "", "/mlb/game/?game_pk=777001&date=2026-06-18");
     vi.spyOn(console, "error").mockImplementation(() => {});
     const error = Object.assign(new Error("403"), { status: 403 });
@@ -257,7 +258,7 @@ describe("mlb game detail", () => {
     await loadDetailScript(getMlbBoard);
     await vi.waitFor(() => expect(isHidden("#gd-error")).toBe(false));
 
-    expect(document.querySelector("#gd-error")?.textContent).toContain("requires Pro access");
+    expect(document.querySelector("#gd-error")?.textContent).toContain("requires Founder access");
   });
 
   it("forwards the model param and falls back once when rejected", async () => {

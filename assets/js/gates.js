@@ -8,7 +8,7 @@
       .replaceAll("'", "&#39;");
   }
 
-  function gateCard({ title, body, ctaText = "Join beta", ctaHref = "/pricing/" }) {
+  function gateCard({ title, body, ctaText = "View Founder access", ctaHref = "/pricing/" }) {
     return `
       <article class="gate-card" data-gate-card="true">
         <div class="gate-eyebrow">Locked feature</div>
@@ -60,7 +60,7 @@
         return;
       }
       const title = el.getAttribute("data-gate-title") || "This section is gated";
-      const body = el.getAttribute("data-gate-body") || "Sign in or join beta to access this BoardWise feature.";
+      const body = el.getAttribute("data-gate-body") || "Sign in or become a Founder to access this BoardWise feature.";
       el.innerHTML = gateCard({ title, body });
       el.removeAttribute("hidden");
     });

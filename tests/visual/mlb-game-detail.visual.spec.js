@@ -41,8 +41,8 @@ async function mockBoard(page, payload, authenticated) {
       contentType: "application/json",
       body: JSON.stringify({
         authenticated,
-        user: authenticated ? { email: "pro@example.com" } : null,
-        plan: authenticated ? "pro" : "guest",
+        user: authenticated ? { email: "founder@example.com" } : null,
+        plan: authenticated ? "founder" : "guest",
         features: { mlb_board_basic: true, mlb_board_advanced: authenticated },
       }),
     });

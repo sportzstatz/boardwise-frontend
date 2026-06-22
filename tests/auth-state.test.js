@@ -52,10 +52,10 @@ describe("auth-state", () => {
             email: "founder@example.test",
             display_name: "Founder"
           },
-          plan: "founder_beta",
+          plan: "founder",
           features: {
             mlb_board_basic: true,
-            performance_picks: true
+            mlb_board_advanced: true
           }
         })
       )
@@ -65,10 +65,10 @@ describe("auth-state", () => {
     const state = await auth.loadAuthState({ force: true });
 
     expect(state.authenticated).toBe(true);
-    expect(state.plan).toBe("founder_beta");
+    expect(state.plan).toBe("founder");
     expect(state.features.mlb_board_basic).toBe(true);
-    expect(state.features.performance_picks).toBe(true);
-    expect(auth.hasFeature(state, "performance_picks")).toBe(true);
+    expect(state.features.mlb_board_advanced).toBe(true);
+    expect(auth.hasFeature(state, "mlb_board_advanced")).toBe(true);
     expect(auth.displayName(state)).toBe("Founder");
     expect(auth.initials(state)).toBe("FO");
   });

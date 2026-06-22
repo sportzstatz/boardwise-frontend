@@ -127,7 +127,7 @@ Expected API outcomes:
   `detail.required_feature = mlb_board_basic`;
 - free/basic: `200` preview payload with two deterministic preview cards for
   the canonical current mode;
-- pro/founder/admin: `200` full projected board;
+- founder/admin: `200` full projected board;
 - non-canonical modes, dated boards, model switching, tracking summary, and
   full-board variants: advanced-only and may return `403`.
 
@@ -145,31 +145,42 @@ loads the same MLB board through the shared API client, then renders the one
 requested game. It performs no game-specific API call and never fetches premium
 JSON to hide it client-side:
 
-- pro/founder/admin (`access.level = full`): the full game detail — hero,
+- founder/admin (`access.level = full`): the full game detail — hero,
   Wise Choice pick, full markets with edge, model breakdown, and pitching
   matchup — plus "coming soon" placeholders for sections not yet served by the
   API (player props, weather/park, line movement and head-to-head).
-- free/basic (`access.level = preview`): the hero plus a Pro upsell and a list of
-  locked sections. No premium odds, edge, or pick values are rendered, because
+- free/basic (`access.level = preview`): the hero plus a Founder upsell and a list
+  of locked sections. No premium odds, edge, or pick values are rendered, because
   the preview payload does not contain them.
-- a requested game absent from a preview board surfaces the Pro upgrade path; a
-  game absent from a full board surfaces a not-found message linking back to the
-  board.
-- `401` is shown as sign-in required and `403` as Pro access required, matching
+- a requested game absent from a preview board surfaces the Founder upgrade path;
+  a game absent from a full board surfaces a not-found message linking back to
   the board.
+- `401` is shown as sign-in required and `403` as Founder access required,
+  matching the board.
 
 ## Performance Behavior
 
-`/performance/` fetches filters, summary, breakdown, picks, and book comparison
-through credentialed no-store API calls. The API currently gates performance
-routes with `internal_admin`.
+`/performance/` is a **concealed Admin-only** page. Only the Admin plan grants
+the `performance_summary` feature; Free and Founder do not see the performance
+navigation link, and the page must never render or describe performance to a
+non-admin.
 
-The page should surface:
+At startup, before any performance UI or API call, the page resolves
+`/api/v1/me` through the auth-state helper and requires
+`performance_summary === true`. If the visitor is not an admin it calls
+`window.location.replace("/")` without displaying an upgrade card or any
+performance description. Only an admin unhides the `[data-performance-app]`
+container and initializes the performance API calls.
 
-- `401` as sign-in required;
-- `403` as full/admin access required;
-- API-provided data as the source of truth for available filters, including the
-  official/tracking performance scope options.
+The API enforces the same boundary: performance routes return an
+indistinguishable `404 Not Found` (never `internal_admin`, never an upgrade
+path) to guests, Free, and Founder. Because non-admins are redirected at
+startup, a `401`/`403`/`404` reaching the data layer means access was lost
+mid-session; the page shows a generic admin-only state and must **not**
+reinterpret a `404` as "upgrade required".
+
+API-provided data remains the source of truth for available filters, including
+the official/tracking performance scope options.
 
 ## Account And Pricing
 
