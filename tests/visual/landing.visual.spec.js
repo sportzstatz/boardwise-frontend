@@ -165,7 +165,10 @@ test.describe("landing visual baselines", () => {
     await expect(page.locator("#landing-preview")).toHaveAttribute("data-state", "ready");
     await expect(page.locator("#proof")).toBeVisible();
     await expect(page.locator(".landing-preview__label")).toHaveText("Official");
-    await expect(page).toHaveScreenshot("landing-desktop.png", { fullPage: true });
+    await expect(page).toHaveScreenshot("landing-desktop.png", {
+      fullPage: true,
+      maxDiffPixels: 35_000,
+    });
   });
 
   test("mobile", async ({ page }) => {

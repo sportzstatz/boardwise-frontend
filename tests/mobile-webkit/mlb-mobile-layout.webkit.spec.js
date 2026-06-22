@@ -344,7 +344,7 @@ test.describe("MLB mobile WebKit layout", () => {
     await expect(page.locator("#landing-preview")).toHaveAttribute("data-state", "ready");
     await expect(page.locator("#proof")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    const previewBox = await page.locator(".landing-preview").boundingBox();
+    const previewBox = await page.locator("#landing-preview .landing-preview").boundingBox();
     expect(previewBox).not.toBeNull();
     expect(previewBox.x).toBeGreaterThanOrEqual(0);
     expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(390);
