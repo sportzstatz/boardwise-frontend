@@ -169,6 +169,7 @@ test.describe("landing visual baselines", () => {
     await expect(page).toHaveScreenshot("landing-desktop.png", {
       fullPage: true,
       maxDiffPixels: 35_000,
+      maxDiffPixelRatio: 0.02,
     });
   });
 
