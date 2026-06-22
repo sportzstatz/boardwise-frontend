@@ -75,6 +75,73 @@ async function mockLandingPage(page) {
       body: JSON.stringify({ authenticated: false, user: null, plan: "guest", features: {} }),
     });
   });
+  await page.route("**/api/v1/public/landing/mlb", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        sport: "mlb",
+        timezone: "America/Chicago",
+        generated_at: "2026-06-22T07:05:02-05:00",
+        board: {
+          target_date: "2026-06-22",
+          model_family: "classic_mlb",
+          model_display_name: "Classic MLB",
+          game_count: 15,
+          available: true,
+          featured: {
+            game_pk: 777001,
+            game_label: "Blue Jays at Red Sox",
+            commence_time: "12:35 PM CDT",
+            venue: "Fenway Park",
+            away: {
+              team_name: "Toronto Blue Jays",
+              short_name: "Blue Jays",
+              abbr: "TOR",
+              win_probability: 0.459,
+              win_probability_text: "45.9%",
+              moneyline_text: "+106",
+            },
+            home: {
+              team_name: "Boston Red Sox",
+              short_name: "Red Sox",
+              abbr: "BOS",
+              win_probability: 0.541,
+              win_probability_text: "54.1%",
+              moneyline_text: "-124",
+            },
+            pick: {
+              selection_text: "Red Sox -1.5",
+              sportsbook: "FanDuel",
+              price_text: "-205",
+              model_probability: 0.734,
+              model_probability_text: "73.4%",
+              probability_edge: 0.091,
+              edge_text: "+9.1%",
+              expected_value_per_unit: 0.09,
+              ev_text: "+0.09u",
+              is_official: true,
+            },
+          },
+        },
+        results: {
+          target_date: "2026-06-21",
+          is_yesterday: true,
+          fully_settled: true,
+          model_family: "classic_mlb",
+          summary: { record: "6-2", units_won: 4.31, roi: 0.187 },
+          highlights: [{
+            published_pick_id: 1234,
+            game_label: "Yankees at Orioles",
+            selection_text: "Yankees ML",
+            bookmaker_abbr: "DK",
+            price_text: "-138",
+            result_status: "win",
+            units_won: 0.72,
+          }],
+        },
+      }),
+    });
+  });
   await page.route("**/api/v1/boards/nhl/current", async (route) => {
     await route.fulfill({ contentType: "application/json", body: JSON.stringify({ games: [] }) });
   });
@@ -271,15 +338,20 @@ test.describe("MLB mobile WebKit layout", () => {
     expect(markFailures).toEqual([]);
   });
 
-  test("landing redesign has no horizontal overflow and keeps preview framed", async ({ page }) => {
+  test("landing redesign has no horizontal overflow and keeps live results usable", async ({ page }) => {
     await mockLandingPage(page);
     await page.goto("/");
-    await expect(page.locator(".landing-preview")).toBeVisible();
+    await expect(page.locator("#landing-preview")).toHaveAttribute("data-state", "ready");
+    await expect(page.locator("#proof")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    const previewBox = await page.locator(".landing-preview").boundingBox();
+    const previewBox = await page.locator("#landing-preview .landing-preview").boundingBox();
     expect(previewBox).not.toBeNull();
     expect(previewBox.x).toBeGreaterThanOrEqual(0);
     expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(390);
+    await expect(page.locator("#landing-results-record")).toBeVisible();
+    await expect(page.locator("#landing-results-units")).toBeVisible();
+    await expect(page.locator("#landing-results-roi")).toBeVisible();
+    await expect(page.locator(".landing-result-card").first()).toBeVisible();
   });
 
   test("login redesign keeps form first and Turnstile inside the card", async ({ page }) => {

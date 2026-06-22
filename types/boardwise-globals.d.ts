@@ -62,6 +62,28 @@ interface BoardWiseBoardPayload {
   visibility?: Record<string, any>;
 }
 
+interface BoardWiseMlbLandingPayload {
+  sport: "mlb";
+  timezone: string;
+  generated_at: string;
+  board: {
+    target_date: string;
+    model_family: string;
+    model_display_name: string;
+    game_count: number;
+    available: boolean;
+    featured: null | Record<string, any>;
+  };
+  results: null | {
+    target_date: string;
+    is_yesterday: boolean;
+    fully_settled: boolean;
+    model_family: string;
+    summary: Record<string, any>;
+    highlights: any[];
+  };
+}
+
 interface BoardWisePerformanceFiltersPayload {
   [key: string]: any;
   sports?: string[];
@@ -125,6 +147,7 @@ interface BoardWiseApiClient {
   }): Promise<Record<string, any>>;
   verifyMagicLink(token: string): Promise<Record<string, any> | null>;
   logout(): Promise<Record<string, any> | null>;
+  getMlbLanding(): Promise<BoardWiseMlbLandingPayload>;
   getMlbBoard(
     targetDate?: string,
     options?: { model?: string }
