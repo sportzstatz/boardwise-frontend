@@ -299,7 +299,11 @@
 
   function dateScopedPerformanceHref(results) {
     const date = encodeURIComponent(results.target_date);
-    return `/performance/?sport=mlb&performance_scope=official&start_date=${date}&end_date=${date}&settled_only=true`;
+    // This panel shows the Obsidian Steed (tracked, is_official=false) winners, so the
+    // admin record link must open the tracking scope — performance_scope=official would
+    // resolve to the classic/official record instead. The tracking scope is bound to
+    // obsidian_steed on both the perf page and the API, so model_family is not needed.
+    return `/performance/?sport=mlb&performance_scope=tracking&start_date=${date}&end_date=${date}&settled_only=true`;
   }
 
   function titleCase(value) {
@@ -343,11 +347,38 @@
     const cards = document.getElementById("landing-results-cards");
     if (section) section.setAttribute("hidden", "");
     if (cards) cards.innerHTML = "";
+    // Suppress the Admin-only record link too: a hidden panel must never leave a
+    // (possibly stale) link to the concealed /performance/ dashboard exposed.
+    const link = document.getElementById("landing-results-link");
+    if (link) {
+      link.setAttribute("hidden", "");
+      link.removeAttribute("href");
+    }
   }
 
   function renderResults(results, auth) {
     if (!results) {
       hideResults();
+      return;
+    }
+
+    // Compute the wins-only highlights BEFORE deciding whether to reveal #proof.
+    // Only the top bets that hit (wins) are shown \u2014 the API already ranks them
+    // by units won, but filter defensively so a stale payload never renders a loss.
+    const highlights = (Array.isArray(results.highlights) ? results.highlights : [])
+      .filter((highlight) => String(highlight?.result_status || "").toLowerCase() === "win")
+      .slice(0, 4);
+
+    // A settled date with zero Obsidian winners (or a stale all-losses payload) must
+    // not show an "Obsidian Steed winners" panel with an empty cards grid. Hide the
+    // whole section and repoint the secondary CTA away from the now-hidden #proof,
+    // mirroring the API-failure path.
+    if (highlights.length === 0) {
+      hideResults();
+      setCta(document.getElementById("landing-secondary-cta"), {
+        href: "#how",
+        label: "How the model works",
+      });
       return;
     }
 
@@ -370,11 +401,6 @@
 
     const cards = document.getElementById("landing-results-cards");
     if (cards) {
-      // Only the top bets that hit (wins) are shown \u2014 the API already ranks them
-      // by units won, but filter defensively so a stale payload never renders a loss.
-      const highlights = (Array.isArray(results.highlights) ? results.highlights : [])
-        .filter((highlight) => String(highlight?.result_status || "").toLowerCase() === "win")
-        .slice(0, 4);
       cards.innerHTML = highlights.map(renderResultCard).join("");
     }
 
