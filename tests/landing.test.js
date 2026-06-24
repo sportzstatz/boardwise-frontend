@@ -86,6 +86,18 @@ function landingPayload(overrides = {}) {
           units_won: 0.72,
         },
         {
+          published_pick_id: 1236,
+          game_label: "Cubs at Reds",
+          selection_text: "Under 8.5",
+          bookmaker_key: "draftkings",
+          bookmaker_title: "DraftKings",
+          bookmaker_abbr: "DK",
+          price_american: -105,
+          price_text: "-105",
+          result_status: "win",
+          units_won: 0.95,
+        },
+        {
           published_pick_id: 1235,
           game_label: "Mets at Phillies",
           selection_text: "Mets +1.5",
@@ -126,11 +138,6 @@ function installLandingDom() {
     <section id="proof" hidden>
       <p id="landing-results-kicker"></p>
       <h2 id="landing-results-title"></h2>
-      <dl class="landing-results-summary">
-        <div><dt>Record</dt><dd id="landing-results-record"></dd></div>
-        <div><dt>Units</dt><dd id="landing-results-units"></dd></div>
-        <div><dt>ROI</dt><dd id="landing-results-roi"></dd></div>
-      </dl>
       <div id="landing-results-cards"></div>
       <a id="landing-results-link" href="/performance/">Results</a>
     </section>
@@ -317,7 +324,7 @@ describe("landing page", () => {
   it("selects yesterday result copy when is_yesterday is true", async () => {
     await loadLanding();
 
-    expect(document.querySelector("#landing-results-kicker")?.textContent).toBe("Yesterday's official plays · settled");
+    expect(document.querySelector("#landing-results-kicker")?.textContent).toBe("Obsidian Steed · yesterday's winners");
     expect(document.querySelector("#landing-results-title")?.textContent).toBe("What hit on Jun 21");
     expect(document.querySelector("#landing-secondary-cta")?.textContent).toBe("See yesterday's results");
   });
@@ -336,30 +343,19 @@ describe("landing page", () => {
       },
     });
 
-    expect(document.querySelector("#landing-results-kicker")?.textContent).toBe("Latest official plays · settled");
+    expect(document.querySelector("#landing-results-kicker")?.textContent).toBe("Obsidian Steed · latest winners");
     expect(document.querySelector("#landing-results-title")?.textContent).toBe("What hit on Jun 20");
     expect(document.querySelector("#landing-secondary-cta")?.textContent).toBe("See latest results");
   });
 
-  it("renders summary record units and ROI with tone", async () => {
-    await loadLanding();
-
-    expect(document.querySelector("#landing-results-record")?.textContent).toBe("6-2");
-    expect(document.querySelector("#landing-results-units")?.textContent).toBe("+4.31u");
-    expect(document.querySelector("#landing-results-units")?.classList.contains("positive")).toBe(true);
-    expect(document.querySelector("#landing-results-roi")?.textContent).toBe("+18.7%");
-    expect(document.querySelector("#landing-results-roi")?.classList.contains("positive")).toBe(true);
-  });
-
-  it("renders up to four result cards with win and loss styling", async () => {
+  it("renders only winning result cards and filters out losses", async () => {
     await loadLanding();
 
     const cards = document.querySelectorAll(".landing-result-card");
     expect(cards).toHaveLength(2);
-    expect(cards[0].classList.contains("is-win")).toBe(true);
-    expect(cards[0].textContent).toContain("Win");
-    expect(cards[1].classList.contains("is-loss")).toBe(true);
-    expect(cards[1].textContent).toContain("Loss");
+    expect([...cards].every((card) => card.classList.contains("is-win"))).toBe(true);
+    expect([...cards].every((card) => card.textContent.includes("Win"))).toBe(true);
+    expect(document.querySelector(".landing-result-card.is-loss")).toBeNull();
   });
 
   it("hides the results section when results are null", async () => {
@@ -381,7 +377,7 @@ describe("landing page", () => {
       { authenticated: true, features: { mlb_board_basic: true, mlb_board_advanced: true } },
     ],
   ])(
-    "conceals the tracked-record /performance/ link from %s while keeping the public summary",
+    "conceals the tracked-record /performance/ link from %s while keeping the public winners",
     async (_label, auth) => {
       await loadLanding({ auth });
 
@@ -390,9 +386,9 @@ describe("landing page", () => {
       // or told about the /performance/ dashboard.
       expect(link?.hasAttribute("hidden")).toBe(true);
       expect(link?.getAttribute("href")).toBeNull();
-      // The public results summary itself still renders (guest-readable snapshot).
+      // The public winners snapshot itself still renders (guest-readable).
       expect(document.querySelector("#proof")?.hasAttribute("hidden")).toBe(false);
-      expect(document.querySelector("#landing-results-record")?.textContent).toBe("6-2");
+      expect(document.querySelector(".landing-result-card.is-win")).not.toBeNull();
     }
   );
 

@@ -347,9 +347,6 @@ test.describe("MLB mobile WebKit layout", () => {
     expect(previewBox).not.toBeNull();
     expect(previewBox.x).toBeGreaterThanOrEqual(0);
     expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(390);
-    await expect(page.locator("#landing-results-record")).toBeVisible();
-    await expect(page.locator("#landing-results-units")).toBeVisible();
-    await expect(page.locator("#landing-results-roi")).toBeVisible();
     await expect(page.locator(".landing-result-card").first()).toBeVisible();
   });
 

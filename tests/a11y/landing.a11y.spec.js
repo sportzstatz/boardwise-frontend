@@ -76,13 +76,13 @@ function landingSnapshot() {
           units_won: 0.72,
         },
         {
-          published_pick_id: 1235,
-          game_label: "Mets at Phillies",
-          selection_text: "Mets +1.5",
-          bookmaker_abbr: "FD",
-          price_text: "-110",
-          result_status: "loss",
-          units_won: -1,
+          published_pick_id: 1236,
+          game_label: "Cubs at Reds",
+          selection_text: "Under 8.5",
+          bookmaker_abbr: "DK",
+          price_text: "-105",
+          result_status: "win",
+          units_won: 0.95,
         },
       ],
     },
@@ -117,13 +117,12 @@ async function expectNoA11yViolations(page) {
 async function expectLandingSemantics(page) {
   await expect(page.locator("#landing-preview")).toHaveAttribute("data-state", "ready");
   await expect(page.locator("#proof")).toBeVisible();
-  await expect(page.locator(".landing-results-summary")).toHaveJSProperty("tagName", "DL");
   await expect(page.locator(".landing-board-card__icon[aria-hidden='true']")).toHaveCount(4);
   await expect(page.getByLabel("NHL off-season board")).toContainText("Off-season");
   await expect(page.locator('a[href="/nhl/"]')).toHaveCount(0);
   await expect(page.locator(".landing-preview__bar")).toHaveAttribute("aria-label", /Blue Jays 45\.9%/);
   await expect(page.locator(".landing-result-card__status").first()).toHaveText("Win");
-  await expect(page.locator(".landing-result-card__status").nth(1)).toHaveText("Loss");
+  await expect(page.locator(".landing-result-card__status").nth(1)).toHaveText("Win");
   const hiddenFocusableCount = await page.locator("[aria-hidden='true'] a, [aria-hidden='true'] button, [aria-hidden='true'] input, [aria-hidden='true'] select, [aria-hidden='true'] textarea, [aria-hidden='true'] [tabindex]:not([tabindex='-1'])").count();
   expect(hiddenFocusableCount).toBe(0);
 }

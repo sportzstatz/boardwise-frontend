@@ -98,23 +98,10 @@
     return `${number >= 0 ? "+" : ""}${number.toFixed(digits)}u`;
   }
 
-  function formatRoi(value, digits = 1) {
-    const number = Number(value);
-    if (!Number.isFinite(number)) return "";
-    return `${number >= 0 ? "+" : ""}${(number * 100).toFixed(digits)}%`;
-  }
-
   function toneForNumber(value) {
     const number = Number(value);
     if (!Number.isFinite(number) || number === 0) return "";
     return number > 0 ? "positive" : "negative";
-  }
-
-  function setTone(el, value) {
-    if (!el) return;
-    el.classList.remove("positive", "negative");
-    const tone = toneForNumber(value);
-    if (tone) el.classList.add(tone);
   }
 
   function safeColor(value, fallback) {
@@ -366,12 +353,12 @@
 
     const section = document.getElementById("proof");
     const dateLabel = formatCalendarDate(results.target_date, { month: "short", day: "numeric" });
-    const latest = results.is_yesterday ? "Yesterday's" : "Latest";
+    const latest = results.is_yesterday ? "yesterday's" : "latest";
     const title = dateLabel ? `What hit on ${dateLabel}` : "Official results";
 
     if (section) section.removeAttribute("hidden");
     const kicker = document.getElementById("landing-results-kicker");
-    if (kicker) kicker.textContent = `${latest} official plays \u00b7 settled`;
+    if (kicker) kicker.textContent = `Obsidian Steed \u00b7 ${latest} winners`;
     const heading = document.getElementById("landing-results-title");
     if (heading) heading.textContent = title;
 
@@ -381,19 +368,13 @@
       label: secondaryLabel,
     });
 
-    const summary = results.summary || {};
-    const record = document.getElementById("landing-results-record");
-    if (record) record.textContent = summary.record || "N/A";
-    const units = document.getElementById("landing-results-units");
-    if (units) units.textContent = formatUnits(summary.units_won) || "N/A";
-    setTone(units, summary.units_won);
-    const roi = document.getElementById("landing-results-roi");
-    if (roi) roi.textContent = formatRoi(summary.roi) || "N/A";
-    setTone(roi, summary.roi);
-
     const cards = document.getElementById("landing-results-cards");
     if (cards) {
-      const highlights = Array.isArray(results.highlights) ? results.highlights.slice(0, 4) : [];
+      // Only the top bets that hit (wins) are shown \u2014 the API already ranks them
+      // by units won, but filter defensively so a stale payload never renders a loss.
+      const highlights = (Array.isArray(results.highlights) ? results.highlights : [])
+        .filter((highlight) => String(highlight?.result_status || "").toLowerCase() === "win")
+        .slice(0, 4);
       cards.innerHTML = highlights.map(renderResultCard).join("");
     }
 
