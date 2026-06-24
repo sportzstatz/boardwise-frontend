@@ -510,39 +510,10 @@
   letter-spacing: 0;
 }
 
-.landing-results-summary {
-  display: flex;
-  gap: 24px;
-  margin: 0;
-  text-align: right;
-}
-
-.landing-results-summary div {
-  min-width: 72px;
-}
-
-.landing-results-summary dt {
-  color: #526174;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}
-
-.landing-results-summary dd {
-  margin: 2px 0 0;
-  color: #11263b;
-  font-size: 24px;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.landing-results-summary dd.positive,
 .landing-result-card.is-win .landing-result-card__units strong {
   color: #15803d;
 }
 
-.landing-results-summary dd.negative,
 .landing-result-card.is-loss .landing-result-card__units strong {
   color: #b42318;
 }
@@ -804,17 +775,6 @@
   .landing-results-panel__head {
     align-items: stretch;
     display: grid;
-  }
-
-  .landing-results-summary {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-    text-align: left;
-  }
-
-  .landing-results-summary div {
-    min-width: 0;
   }
 
   .landing-cta {
