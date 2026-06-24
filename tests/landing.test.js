@@ -405,6 +405,74 @@ describe("landing page", () => {
     const href = link?.getAttribute("href") || "";
     expect(href).toContain("/performance/");
     expect(href).toContain("start_date=2026-06-21");
+    // The panel shows Obsidian Steed (tracked) winners, so the admin record link
+    // must open the tracking scope, not the official/classic record.
+    expect(href).toContain("performance_scope=tracking");
+    expect(href).not.toContain("performance_scope=official");
+  });
+
+  it("hides #proof when no bets won (all-losses settled date)", async () => {
+    const base = landingPayload().results;
+    await loadLanding({
+      api: {
+        getMlbLanding: vi.fn().mockResolvedValue(landingPayload({
+          results: {
+            ...base,
+            highlights: [
+              { published_pick_id: 9001, game_label: "A at B", selection_text: "Over 8", bookmaker_abbr: "DK", price_text: "-110", result_status: "loss", units_won: -1 },
+              { published_pick_id: 9002, game_label: "C at D", selection_text: "Under 9", bookmaker_abbr: "FD", price_text: "-105", result_status: "push", units_won: 0 },
+            ],
+          },
+        })),
+        getNhlBoard: vi.fn().mockResolvedValue({ games: [] }),
+      },
+    });
+
+    // No winning cards → suppress the whole winners panel rather than show a blank grid.
+    expect(document.querySelector("#proof")?.hasAttribute("hidden")).toBe(true);
+    expect(document.querySelector("#landing-results-cards")?.innerHTML).toBe("");
+    expect(document.querySelectorAll(".landing-result-card")).toHaveLength(0);
+    // And repoint the secondary CTA away from the now-hidden #proof.
+    const cta = document.querySelector("#landing-secondary-cta");
+    expect(cta?.getAttribute("href")).toBe("#how");
+    expect(cta?.textContent).toBe("How the model works");
+  });
+
+  it("hides #proof when the highlights array is empty", async () => {
+    const base = landingPayload().results;
+    await loadLanding({
+      api: {
+        getMlbLanding: vi.fn().mockResolvedValue(landingPayload({
+          results: { ...base, highlights: [] },
+        })),
+        getNhlBoard: vi.fn().mockResolvedValue({ games: [] }),
+      },
+    });
+
+    expect(document.querySelector("#proof")?.hasAttribute("hidden")).toBe(true);
+    expect(document.querySelector("#landing-results-cards")?.innerHTML).toBe("");
+  });
+
+  it("keeps the admin record link hidden when no bets won", async () => {
+    const base = landingPayload().results;
+    await loadLanding({
+      auth: { authenticated: true, features: { mlb_board_basic: true, performance_summary: true } },
+      api: {
+        getMlbLanding: vi.fn().mockResolvedValue(landingPayload({
+          results: {
+            ...base,
+            highlights: [
+              { published_pick_id: 9003, game_label: "E at F", selection_text: "Yankees ML", bookmaker_abbr: "DK", price_text: "+120", result_status: "loss", units_won: -1 },
+            ],
+          },
+        })),
+        getNhlBoard: vi.fn().mockResolvedValue({ games: [] }),
+      },
+    });
+
+    // The early-return suppresses the panel, so even an admin gets no link to a hidden section.
+    expect(document.querySelector("#proof")?.hasAttribute("hidden")).toBe(true);
+    expect(document.querySelector("#landing-results-link")?.hasAttribute("hidden")).toBe(true);
   });
 
   it("public snapshot failure leaves the page usable", async () => {
