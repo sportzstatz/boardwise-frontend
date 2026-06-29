@@ -9,7 +9,7 @@ const state = {
 const BEST_CARD_MODES = [
   ["wise_choice", "Wise Choices™"],
   ["best_value", "Best Value"],
-  ["best_growth", "Kelly Edge"],
+  ["best_growth", "Signal Strength"],
   ["full_board", "Full Board"]
 ];
 
@@ -30,6 +30,10 @@ const KELLY_BUCKETS = [
   ["kelly_10_20", "10-20%", "#0f4c81"],
   ["kelly_20_plus", "20%+", "#156f3c"]
 ];
+
+// Compliance tooltips surfaced on board metrics (see /performance-methodology/).
+const EV_TIP = "Signal strength compares BoardWise model probability to available market prices. It is not personalized stake advice and is not a guarantee.";
+const UNIT_TIP = "A unit is a hypothetical tracking measure used for model comparison. It is not a recommendation to wager any amount.";
 
 const TRACKER_MARKET_LABELS = new Map([
   ["first_inning_total", "1st Inning O/U"],
@@ -549,7 +553,7 @@ function renderToggleButtons() {
   }
   el.style.display = "";
   el.innerHTML = BEST_CARD_MODES.map(([key, label]) => `
-    <button class="toggle-btn ${state.mode === key ? "active" : ""}" data-best-card-sort="${esc(key)}" title="${key === "wise_choice" ? "Official picks that pass BoardWise risk filters, ranked by safest-edge score. Safest Edge = Kelly Score × Model Probability" : ""}">${esc(label)}</button>
+    <button class="toggle-btn ${state.mode === key ? "active" : ""}" data-best-card-sort="${esc(key)}" title="${key === "wise_choice" ? "Official picks that pass BoardWise risk filters, ranked by safest-edge score. Safest Edge = Signal Score × Model Probability" : ""}">${esc(label)}</button>
   `).join("");
   el.querySelectorAll("[data-best-card-sort]").forEach((rawButton) => {
     const button = /** @type {HTMLElement} */ (rawButton);
@@ -984,14 +988,15 @@ function valueToneClass(text) {
   return "";
 }
 
-function metric(label, value, cls = "") {
+function metric(label, value, cls = "", title = "") {
   const displayValue = value === null || value === undefined || value === "" ? "-" : value;
-  return `<div class="metric-bubble"><div class="m-label">${esc(label)}</div><div class="m-value ${cls}">${esc(displayValue)}</div></div>`;
+  const titleAttr = title ? ` title="${esc(title)}"` : "";
+  return `<div class="metric-bubble"${titleAttr}><div class="m-label">${esc(label)}</div><div class="m-value ${cls}">${esc(displayValue)}</div></div>`;
 }
 
-function optionalMetric(label, value, cls = "") {
+function optionalMetric(label, value, cls = "", title = "") {
   if (value === null || value === undefined || value === "") return "";
-  return metric(label, value, cls);
+  return metric(label, value, cls, title);
 }
 
 function formatProbability(value) {
@@ -1021,8 +1026,8 @@ function renderBestCard(option, variant) {
     : variant === "best_growth"
       ? formatKelly(option)
       : (option.ev_text || option.ev_rating);
-  const badgePrefix = variant === "wise_choice" ? "" : variant === "best_growth" ? "Kelly: " : "Value: ";
-  const badgeTitle = variant === "wise_choice" ? `Safest Edge = Kelly Score × Model Probability (${formatWise(option)})` : variant === "best_growth" ? "Kelly percentage" : "Expected value rating";
+  const badgePrefix = variant === "wise_choice" ? "" : variant === "best_growth" ? "Signal: " : "Value: ";
+  const badgeTitle = variant === "wise_choice" ? `Safest Edge = Signal Score × Model Probability (${formatWise(option)})` : variant === "best_growth" ? "Signal strength" : "Expected value rating";
   const official = option.is_official && !isTrackingOnlyOption(option);
   const meta = [option.sportsbook, option.odds_text].filter(Boolean).join(" ");
   const selection = option.selection_text || option.label || "No selection";
@@ -1042,7 +1047,7 @@ function renderBestCard(option, variant) {
         <div class="best-metrics">
           ${optionalMetric("Win", win)}
           ${optionalMetric("Edge", edge, valueToneClass(edge))}
-          ${optionalMetric("EV", ev, valueToneClass(ev))}
+          ${optionalMetric("EV", ev, valueToneClass(ev), EV_TIP)}
         </div>
       </div>
     </div>
@@ -1126,7 +1131,7 @@ function optionModeBucket(option) {
   if (state.mode === "best_growth") {
     const bucket = kellyBucket(option);
     const found = KELLY_BUCKETS.find(([key]) => key === bucket.key);
-    return { key: bucket.key, label: found ? found[1] : "Kelly" };
+    return { key: bucket.key, label: found ? found[1] : "Signal" };
   }
   return {
     key: option.ev_rating || "Low",
@@ -1151,7 +1156,7 @@ function renderBetPill(item) {
           <div class="bet-pill-choice">${esc(option.selection_text || option.label || "Recommendation")}</div>
           ${odds ? `<div class="bet-pill-odds">${esc(odds)}</div>` : ""}
         </div>
-        <span class="bet-pill-bucket" title="Safest Edge = Kelly Score × Model Probability">${esc(bucket.label)}</span>
+        <span class="bet-pill-bucket" title="Safest Edge = Signal Score × Model Probability">${esc(bucket.label)}</span>
       </div>
     </article>
   `;
@@ -1178,7 +1183,7 @@ function renderOptionCard(option) {
         ${metric("Win Prob", option.model_probability_text || option.model_prob_text)}
         ${metric("Market Impl", formatProbability(optionMarketProbability(option)))}
         ${metric("Edge", option.edge_text, valueToneClass(option.edge_text))}
-        ${metric("EV / Unit", option.ev_text, valueToneClass(option.ev_text))}
+        ${metric("EV / Unit", option.ev_text, valueToneClass(option.ev_text), `${EV_TIP} ${UNIT_TIP}`)}
       </div>
     </div>
   `;

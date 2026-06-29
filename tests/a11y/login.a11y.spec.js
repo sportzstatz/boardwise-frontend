@@ -36,6 +36,7 @@ test.describe("login accessibility", () => {
     await mockLogin(page);
     await page.goto("/login/");
     await page.locator("#email").fill("founder@example.test");
+    await page.locator("#login-consent").check();
     await page.locator("#login-submit").click();
     await expect(page.locator("#login-message")).toHaveText("Complete the human check, then try again.");
     await expectNoA11yViolations(page);

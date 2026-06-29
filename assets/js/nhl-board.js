@@ -7,7 +7,7 @@ const state = {
 const BEST_CARD_MODES = [
   ["wise_choice", "Wise Choices™"],
   ["best_value", "Best Value"],
-  ["best_growth", "Kelly Edge"],
+  ["best_growth", "Signal Strength"],
   ["full_board", "Full Board"]
 ];
 
@@ -306,7 +306,7 @@ function renderToggleButtons() {
   if (!el) return;
   el.style.display = "";
   el.innerHTML = BEST_CARD_MODES.map(([key, label]) => `
-    <button class="toggle-btn ${state.mode === key ? "active" : ""}" data-best-card-sort="${esc(key)}" title="${key === "wise_choice" ? "Official picks that pass BoardWise risk filters, ranked by safest-edge score. Safest Edge = Kelly Score × Model Probability" : ""}">${esc(label)}</button>
+    <button class="toggle-btn ${state.mode === key ? "active" : ""}" data-best-card-sort="${esc(key)}" title="${key === "wise_choice" ? "Official picks that pass BoardWise risk filters, ranked by safest-edge score. Safest Edge = Signal Score × Model Probability" : ""}">${esc(label)}</button>
   `).join("");
   el.querySelectorAll("[data-best-card-sort]").forEach((rawButton) => {
     const button = /** @type {HTMLElement} */ (rawButton);
@@ -383,8 +383,8 @@ function renderBestCard(option, variant) {
     : variant === "best_growth"
       ? safeColor(kellyBucket(option).color, "#0f4c81")
       : safeColor(option.ev_rating_color, "#0f4c81");
-  const badgePrefix = variant === "wise_choice" ? "" : variant === "best_growth" ? "Kelly: " : "Value: ";
-  const badgeTitle = variant === "wise_choice" ? `Safest Edge = Kelly Score × Model Probability (${formatWise(option)})` : variant === "best_growth" ? "Kelly percentage" : "Expected value rating";
+  const badgePrefix = variant === "wise_choice" ? "" : variant === "best_growth" ? "Signal: " : "Value: ";
+  const badgeTitle = variant === "wise_choice" ? `Safest Edge = Signal Score × Model Probability (${formatWise(option)})` : variant === "best_growth" ? "Signal strength" : "Expected value rating";
   return `
     <div class="best-card" data-best-card-variant="${esc(variant)}">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
@@ -398,7 +398,7 @@ function renderBestCard(option, variant) {
         ${metric("Model Prob", option.model_prob_text || option.model_probability_text)}
         ${metric("Edge", option.edge_text)}
         ${metric("EV / Unit", option.ev_text)}
-        ${metric("Kelly %", option.kelly_text || formatKelly(option))}
+        ${metric("Signal %", option.kelly_text || formatKelly(option))}
       </div>
     </div>
   `;
@@ -474,7 +474,7 @@ function optionModeBucket(option) {
   if (state.mode === "best_growth") {
     const bucket = kellyBucket(option);
     const found = KELLY_BUCKETS.find(([key]) => key === bucket.key);
-    return { key: bucket.key, label: found ? found[1] : "Kelly", color: safeColor(bucket.color, "#0f4c81") };
+    return { key: bucket.key, label: found ? found[1] : "Signal", color: safeColor(bucket.color, "#0f4c81") };
   }
   return {
     key: option.ev_rating || "Low",
@@ -502,7 +502,7 @@ function renderBetPill(item) {
           <div class="bet-pill-choice">${esc(option.selection_text || option.label || "Recommendation")}</div>
           ${odds ? `<div class="bet-pill-odds">${esc(odds)}</div>` : ""}
         </div>
-        <span class="bet-pill-bucket" title="Safest Edge = Kelly Score × Model Probability" style="background:${color};color:${textColor}">${esc(bucket.label)}</span>
+        <span class="bet-pill-bucket" title="Safest Edge = Signal Score × Model Probability" style="background:${color};color:${textColor}">${esc(bucket.label)}</span>
       </div>
     </article>
   `;
@@ -528,7 +528,7 @@ function renderOptionCard(option) {
         ${metric("Model Prob", option.model_probability_text || option.model_prob_text)}
         ${metric("Edge", option.edge_text)}
         ${metric("EV / Unit", option.ev_text)}
-        ${metric("Kelly %", option.kelly_text || formatKelly(option))}
+        ${metric("Signal %", option.kelly_text || formatKelly(option))}
       </div>
     </div>
   `;

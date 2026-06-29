@@ -3,12 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const API_BASE = "https://api.example.test";
 
 /**
- * @param {{ turnstileEnabled?: boolean, turnstileValue?: string | null, url?: string }} [options]
+ * @param {{ turnstileEnabled?: boolean, turnstileValue?: string | null, url?: string, consentChecked?: boolean }} [options]
  */
 async function loadLoginScript({
   turnstileEnabled,
   turnstileValue = "test-token",
   url = "/login/",
+  consentChecked = true,
 } = {}) {
   vi.resetModules();
   delete window.BoardWiseApi;
@@ -29,10 +30,16 @@ async function loadLoginScript({
           ? ""
           : `<input name="cf-turnstile-response" value="${turnstileValue}">`
       }
+      <label for="login-consent"><input id="login-consent" name="login-consent" type="checkbox" required> I confirm I am 18+ and agree to the Terms.</label>
       <button class="button primary" type="submit">Send email link</button>
     </form>
     <p id="login-message" hidden></p>
   `;
+
+  const consentEl = /** @type {HTMLInputElement | null} */ (
+    document.getElementById("login-consent")
+  );
+  if (consentEl) consentEl.checked = consentChecked;
 
   await import("../assets/js/api-client.js");
   await import("../assets/js/login.js");
@@ -98,6 +105,21 @@ describe("login", () => {
 
     expect(fetch).not.toHaveBeenCalled();
     expect(message.textContent).toBe("Complete the human check, then try again.");
+    expect(message.dataset.kind).toBe("error");
+    expect(message.hasAttribute("hidden")).toBe(false);
+  });
+
+  it("blocks fetch and shows an error when the consent box is unchecked", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+
+    const { form, email, message } = await loadLoginScript({ consentChecked: false });
+    email.value = "founder@example.test";
+    submit(form);
+    await settle();
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(message.textContent).toContain("at least 18");
     expect(message.dataset.kind).toBe("error");
     expect(message.hasAttribute("hidden")).toBe(false);
   });

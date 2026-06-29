@@ -180,6 +180,36 @@
     }
   }
 
+  function renderBilling(state) {
+    const body = document.getElementById('account-billing-body');
+    if (!body) return;
+    const plan = String(state.plan || '').toLowerCase();
+
+    if (plan === 'founder') {
+      body.innerHTML = `
+        <dl class="account-billing__rows">
+          <div><dt>Plan</dt><dd>BoardWise Founder</dd></div>
+          <div><dt>Price</dt><dd>$24.99/month plus applicable taxes</dd></div>
+          <div><dt>Renewal</dt><dd>Monthly until canceled</dd></div>
+          <div><dt>Cancellation</dt><dd>Manage billing in the Stripe Customer Portal</dd></div>
+        </dl>
+        <a id="account-manage-billing" class="bw-button bw-button--secondary" href="/subscription-policy/">Manage billing</a>
+        <p class="account-billing__note">Manage billing opens the Stripe Customer Portal when paid checkout is enabled. If the portal cannot be reached, contact <a href="mailto:support@useboardwise.com">support@useboardwise.com</a>.</p>
+      `;
+      return;
+    }
+
+    if (plan === 'admin') {
+      body.innerHTML = '<p class="account-billing__note">Administrative access is internal and is not a paid BoardWise Founder subscription.</p>';
+      return;
+    }
+
+    body.innerHTML = `
+      <p class="account-billing__note">You do not have an active BoardWise Founder subscription. BoardWise Founder is $24.99/month plus applicable taxes and renews monthly until canceled.</p>
+      <a class="bw-button bw-button--gold" href="/pricing/">View Founder access</a>
+    `;
+  }
+
   function renderStatus(state) {
     if (!state.authenticated) {
       setText(
@@ -203,6 +233,7 @@
     renderProfile(state);
     renderStatus(state);
     renderActions(state);
+    renderBilling(state);
 
     const accessList = document.getElementById('account-access-list');
     if (accessList) {

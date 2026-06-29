@@ -126,6 +126,19 @@ h1 {
   line-height: 1.5;
 }
 
+.board-microdisclaimer {
+  max-width: 78ch;
+  margin: 10px 0 0;
+  color: var(--bw-navy-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.board-microdisclaimer a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 .meta,
 .nav-row {
   display: flex;
