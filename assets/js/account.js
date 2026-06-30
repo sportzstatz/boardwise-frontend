@@ -186,15 +186,21 @@
     const plan = String(state.plan || '').toLowerCase();
 
     if (plan === 'founder') {
+      // Self-serve billing (Stripe Customer Portal) is not wired yet — there is
+      // no portal/session endpoint on the API. Until paid checkout ships, the
+      // real cancellation path is BoardWise support, so the action and copy
+      // point there rather than bouncing the user to a policy page. When the
+      // billing backend lands, swap this href to the portal session URL and
+      // restore the "Manage billing" / Customer Portal copy.
       body.innerHTML = `
         <dl class="account-billing__rows">
           <div><dt>Plan</dt><dd>BoardWise Founder</dd></div>
           <div><dt>Price</dt><dd>$24.99/month plus applicable taxes</dd></div>
           <div><dt>Renewal</dt><dd>Monthly until canceled</dd></div>
-          <div><dt>Cancellation</dt><dd>Manage billing in the Stripe Customer Portal</dd></div>
+          <div><dt>Cancellation</dt><dd>Contact BoardWise support to cancel or change billing</dd></div>
         </dl>
-        <a id="account-manage-billing" class="bw-button bw-button--secondary" href="/subscription-policy/">Manage billing</a>
-        <p class="account-billing__note">Manage billing opens the Stripe Customer Portal when paid checkout is enabled. If the portal cannot be reached, contact <a href="mailto:support@useboardwise.com">support@useboardwise.com</a>.</p>
+        <a id="account-manage-billing" class="bw-button bw-button--secondary" href="mailto:support@useboardwise.com?subject=BoardWise%20billing%20request">Contact billing support</a>
+        <p class="account-billing__note">Self-serve billing management (the Stripe Customer Portal) opens when paid checkout launches. Until then, contact <a href="mailto:support@useboardwise.com">support@useboardwise.com</a> to cancel or update billing before your next renewal.</p>
       `;
       return;
     }
