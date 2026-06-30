@@ -181,6 +181,62 @@
   gap: 14px;
 }
 
+.account-billing,
+.account-manage {
+  border: 1px solid var(--bw-border);
+  border-radius: 18px;
+  padding: 20px 22px;
+  background: var(--bw-panel);
+}
+
+.account-billing__title,
+.account-manage__title {
+  margin: 0 0 12px;
+  color: var(--bw-ink);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.account-billing__rows {
+  margin: 0 0 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.account-billing__rows > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: 14px;
+}
+
+.account-billing__rows dt {
+  color: var(--bw-navy-muted);
+  font-weight: 700;
+}
+
+.account-billing__rows dd {
+  margin: 0;
+  color: var(--bw-ink);
+  text-align: right;
+}
+
+.account-billing__note,
+.account-manage__warn {
+  margin: 12px 0;
+  color: var(--bw-navy-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.account-billing__note a,
+.account-manage__warn a {
+  color: var(--bw-ink);
+  text-decoration: underline;
+}
+
 .account-access-card {
   border: 1px solid var(--bw-border);
   border-radius: 18px;

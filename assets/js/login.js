@@ -171,6 +171,15 @@
     event.preventDefault();
     if (requestInFlight) return;
     const emailInput = /** @type {HTMLInputElement | null} */ (document.getElementById("email"));
+    const consentInput = /** @type {HTMLInputElement | null} */ (document.getElementById("login-consent"));
+    if (consentInput && !consentInput.checked) {
+      setMessage(
+        "Please confirm you are at least 18, legally permitted to use BoardWise, and agree to the Terms before continuing.",
+        "error"
+      );
+      if (typeof consentInput.reportValidity === "function") consentInput.reportValidity();
+      return;
+    }
     if (form && typeof form.checkValidity === "function" && !form.checkValidity()) {
       if (typeof form.reportValidity === "function") form.reportValidity();
       return;

@@ -979,7 +979,7 @@ function renderPickDetails(pick, index) {
     : fmtPct(pick.kelly_fraction, { digits: 1 });
   return `<div class="pick-detail-grid">
     <div><span>Market</span><strong>${esc(pick.market_key || "—")}</strong></div>
-    <div><span>Kelly</span><strong class="tnum">${esc(kellyPct)}</strong></div>
+    <div><span title="Signal strength compares BoardWise model probability to available market prices. It is not personalized stake advice and is not a guarantee.">Signal</span><strong class="tnum">${esc(kellyPct)}</strong></div>
     <div><span>EV rating</span><strong>${esc(pick.ev_rating_label || "—")}</strong></div>
     <div><span>Model confidence</span><strong>${esc(pick.confidence_bucket_label || pick.confidence_bucket_key || "—")}</strong></div>
     <div><span>Result detail</span><strong>${esc((pick.result_status || "").toUpperCase() || (pick.is_settled ? "—" : "Pending"))}</strong></div>

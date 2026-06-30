@@ -180,6 +180,42 @@
     }
   }
 
+  function renderBilling(state) {
+    const body = document.getElementById('account-billing-body');
+    if (!body) return;
+    const plan = String(state.plan || '').toLowerCase();
+
+    if (plan === 'founder') {
+      // Self-serve billing (Stripe Customer Portal) is not wired yet — there is
+      // no portal/session endpoint on the API. Until paid checkout ships, the
+      // real cancellation path is BoardWise support, so the action and copy
+      // point there rather than bouncing the user to a policy page. When the
+      // billing backend lands, swap this href to the portal session URL and
+      // restore the "Manage billing" / Customer Portal copy.
+      body.innerHTML = `
+        <dl class="account-billing__rows">
+          <div><dt>Plan</dt><dd>BoardWise Founder</dd></div>
+          <div><dt>Price</dt><dd>$24.99/month plus applicable taxes</dd></div>
+          <div><dt>Renewal</dt><dd>Monthly until canceled</dd></div>
+          <div><dt>Cancellation</dt><dd>Contact BoardWise support to cancel or change billing</dd></div>
+        </dl>
+        <a id="account-manage-billing" class="bw-button bw-button--secondary" href="mailto:support@useboardwise.com?subject=BoardWise%20billing%20request">Contact billing support</a>
+        <p class="account-billing__note">Self-serve billing management (the Stripe Customer Portal) opens when paid checkout launches. Until then, contact <a href="mailto:support@useboardwise.com">support@useboardwise.com</a> to cancel or update billing before your next renewal.</p>
+      `;
+      return;
+    }
+
+    if (plan === 'admin') {
+      body.innerHTML = '<p class="account-billing__note">Administrative access is internal and is not a paid BoardWise Founder subscription.</p>';
+      return;
+    }
+
+    body.innerHTML = `
+      <p class="account-billing__note">You do not have an active BoardWise Founder subscription. BoardWise Founder is $24.99/month plus applicable taxes and renews monthly until canceled.</p>
+      <a class="bw-button bw-button--gold" href="/pricing/">View Founder access</a>
+    `;
+  }
+
   function renderStatus(state) {
     if (!state.authenticated) {
       setText(
@@ -203,6 +239,7 @@
     renderProfile(state);
     renderStatus(state);
     renderActions(state);
+    renderBilling(state);
 
     const accessList = document.getElementById('account-access-list');
     if (accessList) {
