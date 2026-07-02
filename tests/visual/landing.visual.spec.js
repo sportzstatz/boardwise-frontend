@@ -124,6 +124,19 @@ function landingSnapshot() {
   };
 }
 
+async function waitForTeamLogos(page) {
+  await page.waitForFunction(() => {
+    const logos = [...document.querySelectorAll("img[data-team-logo]")];
+    if (!logos.length) return true;
+    return logos.every((img) => {
+      if (!(img instanceof HTMLImageElement)) return false;
+      if (img.complete && img.naturalWidth > 0) return true;
+      const mark = img.closest("[data-team-logo-mark]");
+      return Boolean(mark && mark.classList.contains("logo-failed"));
+    });
+  });
+}
+
 async function mockLanding(page, { authenticated = false, mlb = false } = {}) {
   await page.route("**/api/v1/me", async (route) => {
     await route.fulfill({
@@ -158,6 +171,7 @@ test.describe("landing visual baselines", () => {
     });
     await page.addStyleTag({ content: "html, body { min-height: 1903px; }" });
     await expect(page.locator("#landing-preview")).toHaveAttribute("data-state", "ready");
+    await waitForTeamLogos(page);
     await expect(page.locator("#proof")).toBeVisible();
     await expect(page.locator(".landing-preview__label")).toHaveText("Official");
     await expect(page.getByLabel("NHL off-season board")).toContainText("Off-season");
@@ -177,6 +191,7 @@ test.describe("landing visual baselines", () => {
       if (document.fonts?.ready) await document.fonts.ready;
     });
     await expect(page.locator("#landing-preview")).toHaveAttribute("data-state", "ready");
+    await waitForTeamLogos(page);
     await expect(page.locator("#proof")).toBeVisible();
     await expect(page.locator(".landing-preview__label")).toHaveText("Official");
     await expect(page.getByLabel("NHL off-season board")).toContainText("Off-season");

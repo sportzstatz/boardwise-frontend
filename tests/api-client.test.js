@@ -97,6 +97,27 @@ describe("api-client", () => {
     expect(url.searchParams.get("model")).toBe("obsidian_steed");
   });
 
+  it("loads game props with cookies, no-store, and an optional date", async () => {
+    const fetch = vi.fn().mockResolvedValue(jsonResponse({ access: "full" }));
+    vi.stubGlobal("fetch", fetch);
+
+    const api = await loadApiClient();
+    await api.getMlbGameProps(777001, { date: "2026-06-18" });
+
+    let url = new URL(fetch.mock.calls[0][0]);
+    expect(url.pathname).toBe("/api/v1/mlb/games/777001/props");
+    expect(url.searchParams.get("date")).toBe("2026-06-18");
+    expect(fetch.mock.calls[0][1]).toMatchObject({
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    await api.getMlbGameProps("823765");
+    url = new URL(fetch.mock.calls[1][0]);
+    expect(url.pathname).toBe("/api/v1/mlb/games/823765/props");
+    expect(url.searchParams.get("date")).toBeNull();
+  });
+
   it("does not expose retired NHL board transport", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ games: [] })));
 

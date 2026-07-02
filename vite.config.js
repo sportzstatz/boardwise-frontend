@@ -1,10 +1,25 @@
+import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
 
 const root = import.meta.dirname;
 
+// In git worktrees node_modules is a symlink into the main checkout; vite's
+// dev-server fs allow-list works on realpaths, so without this the @fontsource
+// font files 404 and visual baselines render with fallback fonts.
+const nodeModulesPath = resolve(root, "node_modules");
+const fsAllow = [root];
+if (existsSync(nodeModulesPath)) {
+  fsAllow.push(realpathSync(nodeModulesPath));
+}
+
 export default defineConfig({
   publicDir: false,
+  server: {
+    fs: {
+      allow: fsAllow
+    }
+  },
   build: {
     outDir: "dist",
     emptyOutDir: true,

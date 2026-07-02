@@ -163,12 +163,16 @@ async function loadLanding({ auth, api, branding } = {}) {
       features: {},
     },
   };
-  testWindow.BoardWiseMlbBranding = branding || {
-    resolveMatchupBranding: vi.fn().mockReturnValue({
-      away: { fill: "#134A8E", textOnLight: "#134A8E" },
-      home: { fill: "#0C2340", textOnLight: "#0C2340" },
-    }),
-  };
+  if (branding === "real") {
+    await import("../assets/js/mlb-team-branding.js");
+  } else {
+    testWindow.BoardWiseMlbBranding = branding || {
+      resolveMatchupBranding: vi.fn().mockReturnValue({
+        away: { fill: "#134A8E", textOnLight: "#134A8E" },
+        home: { fill: "#0C2340", textOnLight: "#0C2340" },
+      }),
+    };
+  }
   testWindow.BoardWiseApi = api || {
     getMlbLanding: vi.fn().mockResolvedValue(landingPayload()),
     getMlbBoard: vi.fn(),
@@ -228,6 +232,37 @@ describe("landing page", () => {
     expect(preview?.textContent).toContain("73.4%");
     expect(preview?.textContent).toContain("+9.1%");
     expect(preview?.textContent).toContain("+0.09u");
+  });
+
+  it("renders team logo marks with an abbreviation fallback in the featured matchup", async () => {
+    await loadLanding({ branding: "real" });
+
+    const marks = document.querySelectorAll(".landing-preview__team-mark[data-team-logo-mark]");
+    expect(marks.length).toBe(2);
+    const awayImg = /** @type {HTMLImageElement} */ (marks[0].querySelector("img[data-team-logo]"));
+    const homeImg = /** @type {HTMLImageElement} */ (marks[1].querySelector("img[data-team-logo]"));
+    expect(awayImg.getAttribute("src")).toBe("/assets/img/mlb/team-logos/tor.svg");
+    expect(homeImg.getAttribute("src")).toBe("/assets/img/mlb/team-logos/bos.svg");
+    // Logos are decorative; the accessible team name text stays alongside.
+    expect(awayImg.getAttribute("alt")).toBe("");
+    expect(marks[0].getAttribute("aria-hidden")).toBe("true");
+    expect(document.querySelector("#landing-preview")?.textContent).toContain("Blue Jays");
+    // Abbreviation fallback markup is present inside the circle
+    expect(marks[0].querySelector(".landing-preview__team-fallback")?.textContent).toBe("TOR");
+    expect(marks[1].querySelector(".landing-preview__team-fallback")?.textContent).toBe("BOS");
+
+    // A failed SVG collapses the mark to the colored circle + abbreviation.
+    awayImg.dispatchEvent(new Event("error"));
+    expect(marks[0].classList.contains("logo-failed")).toBe(true);
+  });
+
+  it("keeps the plain circle mark when no logo path is available", async () => {
+    await loadLanding();
+
+    const mark = document.querySelector(".landing-preview__team-mark[data-team-logo-mark]");
+    expect(mark?.classList.contains("has-logo")).toBe(false);
+    expect(mark?.querySelector("img[data-team-logo]")).toBeNull();
+    expect(mark?.querySelector(".landing-preview__team-fallback")?.textContent).toBe("TOR");
   });
 
   it("uses BoardWiseMlbBranding colors for the featured matchup", async () => {

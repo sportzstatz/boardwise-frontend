@@ -1,0 +1,1092 @@
+/* BoardWise MLB game detail v2 — tabbed layout + Player Props tab.
+   Styles translated from docs/Eagle_Eye_Props "Game Detail Final" design
+   canvas (inline styles → classes). Team colors are never hard-coded here:
+   bars, dots, rings and card accents receive resolved team fills inline from
+   the renderer (via BoardWiseMlbBranding.resolveMatchupBranding). */
+
+.mlb-game-detail-page {
+  --bw-accent-on-gold: #1a1408;
+}
+
+/* ---------- top band extras ---------- */
+
+.gd2-status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+/* ---------- Wise banner: top-prop teaser ---------- */
+
+.gd2-top-prop {
+  margin-top: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--bw-gold-ink);
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.gd2-top-prop:hover {
+  text-decoration: underline;
+}
+
+/* ---------- tab bar ---------- */
+
+.gd2-tabbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--bw-border);
+}
+
+.gd2-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--bw-border);
+  background: #ffffff;
+  color: var(--bw-navy-muted);
+  font-size: 12.5px;
+  font-weight: 800;
+  padding: 0 15px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.gd2-tab.is-active {
+  background: var(--bw-navy);
+  border-color: var(--bw-navy);
+  color: #ffffff;
+}
+
+.gd2-tab.is-soon {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.gd2-soon-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--bw-gold-soft);
+  color: var(--bw-gold-ink);
+  border: 1px solid var(--bw-gold);
+  font-size: 8.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+  padding: 1px 6px;
+}
+
+.gd2-panel {
+  min-width: 0;
+}
+
+/* ---------- shared bits ---------- */
+
+.gd2-pos {
+  color: var(--bw-positive);
+}
+
+.gd2-neg {
+  color: var(--bw-negative);
+}
+
+.gd2-pick-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--bw-gold);
+  color: var(--bw-accent-on-gold);
+  font-size: 8.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.gd2-head-pick {
+  margin-left: auto;
+  flex: none;
+}
+
+.gd2-props-heading-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 0 8px;
+}
+
+.gd2-props-heading {
+  color: var(--bw-gold-ink);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gd2-props-legend {
+  color: var(--bw-navy-muted);
+  font-size: 11px;
+}
+
+.gd2-props-note {
+  margin-top: 4px;
+}
+
+/* ---------- probability bars ---------- */
+
+.gd2-bar {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 52px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--bw-underdog-bar);
+  overflow: hidden;
+}
+
+.gd2-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--bw-navy);
+  border-radius: 999px;
+}
+
+.gd2-bar-notch {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* ---------- Markets tab ---------- */
+
+.gd2-mkt-group {
+  margin-top: 16px;
+}
+
+.gd2-mkt-group:first-child {
+  margin-top: 16px;
+}
+
+.gd2-mkt-group-title {
+  font-size: 13px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.gd2-mkt-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.gd2-mkt-option {
+  min-width: 0;
+  background: #ffffff;
+  border: 1.5px solid var(--bw-border);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.gd2-mkt-option.is-wise {
+  background: var(--bw-gold-soft);
+  border-color: var(--bw-gold);
+}
+
+.gd2-mkt-option-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.gd2-mkt-side {
+  font-size: 13.5px;
+  font-weight: 900;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gd2-mkt-tag {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  border-radius: 999px;
+  background: #eef1f6;
+  color: var(--bw-navy-muted);
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+.gd2-mkt-tag.is-wise {
+  background: var(--bw-gold);
+  color: var(--bw-accent-on-gold);
+}
+
+.gd2-mkt-cells {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.gd2-mkt-cell {
+  min-width: 0;
+}
+
+.gd2-mkt-cell-label {
+  display: block;
+  color: var(--bw-navy-muted);
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.gd2-mkt-cell-value {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.gd2-mkt-cell-value.good {
+  color: var(--bw-positive);
+}
+
+.gd2-mkt-cell-value.bad {
+  color: var(--bw-negative);
+}
+
+/* ---------- Player Props tab: segmented control (mobile) ---------- */
+
+.gd2-seg {
+  display: none;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.gd2-seg-btn {
+  flex: 1;
+  min-height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--bw-border);
+  background: #ffffff;
+  color: var(--bw-navy-muted);
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.gd2-seg-btn.is-active {
+  background: var(--bw-navy);
+  border-color: var(--bw-navy);
+  color: #ffffff;
+}
+
+/* ---------- Player Props tab: top plays ---------- */
+
+.gd2-top-plays {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.gd2-top-play {
+  min-width: 0;
+  border: 1.5px solid var(--bw-gold);
+  background: var(--bw-gold-soft);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.gd2-top-play-copy {
+  min-width: 0;
+}
+
+.gd2-top-play-eyebrow {
+  display: block;
+  color: var(--bw-gold-ink);
+  font-size: 9.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.gd2-top-play-label {
+  display: block;
+  margin-top: 3px;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.gd2-top-play-meta {
+  display: block;
+  margin-top: 2px;
+  color: var(--bw-navy-muted);
+  font-size: 11.5px;
+}
+
+.gd2-top-play-ev {
+  flex: none;
+  text-align: right;
+}
+
+.gd2-top-play-ev-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.gd2-top-play-ev-label {
+  display: block;
+  color: var(--bw-navy-muted);
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+/* ---------- Player Props tab: ranked buckets ---------- */
+
+.gd2-rank-filter {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.gd2-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--bw-border);
+  background: #ffffff;
+  color: var(--bw-navy-muted);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 0 11px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.gd2-filter-chip.is-active {
+  background: var(--bw-navy);
+  border-color: var(--bw-navy);
+  color: #ffffff;
+}
+
+.gd2-ranked[data-min="playable"] .gd2-bucket[data-bucket-key="lean"],
+.gd2-ranked[data-min="strong"] .gd2-bucket[data-bucket-key="lean"],
+.gd2-ranked[data-min="strong"] .gd2-bucket[data-bucket-key="playable"] {
+  display: none;
+}
+
+.gd2-bucket-head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 8px 2px 6px;
+}
+
+.gd2-bucket-name {
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bw-gold-ink);
+}
+
+.gd2-bucket-meta {
+  font-size: 10.5px;
+  color: var(--bw-navy-muted);
+}
+
+.gd2-bucket-rows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.gd2-rank-card {
+  min-width: 0;
+  border: 1px solid var(--bw-border);
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.gd2-rank-card.is-pick {
+  border-color: var(--bw-gold);
+  background: var(--bw-gold-soft);
+}
+
+.gd2-rank-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.gd2-rank-who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.gd2-rank-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+}
+
+.gd2-rank-player {
+  font-size: 13px;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gd2-rank-ev {
+  flex: none;
+  text-align: right;
+}
+
+.gd2-rank-ev-value {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 900;
+}
+
+.gd2-rank-ev-label {
+  display: block;
+  color: var(--bw-navy-muted);
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.gd2-rank-bet {
+  display: block;
+  margin-top: 2px;
+  padding-left: 13px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.gd2-rank-quote {
+  color: var(--bw-navy-muted);
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.gd2-rank-barrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 7px;
+}
+
+.gd2-rank-barrow .gd2-bar {
+  flex: 1;
+  width: auto;
+  height: 6px;
+}
+
+.gd2-rank-model {
+  flex: none;
+  color: var(--bw-navy-muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.gd2-no-edge {
+  margin-top: 10px;
+  color: var(--bw-navy-muted);
+  font-size: 10.5px;
+  text-align: center;
+}
+
+/* ---------- Player Props tab: pitcher + batter cards ---------- */
+
+.gd2-pitchers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.gd2-pitcher-card {
+  min-width: 0;
+  background: var(--bw-panel);
+  border: 1px solid var(--bw-border);
+  border-top: 4px solid var(--bw-navy);
+  border-radius: 14px;
+  box-shadow: var(--bw-shadow);
+  overflow: hidden;
+}
+
+.gd2-player-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  min-width: 0;
+}
+
+.gd2-team-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 2px solid var(--team-fill, var(--bw-navy));
+  overflow: hidden;
+}
+
+.gd2-team-logo {
+  display: block;
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  object-position: center;
+}
+
+.gd2-team-mark-fallback {
+  display: none;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  background: var(--team-fill, var(--bw-navy));
+  color: var(--team-on-fill, #ffffff);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  border-radius: 50%;
+}
+
+.gd2-team-mark:not(.has-logo) .gd2-team-mark-fallback,
+.gd2-team-mark.logo-failed .gd2-team-mark-fallback {
+  display: grid;
+}
+
+.gd2-team-mark.logo-failed .gd2-team-logo {
+  display: none;
+}
+
+.gd2-player-id {
+  min-width: 0;
+}
+
+.gd2-player-name {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gd2-player-sub {
+  display: block;
+  margin-top: 1px;
+  color: var(--bw-navy-muted);
+  font-size: 11px;
+}
+
+.gd2-order-chip {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #eef1f6;
+  color: var(--bw-navy);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.gd2-lineups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.gd2-lineup-col {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.gd2-col-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 2px 0;
+  font-size: 10.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bw-navy);
+}
+
+.gd2-col-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.gd2-batter-card {
+  min-width: 0;
+  background: var(--bw-panel);
+  border: 1px solid var(--bw-border);
+  border-radius: 14px;
+  box-shadow: var(--bw-shadow);
+  overflow: hidden;
+}
+
+.gd2-batter-card.is-pick {
+  border-color: var(--bw-gold);
+}
+
+.gd2-batter-card .gd2-player-head {
+  gap: 8px;
+  padding: 9px 13px;
+}
+
+.gd2-batter-card .gd2-player-name {
+  font-size: 13px;
+}
+
+/* ---------- prop rows (shared pitcher/batter) ---------- */
+
+.gd2-prop-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) 112px minmax(0, 0.55fr) 52px;
+  gap: 8px;
+  padding: 9px 14px;
+  border-top: 1px solid var(--bw-row-border);
+  align-items: center;
+}
+
+.gd2-prop-row.is-pick {
+  background: var(--bw-gold-soft);
+  box-shadow: inset 3px 0 0 var(--bw-gold);
+}
+
+.gd2-prop-label {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 12.5px;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.gd2-prop-barrow {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.gd2-prop-right {
+  display: contents;
+}
+
+.gd2-prop-quote {
+  grid-column: 3;
+  grid-row: 1;
+  font-size: 11.5px;
+  font-weight: 800;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gd2-prop-ev {
+  grid-column: 4;
+  grid-row: 1;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.gd2-prop-pbet {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.gd2-hr-row {
+  background: var(--bw-table-head);
+}
+
+.gd2-hr-row .gd2-prop-label,
+.gd2-hr-row .gd2-prop-pbet {
+  color: var(--bw-navy-muted);
+}
+
+.gd2-noline {
+  /* --bw-navy-muted rather than the mock's --bw-muted-light: this is real
+     text on the table-head background and must clear WCAG AA contrast. */
+  color: var(--bw-navy-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.gd2-batter-card .gd2-prop-row {
+  grid-template-columns: minmax(0, 1.2fr) 108px minmax(0, 0.5fr) 48px;
+  gap: 7px;
+  padding: 8px 13px;
+}
+
+.gd2-batter-card .gd2-prop-label {
+  font-size: 12px;
+}
+
+.gd2-batter-card .gd2-prop-quote {
+  font-size: 11px;
+}
+
+.gd2-batter-card .gd2-prop-ev {
+  font-size: 11.5px;
+}
+
+.gd2-batter-card .gd2-bar {
+  width: 48px;
+}
+
+/* ---------- lock panel ---------- */
+
+.gd2-lock {
+  margin-top: 16px;
+  background: var(--bw-panel);
+  border: 1px solid var(--bw-border);
+  border-radius: 18px;
+  box-shadow: var(--bw-shadow);
+  padding: 36px 24px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.gd2-lock-glyph {
+  display: grid;
+  justify-items: center;
+}
+
+.gd2-lock-shackle {
+  width: 18px;
+  height: 13px;
+  border: 3px solid var(--bw-navy);
+  border-bottom: none;
+  border-radius: 9px 9px 0 0;
+}
+
+.gd2-lock-body {
+  width: 30px;
+  height: 22px;
+  background: var(--bw-navy);
+  border-radius: 5px;
+}
+
+.gd2-lock-title {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.gd2-lock-copy {
+  color: var(--bw-navy-muted);
+  font-size: 12.5px;
+  max-width: 44ch;
+  line-height: 1.55;
+}
+
+.gd2-lock-ctas {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.gd2-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  border-radius: 999px;
+  padding: 0 18px;
+  font-size: 12.5px;
+  text-decoration: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.gd2-btn-gold {
+  border: none;
+  background: var(--bw-gold);
+  color: var(--bw-accent-on-gold);
+  font-weight: 900;
+}
+
+.gd2-btn-ghost {
+  border: 1px solid var(--bw-border);
+  background: #ffffff;
+  color: var(--bw-navy);
+  font-weight: 800;
+}
+
+/* ---------- Model tab ---------- */
+
+.gd2-proj-score {
+  margin-top: 16px;
+  background: var(--bw-panel);
+  border: 1px solid var(--bw-border);
+  border-radius: 14px;
+  box-shadow: var(--bw-shadow);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.gd2-proj-score-value {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.gd2-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.gd2-stat-card {
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid var(--bw-border);
+  border-radius: 12px;
+  padding: 11px 13px;
+}
+
+.gd2-stat-label {
+  color: var(--bw-navy-muted);
+  font-size: 9.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.gd2-stat-value {
+  margin-top: 3px;
+  font-size: 17px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.gd2-version-card {
+  background: #ffffff;
+  border: 1px solid var(--bw-border);
+  border-radius: 12px;
+  padding: 11px 13px;
+  margin-top: 10px;
+}
+
+.gd2-version-value {
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 800;
+  word-break: break-all;
+}
+
+.gd2-version-engine {
+  color: var(--bw-navy-muted);
+  font-size: 12px;
+}
+
+.gd2-model-disclaimer {
+  /* --bw-navy-muted rather than the mock's --bw-muted: 11.5px body text on
+     the panel background must clear WCAG AA contrast (4.5:1). */
+  margin: 12px 2px 0;
+  color: var(--bw-navy-muted);
+  font-size: 11.5px;
+  line-height: 1.55;
+  max-width: 88ch;
+}
+
+/* ---------- legal line ---------- */
+
+.gd2-legal {
+  margin: 18px 2px 0;
+  color: var(--bw-navy-muted);
+  font-size: 11.5px;
+  line-height: 1.55;
+  max-width: 88ch;
+}
+
+/* ---------- responsive: one page, breakpoint ~720px ---------- */
+
+@media (min-width: 721px) {
+  .gd2-seg {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .gd2-tabbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    scrollbar-width: none;
+  }
+
+  .gd2-tabbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .gd2-tab {
+    flex: none;
+    min-height: 32px;
+    font-size: 11.5px;
+    padding: 0 13px;
+  }
+
+  .gd2-seg {
+    display: flex;
+  }
+
+  /* Segmented Ranked / Pitchers / Batters replaces side-by-side sections. */
+  .gd2-top-plays {
+    display: none;
+  }
+
+  .gd2-props-section {
+    display: none;
+  }
+
+  .gd2-props-section.is-seg-active {
+    display: block;
+  }
+
+  .gd2-bucket-rows {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gd2-mkt-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gd2-pitchers {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .gd2-lineups {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gd2-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  /* Prop rows: label + quote/ev line, full-width bar underneath. */
+  .gd2-prop-row,
+  .gd2-batter-card .gd2-prop-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 10px;
+    padding: 9px 13px;
+  }
+
+  .gd2-prop-right {
+    display: flex;
+    grid-column: 2;
+    grid-row: 1;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 6px;
+    text-align: right;
+  }
+
+  .gd2-prop-barrow {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 3px;
+  }
+
+  .gd2-prop-barrow .gd2-bar,
+  .gd2-batter-card .gd2-prop-barrow .gd2-bar {
+    flex: 1;
+    width: auto;
+    height: 6px;
+  }
+
+  .gd2-prop-pbet {
+    flex: none;
+    color: var(--bw-navy-muted);
+    font-size: 10px;
+  }
+}
