@@ -8,8 +8,6 @@ const state = {
 
 const BEST_CARD_MODES = [
   ["wise_choice", "Wise Choices™"],
-  ["best_value", "Best Value"],
-  ["best_growth", "Signal Strength"],
   ["full_board", "Full Board"]
 ];
 
@@ -23,16 +21,8 @@ const WISE_BUCKETS = [
   ["elite_verify_25_plus", "25+ - Verify", "#667085"]
 ];
 
-const KELLY_BUCKETS = [
-  ["kelly_lte_0", "0% or less", "#93370d"],
-  ["kelly_0_5", "0-5%", "#b54708"],
-  ["kelly_5_10", "5-10%", "#dc6803"],
-  ["kelly_10_20", "10-20%", "#0f4c81"],
-  ["kelly_20_plus", "20%+", "#156f3c"]
-];
-
 // Compliance tooltips surfaced on board metrics (see /performance-methodology/).
-const EV_TIP = "Signal strength compares BoardWise model probability to available market prices. It is not personalized stake advice and is not a guarantee.";
+const EV_TIP = "Expected value compares BoardWise model probability to available market prices. It is not personalized stake advice and is not a guarantee.";
 const UNIT_TIP = "A unit is a hypothetical tracking measure used for model comparison. It is not a recommendation to wager any amount.";
 
 const TRACKER_MARKET_LABELS = new Map([
@@ -331,11 +321,6 @@ function optionWiseScore(option) {
   return kelly * probability * 100;
 }
 
-function formatKelly(option) {
-  const kelly = optionKelly(option);
-  return kelly === null ? "N/A" : `${(kelly * 100).toFixed(1)}%`;
-}
-
 function formatWise(option) {
   const score = optionWiseScore(option);
   return score === null ? "N/A" : score.toFixed(1);
@@ -364,17 +349,6 @@ function optionWiseBucket(option) {
     rank: asNumber(option.wise_choice_rank) ?? fallback.rank,
     color: found ? found[2] : option.wise_choice_color || fallback.color
   };
-}
-
-function kellyBucket(option) {
-  const kelly = optionKelly(option);
-  if (kelly === null) return { key: "unknown", color: "#667085" };
-  const pct = kelly * 100;
-  if (pct <= 0) return { key: "kelly_lte_0", color: "#93370d" };
-  if (pct < 5) return { key: "kelly_0_5", color: "#b54708" };
-  if (pct < 10) return { key: "kelly_5_10", color: "#dc6803" };
-  if (pct < 20) return { key: "kelly_10_20", color: "#0f4c81" };
-  return { key: "kelly_20_plus", color: "#156f3c" };
 }
 
 function setHidden(el, hidden) {
@@ -467,13 +441,6 @@ function bestOption(game, variant = state.mode) {
     : null;
   const publicOption = (option) => isTrackingOnlyOption(option) ? null : option;
   if (variant === "best_value") return publicOption(options.best_value) || publicOption(options.highest_ev) || null;
-  if (variant === "best_growth") {
-    return publicOption(options.best_growth)
-      || publicOption(options.wise_choice)
-      || publicOption(options.best_value)
-      || publicOption(options.highest_ev)
-      || null;
-  }
   if (variant === "wise_choice") {
     const helper = wiseChoiceHelper();
     if (helper) return helper.selectWiseChoiceForGame(game, state.payload || {}, wiseChoiceOptions());
@@ -500,7 +467,6 @@ function probBucket(game) {
 function modeBucket(game) {
   const option = bestOption(game, state.mode);
   if (state.mode === "wise_choice") return optionWiseBucket(option).key;
-  if (state.mode === "best_growth") return kellyBucket(option).key;
   return evBucket(game);
 }
 
@@ -627,19 +593,7 @@ function renderFilters() {
     if (evFilters) evFilters.style.display = "none";
     return;
   }
-  const valueFilters = [
-    ["High", "High", "#156f3c"],
-    ["Medium-High", "Medium-High", "#669f2a"],
-    ["Medium", "Medium", "#0f4c81"],
-    ["Medium-Low", "Medium-Low", "#b54708"],
-    ["Low", "Low", "#b42318"]
-  ];
-  const modeFilters = state.mode === "wise_choice"
-    ? WISE_BUCKETS
-    : state.mode === "best_growth"
-      ? KELLY_BUCKETS
-      : valueFilters;
-  const filters = [["all", "All Games", "var(--accent)"], ...modeFilters];
+  const filters = [["all", "All Games", "var(--accent)"], ...WISE_BUCKETS];
 
   const target = evFilters;
   if (probFilters) probFilters.style.display = "none";
@@ -1017,17 +971,10 @@ function optionMarketProbability(option) {
 
 function renderBestCard(option, variant) {
   if (!option) return `<div class="forecast-only-note">No Wise Choice recommendation is available for this game yet.</div>`;
-  const label = variant === "wise_choice" || variant === "full_board"
-    ? "Wise Choice™"
-    : BEST_CARD_MODES.find(([key]) => key === variant)?.[1] || "Best Value";
+  const label = "Wise Choice™";
   const wise = optionWiseBucket(option);
-  const badge = variant === "wise_choice"
-    ? officialTierBadge(option, wise)
-    : variant === "best_growth"
-      ? formatKelly(option)
-      : (option.ev_text || option.ev_rating);
-  const badgePrefix = variant === "wise_choice" ? "" : variant === "best_growth" ? "Signal: " : "Value: ";
-  const badgeTitle = variant === "wise_choice" ? `Safest Edge = Signal Score × Model Probability (${formatWise(option)})` : variant === "best_growth" ? "Signal strength" : "Expected value rating";
+  const badge = officialTierBadge(option, wise);
+  const badgeTitle = `Safest Edge = Signal Score × Model Probability (${formatWise(option)})`;
   const official = option.is_official && !isTrackingOnlyOption(option);
   const meta = [option.sportsbook, option.odds_text].filter(Boolean).join(" ");
   const selection = option.selection_text || option.label || "No selection";
@@ -1040,7 +987,7 @@ function renderBestCard(option, variant) {
         <div class="best-copy">
           <div class="best-topline">
             <div class="best-label">${esc(label)}</div>
-            ${badge ? `<span class="rating-badge ${variant === "wise_choice" ? "wise-rating-badge" : ""} ${official ? "" : "not-official"}" title="${esc(badgeTitle)}">${esc(badgePrefix + badge)}</span>` : ""}
+            ${badge ? `<span class="rating-badge ${variant === "wise_choice" ? "wise-rating-badge" : ""} ${official ? "" : "not-official"}" title="${esc(badgeTitle)}">${esc(badge)}</span>` : ""}
           </div>
           <div class="best-bet">${esc(selection)}${meta ? `<span class="best-meta-inline"> · ${esc(meta)}</span>` : ""}</div>
         </div>
@@ -1072,18 +1019,12 @@ function scoreOrFloor(value) {
   return number === null ? -999 : number;
 }
 
-function optionSortKey(option, variant = state.mode) {
+function optionSortKey(option) {
   const wiseScore = optionWiseScore(option);
   const kelly = optionKelly(option);
   const ev = asNumber(option?.expected_value_per_unit ?? option?.raw_ev);
   const probability = asNumber(option?.model_probability);
   const confidence = asNumber(option?.confidence_rank);
-  if (variant === "best_growth") {
-    return [kelly, wiseScore, ev, probability, confidence].map(scoreOrFloor);
-  }
-  if (variant === "best_value") {
-    return [ev, kelly, probability, confidence, wiseScore].map(scoreOrFloor);
-  }
   return [wiseScore, kelly, ev, probability, confidence].map(scoreOrFloor);
 }
 
@@ -1127,11 +1068,6 @@ function optionModeBucket(option) {
   if (state.mode === "wise_choice") {
     const wise = optionWiseBucket(option);
     return { key: wise.key, label: wiseStatusText(wise.key || wise.status) };
-  }
-  if (state.mode === "best_growth") {
-    const bucket = kellyBucket(option);
-    const found = KELLY_BUCKETS.find(([key]) => key === bucket.key);
-    return { key: bucket.key, label: found ? found[1] : "Signal" };
   }
   return {
     key: option.ev_rating || "Low",

@@ -6,8 +6,6 @@ const state = {
 
 const BEST_CARD_MODES = [
   ["wise_choice", "Wise Choices™"],
-  ["best_value", "Best Value"],
-  ["best_growth", "Signal Strength"],
   ["full_board", "Full Board"]
 ];
 
@@ -19,14 +17,6 @@ const WISE_BUCKETS = [
   ["medium_high_14_20", "14-20 - Strong", "#86efac"],
   ["high_20_25", "20-25 - Prime", "#669f2a"],
   ["elite_verify_25_plus", "25+ - Verify", "#067647"]
-];
-
-const KELLY_BUCKETS = [
-  ["kelly_lte_0", "0% or less", "#93370d"],
-  ["kelly_0_5", "0-5%", "#b54708"],
-  ["kelly_5_10", "5-10%", "#dc6803"],
-  ["kelly_10_20", "10-20%", "#0f4c81"],
-  ["kelly_20_plus", "20%+", "#156f3c"]
 ];
 
 const metaEl = document.getElementById("meta");
@@ -162,17 +152,6 @@ function optionWiseBucket(option) {
   };
 }
 
-function kellyBucket(option) {
-  const kelly = optionKelly(option);
-  if (kelly === null) return { key: "unknown", color: "#667085" };
-  const pct = kelly * 100;
-  if (pct <= 0) return { key: "kelly_lte_0", color: "#93370d" };
-  if (pct < 5) return { key: "kelly_0_5", color: "#b54708" };
-  if (pct < 10) return { key: "kelly_5_10", color: "#dc6803" };
-  if (pct < 20) return { key: "kelly_10_20", color: "#0f4c81" };
-  return { key: "kelly_20_plus", color: "#156f3c" };
-}
-
 function setHidden(el, hidden) {
   if (!el) return;
   el.hidden = hidden;
@@ -248,7 +227,6 @@ function wiseChoiceHelper() {
 function bestOption(game, variant = state.mode) {
   const options = game.best_card_options || {};
   if (variant === "best_value") return options.best_value || options.highest_ev || null;
-  if (variant === "best_growth") return options.best_growth || options.wise_choice || options.best_value || options.highest_ev || null;
   if (variant === "wise_choice") {
     const helper = wiseChoiceHelper();
     if (helper) return helper.selectWiseChoiceForGame(game, state.payload || {}, wiseChoiceOptions());
@@ -272,14 +250,12 @@ function probBucket(game) {
 function modeBucket(game) {
   const option = bestOption(game, state.mode);
   if (state.mode === "wise_choice") return optionWiseBucket(option).key;
-  if (state.mode === "best_growth") return kellyBucket(option).key;
   return evBucket(game);
 }
 
 function modeColor(game) {
   const option = bestOption(game, state.mode);
   if (state.mode === "wise_choice") return safeColor(optionWiseBucket(option).color, "#0f4c81");
-  if (state.mode === "best_growth") return safeColor(kellyBucket(option).color, "#0f4c81");
   return evColor(game);
 }
 
@@ -324,13 +300,7 @@ function renderFilters() {
     if (evFilters) evFilters.style.display = "none";
     return;
   }
-  const valueFilters = [["High", "High", "#156f3c"], ["Medium-High", "Medium-High", "#669f2a"], ["Medium", "Medium", "#0f4c81"], ["Medium-Low", "Medium-Low", "#b54708"], ["Low", "Low", "#b42318"]];
-  const modeFilters = state.mode === "wise_choice"
-    ? WISE_BUCKETS
-    : state.mode === "best_growth"
-      ? KELLY_BUCKETS
-      : valueFilters;
-  const filters = [["all", "All Games", "var(--accent)"], ...modeFilters];
+  const filters = [["all", "All Games", "var(--accent)"], ...WISE_BUCKETS];
   const target = evFilters;
   if (probFilters) probFilters.style.display = "none";
   if (!target) return;
@@ -371,25 +341,16 @@ function renderTeams(game) {
 
 function renderBestCard(option, variant) {
   if (!option) return `<div class="forecast-only-note">No recommendation is available for this sort.</div>`;
-  const label = BEST_CARD_MODES.find(([key]) => key === variant)?.[1] || "Best Value";
+  const label = "Wise Choice™";
   const wise = optionWiseBucket(option);
-  const badge = variant === "wise_choice"
-    ? officialTierBadge(option, wise)
-    : variant === "best_growth"
-      ? formatKelly(option)
-      : (option.ev_text || option.ev_rating);
-  const color = variant === "wise_choice"
-    ? safeColor(wise.color, "#0f4c81")
-    : variant === "best_growth"
-      ? safeColor(kellyBucket(option).color, "#0f4c81")
-      : safeColor(option.ev_rating_color, "#0f4c81");
-  const badgePrefix = variant === "wise_choice" ? "" : variant === "best_growth" ? "Signal: " : "Value: ";
-  const badgeTitle = variant === "wise_choice" ? `Safest Edge = Signal Score × Model Probability (${formatWise(option)})` : variant === "best_growth" ? "Signal strength" : "Expected value rating";
+  const badge = officialTierBadge(option, wise);
+  const color = safeColor(wise.color, "#0f4c81");
+  const badgeTitle = `Safest Edge = Signal Score × Model Probability (${formatWise(option)})`;
   return `
     <div class="best-card" data-best-card-variant="${esc(variant)}">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
         <div class="label">${esc(label)}</div>
-        ${badge ? `<span class="rating-badge ${variant === "wise_choice" ? "wise-rating-badge" : ""}" title="${esc(badgeTitle)}" style="background:${color};color:${esc(textColorFor(color))}">${esc(badgePrefix + badge)}</span>` : ""}
+        ${badge ? `<span class="rating-badge ${variant === "wise_choice" ? "wise-rating-badge" : ""}" title="${esc(badgeTitle)}" style="background:${color};color:${esc(textColorFor(color))}">${esc(badge)}</span>` : ""}
       </div>
       <div class="best-bet">${esc(option.selection_text || "No selection")}</div>
       <div class="best-meta">${esc([option.sportsbook, option.odds_text].filter(Boolean).join(" ") || "No book/odds listed")}</div>
@@ -417,18 +378,12 @@ function scoreOrFloor(value) {
   return number === null ? -999 : number;
 }
 
-function optionSortKey(option, variant = state.mode) {
+function optionSortKey(option) {
   const wiseScore = optionWiseScore(option);
   const kelly = optionKelly(option);
   const ev = asNumber(option?.expected_value_per_unit ?? option?.raw_ev);
   const probability = asNumber(option?.model_probability);
   const confidence = asNumber(option?.confidence_rank);
-  if (variant === "best_growth") {
-    return [kelly, wiseScore, ev, probability, confidence].map(scoreOrFloor);
-  }
-  if (variant === "best_value") {
-    return [ev, kelly, probability, confidence, wiseScore].map(scoreOrFloor);
-  }
   return [wiseScore, kelly, ev, probability, confidence].map(scoreOrFloor);
 }
 
@@ -470,11 +425,6 @@ function optionModeBucket(option) {
   if (state.mode === "wise_choice") {
     const wise = optionWiseBucket(option);
     return { key: wise.key, label: wiseStatusText(wise.key || wise.status), color: safeColor(wise.color, "#0f4c81") };
-  }
-  if (state.mode === "best_growth") {
-    const bucket = kellyBucket(option);
-    const found = KELLY_BUCKETS.find(([key]) => key === bucket.key);
-    return { key: bucket.key, label: found ? found[1] : "Signal", color: safeColor(bucket.color, "#0f4c81") };
   }
   return {
     key: option.ev_rating || "Low",
@@ -554,7 +504,7 @@ function renderMarketDropdowns(game) {
   const dropdowns = Array.isArray(game.market_dropdowns) ? game.market_dropdowns : [];
   if (!dropdowns.length) return `<div class="forecast-only-note">No market dropdowns are available for this game yet.</div>${renderModelDetails(game)}`;
   return `<div class="dropdown-stack">${dropdowns.map((market) => {
-    const summaryColor = safeColor(state.mode === "best_value" ? market.ev_summary_color : market.ev_summary_color || market.prob_summary_color, "#0f4c81");
+    const summaryColor = safeColor(market.ev_summary_color || market.prob_summary_color, "#0f4c81");
     const options = Array.isArray(market.options) ? market.options : [];
     return `
       <details class="market-dropdown">
