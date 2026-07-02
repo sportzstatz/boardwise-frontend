@@ -20,7 +20,6 @@ const gdState = {
   selectedModel: "",
   activeTab: "markets",
   propsSeg: "ranked",
-  minBucket: "all",
 };
 
 const gdEls = {
@@ -882,36 +881,28 @@ function renderRankCard(row, matchupBranding) {
 }
 
 function renderRanked(props, matchupBranding) {
+  // Prime plays only: the lower buckets (Strong/Playable/Lean) stay in the
+  // API payload but are not rendered — the pitcher duel follows immediately.
   const buckets = Array.isArray(props.buckets) ? props.buckets : [];
-  const withRows = buckets.filter((bucket) => Array.isArray(bucket?.rows) && bucket.rows.length);
-  const filterChip = (key, label) =>
-    `<button type="button" class="gd2-filter-chip${gdState.minBucket === key ? " is-active" : ""}" data-gd2-min-bucket="${esc(key)}" aria-pressed="${gdState.minBucket === key ? "true" : "false"}">${esc(label)}</button>`;
-  const bucketGroup = (bucket) => `
-    <div class="gd2-bucket" data-bucket-key="${esc(String(bucket.key || "").toLowerCase())}">
+  const prime = buckets.find(
+    (bucket) => String(bucket?.key || "").toLowerCase() === "prime"
+  );
+  const rows = prime && Array.isArray(prime.rows) ? prime.rows : [];
+  const list = rows.length
+    ? `
+    <div class="gd2-bucket" data-bucket-key="prime">
       <div class="gd2-bucket-head">
-        <span class="gd2-bucket-name">${esc(bucket.label || bucketLabelFor(bucket.key))}</span>
-        <span class="gd2-bucket-meta tnum">${esc(bucket.meta || "")}</span>
+        <span class="gd2-bucket-name">${esc((prime && prime.label) || bucketLabelFor("prime"))}</span>
+        <span class="gd2-bucket-meta tnum">${esc((prime && prime.meta) || "")}</span>
       </div>
-      <div class="gd2-bucket-rows">${bucket.rows.map((row) => renderRankCard(row, matchupBranding)).join("")}</div>
-    </div>`;
-  const noEdge = Number(propsCounts(props).no_edge);
-  const footer = Number.isFinite(noEdge) && noEdge > 0
-    ? `<div class="gd2-no-edge tnum">${esc(String(noEdge))} more quoted markets priced against the model — no edge</div>`
-    : "";
-  const list = withRows.length
-    ? withRows.map(bucketGroup).join("")
-    : `<div class="gd-note">No positive-EV props for this game today.</div>`;
+      <div class="gd2-bucket-rows">${rows.map((row) => renderRankCard(row, matchupBranding)).join("")}</div>
+    </div>`
+    : `<div class="gd-note">No Prime plays for this game today.</div>`;
   return `
     <div class="gd2-props-heading-row">
       <div class="gd2-props-heading">Ranked plays</div>
-      <div class="gd2-rank-filter" role="group" aria-label="Minimum bucket filter">
-        ${filterChip("all", "All")}
-        ${filterChip("playable", "Playable+")}
-        ${filterChip("strong", "Strong+")}
-      </div>
     </div>
-    <div class="gd2-ranked" data-min="${esc(gdState.minBucket)}">${list}</div>
-    ${footer}`;
+    <div class="gd2-ranked">${list}</div>`;
 }
 
 function renderPitcherCards(props, matchupBranding) {
@@ -1135,19 +1126,6 @@ function setPropsSeg(seg) {
   });
 }
 
-function setMinBucket(key) {
-  if (!key || !gdEls.detail) return;
-  gdState.minBucket = key;
-  gdEls.detail.querySelectorAll("[data-gd2-min-bucket]").forEach((button) => {
-    const active = button.getAttribute("data-gd2-min-bucket") === key;
-    button.classList.toggle("is-active", active);
-    button.setAttribute("aria-pressed", active ? "true" : "false");
-  });
-  gdEls.detail.querySelectorAll(".gd2-ranked").forEach((element) => {
-    element.setAttribute("data-min", key);
-  });
-}
-
 function bindDetailEvents(root) {
   root.querySelectorAll("[data-gd2-tab]").forEach((button) => {
     button.addEventListener("click", () => setActiveTab(button.getAttribute("data-gd2-tab")));
@@ -1157,9 +1135,6 @@ function bindDetailEvents(root) {
   });
   root.querySelectorAll("[data-gd2-seg]").forEach((button) => {
     button.addEventListener("click", () => setPropsSeg(button.getAttribute("data-gd2-seg")));
-  });
-  root.querySelectorAll("[data-gd2-min-bucket]").forEach((button) => {
-    button.addEventListener("click", () => setMinBucket(button.getAttribute("data-gd2-min-bucket")));
   });
 }
 

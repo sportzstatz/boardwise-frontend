@@ -162,7 +162,6 @@ describe("mlb game detail v2", () => {
     expect(props?.textContent).toContain("The lineups — batter props");
     expect(props?.textContent).toContain("Toronto — away");
     expect(props?.textContent).toContain("Boston — home");
-    expect(props?.textContent).toContain("4 more quoted markets priced against the model — no edge");
     // U+2212 minus preserved from the API's quote_short
     expect(props?.textContent).toContain("DK −128");
     // Founder plan badge + title
@@ -274,17 +273,41 @@ describe("mlb game detail v2", () => {
     expect(clement?.querySelector(".gd2-prop-row")?.classList.contains("gd2-hr-row")).toBe(true);
   });
 
-  it("filters ranked buckets with the minBucket control", async () => {
+  it("renders only the Prime bucket in Ranked plays, with the duel right after", async () => {
     window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
     await loadDetailScript(vi.fn().mockResolvedValue(clone(FULL_PAYLOAD)));
     await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
 
     const ranked = /** @type {HTMLElement} */ (document.querySelector(".gd2-ranked"));
-    expect(ranked.getAttribute("data-min")).toBe("all");
-    expect(ranked.querySelectorAll(".gd2-bucket").length).toBe(4);
-    /** @type {HTMLElement} */ (document.querySelector('[data-gd2-min-bucket="strong"]')).click();
-    expect(ranked.getAttribute("data-min")).toBe("strong");
-    expect(document.querySelector('[data-gd2-min-bucket="strong"]')?.getAttribute("aria-pressed")).toBe("true");
+    const buckets = [...ranked.querySelectorAll(".gd2-bucket")];
+    expect(buckets.length).toBe(1);
+    expect(buckets[0].getAttribute("data-bucket-key")).toBe("prime");
+    expect(ranked.textContent).not.toContain("Strong");
+    expect(ranked.textContent).not.toContain("Playable");
+    expect(ranked.textContent).not.toContain("Lean");
+    // No filter control, no no-edge footer — the pitcher duel is the next
+    // section after ranked.
+    expect(document.querySelector("[data-gd2-min-bucket]")).toBeNull();
+    expect(document.querySelector(".gd2-no-edge")).toBeNull();
+    const rankedSection = ranked.closest("[data-gd2-props-section]");
+    expect(rankedSection?.nextElementSibling?.textContent).toContain("The pitcher duel");
+  });
+
+  it("shows a quiet note when no Prime plays exist", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    const propsPayload = clone(PROPS_PAYLOAD);
+    for (const bucket of propsPayload.buckets) {
+      if (bucket.key === "prime") bucket.rows = [];
+    }
+    await loadDetailScript(
+      vi.fn().mockResolvedValue(clone(FULL_PAYLOAD)),
+      vi.fn().mockResolvedValue(propsPayload)
+    );
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    const ranked = /** @type {HTMLElement} */ (document.querySelector(".gd2-ranked"));
+    expect(ranked.querySelectorAll(".gd2-bucket").length).toBe(0);
+    expect(ranked.textContent).toContain("No Prime plays for this game today.");
   });
 
   it("renders the mobile segmented control and switches props sections", async () => {

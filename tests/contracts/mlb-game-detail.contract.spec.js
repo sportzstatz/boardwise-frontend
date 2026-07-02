@@ -61,20 +61,20 @@ test.describe("MLB game detail v2 consumes the props response contract", () => {
     // Default tab honors counts.quoted > 0.
     await expect(page.locator('[data-gd2-panel="props"]')).toBeVisible();
 
-    // Buckets: every non-empty bucket renders with its API label + meta.
-    const nonEmpty = props.buckets.filter((bucket) => bucket.rows.length);
-    await expect(page.locator(".gd2-bucket")).toHaveCount(nonEmpty.length);
-    for (const bucket of nonEmpty) {
-      const group = page.locator(`.gd2-bucket[data-bucket-key="${bucket.key}"]`);
-      await expect(group.locator(".gd2-bucket-name")).toHaveText(bucket.label);
-      await expect(group.locator(".gd2-bucket-meta")).toHaveText(bucket.meta);
-      await expect(group.locator(".gd2-rank-card")).toHaveCount(bucket.rows.length);
-    }
-
-    // counts.no_edge feeds the footer line.
-    await expect(page.locator(".gd2-no-edge")).toHaveText(
-      `${props.counts.no_edge} more quoted markets priced against the model — no edge`
-    );
+    // Ranked plays render the Prime bucket ONLY (operator decision
+    // 2026-07-02): lower buckets stay in the API payload but never render,
+    // and the pitcher duel is the next section.
+    const prime = props.buckets.find((bucket) => bucket.key === "prime");
+    await expect(page.locator(".gd2-bucket")).toHaveCount(1);
+    const group = page.locator('.gd2-bucket[data-bucket-key="prime"]');
+    await expect(group.locator(".gd2-bucket-name")).toHaveText(prime.label);
+    await expect(group.locator(".gd2-bucket-meta")).toHaveText(prime.meta);
+    await expect(group.locator(".gd2-rank-card")).toHaveCount(prime.rows.length);
+    await expect(page.locator("[data-gd2-min-bucket]")).toHaveCount(0);
+    await expect(page.locator(".gd2-no-edge")).toHaveCount(0);
+    await expect(
+      page.locator('[data-gd2-props-section="ranked"] + [data-gd2-props-section="pitchers"]')
+    ).toHaveCount(1);
 
     // top_plays (≤2) render as the top prop cards.
     await expect(page.locator(".gd2-top-play")).toHaveCount(props.top_plays.length);
