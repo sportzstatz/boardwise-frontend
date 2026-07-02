@@ -1,14 +1,26 @@
 // @ts-check
-// BoardWise MLB game detail page.
-// Reuses the shared API client (assets/js/api-client.js) for all network
-// access so this file never talks to the network directly.
+// BoardWise MLB game detail page (game-detail-v2).
+// Two data sources, fetched in parallel through the shared API client
+// (assets/js/api-client.js — this file never talks to the network directly):
+//   1. the board payload for the selected game family (hero, Wise Choice,
+//      Markets tab, Model tab), and
+//   2. the per-game props payload (family-agnostic Player Props tab, the
+//      "Top prop" teaser, the props-engine model cards, and the free/guest
+//      lock panel).
+// The props fetch failing must never blank the page: the game tabs render and
+// the Props tab shows a quiet inline error instead.
 
 const gdState = {
   payload: null,
   game: null,
+  props: null,
+  propsError: false,
   gamePk: "",
   requestedModel: "",
   selectedModel: "",
+  activeTab: "markets",
+  propsSeg: "ranked",
+  minBucket: "all",
 };
 
 const gdEls = {
@@ -17,6 +29,28 @@ const gdEls = {
   detail: document.getElementById("gd-detail"),
   back: document.getElementById("gd-back"),
 };
+
+const GD_TABS = [
+  { id: "markets", label: "Markets" },
+  { id: "props", label: "Player Props" },
+  { id: "model", label: "Model" },
+  { id: "weather", label: "Weather & Park", soon: true },
+  { id: "trends", label: "Trends", soon: true },
+];
+
+const BUCKET_LABELS = {
+  prime: "Prime",
+  strong: "Strong",
+  playable: "Playable",
+  lean: "Lean",
+};
+
+const SMALL_NUMBER_WORDS = [
+  "no", "one", "two", "three", "four", "five",
+  "six", "seven", "eight", "nine", "ten",
+];
+
+/* ---------- shared utilities ---------- */
 
 function esc(value) {
   return String(value ?? "")
@@ -50,6 +84,13 @@ function readGamePk() {
   return /^[A-Za-z0-9_-]{1,64}$/.test(pk) ? pk : "";
 }
 
+function writeModelToUrl(model) {
+  const url = new URL(window.location.href);
+  if (model) url.searchParams.set("model", model);
+  else url.searchParams.delete("model");
+  window.history.replaceState({}, "", url);
+}
+
 function setHidden(el, hidden) {
   if (!el) return;
   el.hidden = hidden;
@@ -65,6 +106,22 @@ function parsePercent(value) {
 
 function teamNickname(name) {
   const parts = String(name || "").trim().split(/\s+/);
+  return parts.length ? parts[parts.length - 1] : "";
+}
+
+const TWO_WORD_NICKNAMES = ["blue jays", "red sox", "white sox"];
+
+function teamCityLabel(fullName, abbr) {
+  const words = String(fullName || "").trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 3 && TWO_WORD_NICKNAMES.includes(words.slice(-2).join(" ").toLowerCase())) {
+    return words.slice(0, -2).join(" ");
+  }
+  if (words.length >= 2) return words.slice(0, -1).join(" ");
+  return words[0] || String(abbr || "").toUpperCase() || "Team";
+}
+
+function lastNameOf(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
   return parts.length ? parts[parts.length - 1] : "";
 }
 
@@ -174,9 +231,14 @@ function optionSideInGame(option, game) {
   return null;
 }
 
+function marketDropdowns(game) {
+  if (Array.isArray(game.market_dropdowns)) return game.market_dropdowns;
+  if (Array.isArray(game.markets)) return game.markets;
+  return [];
+}
+
 function moneylineDropdown(game) {
-  const dropdowns = Array.isArray(game.market_dropdowns) ? game.market_dropdowns : [];
-  return dropdowns.find((market) => {
+  return marketDropdowns(game).find((market) => {
     const key = String(market?.market_key || "").toLowerCase();
     const title = String(market?.title || "").toLowerCase();
     return key === "h2h" || key === "moneyline" || title.includes("money line") || title.includes("moneyline");
@@ -256,6 +318,21 @@ function renderTeamMark(team, abbr, sideBranding) {
   `;
 }
 
+// Small circular team mark (pitcher cards): team-color ring with the logo
+// inside; a failed SVG collapses to the solid team-color circle + abbr.
+function renderSmallTeamMark(abbr, sideBranding) {
+  const logoPath = sideBranding?.brand?.logoPath || "";
+  const style = teamMarkStyle(sideBranding);
+  const logo = logoPath
+    ? `<img class="gd2-team-logo" data-team-logo src="${esc(logoPath)}" alt="" width="26" height="26" decoding="async">`
+    : "";
+  return `
+    <span class="gd2-team-mark${logoPath ? " has-logo" : ""}" data-team-logo-mark${style ? ` style="${esc(style)}"` : ""} aria-hidden="true">
+      ${logo}
+      <span class="gd2-team-mark-fallback">${esc(String(abbr || "—").toUpperCase())}</span>
+    </span>`;
+}
+
 function sideAriaLabel({ isHome, team, abbr, pitcher, lineup, prob, odds }) {
   const parts = [
     `${isHome ? "Home" : "Away"} team ${team || teamAbbrText(team, abbr)}`,
@@ -269,11 +346,6 @@ function sideAriaLabel({ isHome, team, abbr, pitcher, lineup, prob, odds }) {
 
 function isTrackingOnly(option) {
   return Boolean(option && (option.tracking_only || option.is_tracking_only));
-}
-
-function hasOfficialPlay(game) {
-  const recs = Array.isArray(game.recommendations) ? game.recommendations : [];
-  return recs.some((rec) => rec && rec.is_official && !isTrackingOnly(rec));
 }
 
 function gameLabel(game) {
@@ -291,7 +363,11 @@ function isPreviewPayload(payload) {
 
 function safeUpgradePath(payload) {
   const access = payload && payload.access && typeof payload.access === "object" ? payload.access : {};
-  const path = typeof access.upgrade_path === "string" ? access.upgrade_path.trim() : "";
+  return safePath(access.upgrade_path);
+}
+
+function safePath(value) {
+  const path = typeof value === "string" ? value.trim() : "";
   if (!path.startsWith("/") || path.startsWith("//")) return "/pricing/";
   return path;
 }
@@ -315,13 +391,168 @@ function boardHref() {
   return query ? `/mlb/?${query}` : "/mlb/";
 }
 
-/* ---------- rendering ---------- */
+/* ---------- formatting (from the design's data script) ---------- */
 
-function lockIcon(size = 20) {
-  const sizeClass = size <= 14 ? "gd-lock-sm" : "gd-lock-lg";
-  return `<span class="gd-lock-icon ${sizeClass}" aria-hidden="true">
-    <span class="gd-lock-shackle"></span><span class="gd-lock-body"></span></span>`;
+// Signed percentage with a real minus sign (U+2212), e.g. +47.2% / −4.1%.
+function sPct(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "—";
+  return `${num >= 0 ? "+" : "−"}${(Math.abs(num) * 100).toFixed(1)}%`;
 }
+
+function toneClass(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "";
+  return num >= 0 ? "gd2-pos" : "gd2-neg";
+}
+
+function pBetTextOf(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? `${(num * 100).toFixed(1)}%` : "—";
+}
+
+function pBetPctOf(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return Math.max(0, Math.min(100, Math.round(num * 1000) / 10));
+}
+
+function countText(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? String(num) : "0";
+}
+
+function numberWord(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) return String(value ?? "");
+  return SMALL_NUMBER_WORDS[num] ?? String(num);
+}
+
+function bucketLabelFor(key) {
+  const normalized = String(key || "").toLowerCase();
+  if (BUCKET_LABELS[normalized]) return BUCKET_LABELS[normalized];
+  return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : "";
+}
+
+function formatBoardDate(value) {
+  const [year, month, day] = String(value || "").split("-").map(Number);
+  if (!year || !month || !day) return "";
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Chicago",
+      weekday: "short",
+      month: "short",
+      day: "2-digit",
+    }).format(new Date(Date.UTC(year, month - 1, day, 12)));
+  } catch (_err) {
+    return "";
+  }
+}
+
+/* ---------- props payload helpers ---------- */
+
+function propsAccessLevel(props) {
+  return String(props && props.access ? props.access : "");
+}
+
+function propsCounts(props) {
+  return props && props.counts && typeof props.counts === "object" ? props.counts : {};
+}
+
+function propsUpgradePath(props) {
+  return safePath(props && props.upgrade && typeof props.upgrade === "object" ? props.upgrade.upgrade_path : "");
+}
+
+function isPropsEmpty(props) {
+  if (!props) return true;
+  if (props.state === "no_props_published") return true;
+  const pitchers = Array.isArray(props.pitchers) ? props.pitchers : [];
+  const batters = props.batters && typeof props.batters === "object" ? props.batters : {};
+  const awayPlayers = Array.isArray(batters.away?.players) ? batters.away.players : [];
+  const homePlayers = Array.isArray(batters.home?.players) ? batters.home.players : [];
+  return !pitchers.length && !awayPlayers.length && !homePlayers.length;
+}
+
+function gameStatusLabel() {
+  const raw = String(
+    (gdState.props && gdState.props.game && gdState.props.game.status)
+    || (gdState.game && (gdState.game.game_status || gdState.game.status))
+    || ""
+  ).toLowerCase();
+  if (raw.includes("postpon")) return "Postponed";
+  if (raw.includes("cancel")) return "Canceled";
+  if (raw.includes("suspend")) return "Suspended";
+  if (raw.includes("final") || raw.includes("completed") || raw.includes("game over")) return "Final";
+  return "";
+}
+
+// Resolved team fill for a props row: rows carry is_home / team_abbr, and the
+// fill always comes from resolveMatchupBranding (never a hard-coded team hex).
+function rowSideBranding(row, matchupBranding) {
+  if (row && typeof row.is_home === "boolean") {
+    return row.is_home ? matchupBranding.home : matchupBranding.away;
+  }
+  const abbr = String(row?.team_abbr || "").toUpperCase();
+  const homeAbbr = String(
+    (gdState.props && gdState.props.game && gdState.props.game.home_abbr)
+    || (gdState.game && gdState.game.home_team_abbr)
+    || ""
+  ).toUpperCase();
+  return abbr && homeAbbr && abbr === homeAbbr ? matchupBranding.home : matchupBranding.away;
+}
+
+function sideFill(sideBranding, fallback) {
+  return (sideBranding && sideBranding.fill) || fallback;
+}
+
+/* ---------- Wise Choice helpers ---------- */
+
+// Mirrors the board's wiseStatusText so the detail page reports the same tier.
+function wiseStatusText(value) {
+  const key = String(value || "").trim();
+  const normalized = key.toUpperCase();
+  if (key === "pass_lte_0" || normalized === "NO EDGE") return "No Edge";
+  if (key === "pass_0_3" || normalized === "TRACKER") return "Tracker";
+  if (key === "pass_3_8" || normalized === "LEAN") return "Lean";
+  if (key === "pass_8_14" || normalized === "PLAYABLE") return "Playable";
+  if (key === "medium_high_14_20" || normalized === "STRONG" || normalized === "MEDIUM-HIGH") return "Strong";
+  if (key === "high_20_25" || normalized === "PRIME" || normalized === "HIGH") return "Prime";
+  if (key === "elite_verify_25_plus" || normalized === "VERIFY" || normalized === "ELITE / VERIFY") return "Verify";
+  return "No Edge";
+}
+
+// Derives the official-pick pill label from the option's Wise Choice tier
+// instead of hard-coding "Playable" (mirrors the board's officialTierBadge).
+function officialTierLabel(option) {
+  if (isTrackingOnly(option)) return "Tracking";
+  const tier = wiseStatusText(option.wise_choice_status || option.wise_choice_bucket_key || option.wise_choice_bucket_label);
+  if (tier === "Verify") return "Verify Line";
+  if (option.is_official && ["Strong", "Prime", "Playable"].includes(tier)) return `Official · ${tier}`;
+  if (tier === "Lean") return option.is_official ? "Official · Lean" : "Lean · Not Official";
+  return option.is_official ? "Official" : tier;
+}
+
+function wiseChoiceFor(game, payload) {
+  const helper = window.BoardWiseWiseChoice;
+  if (helper) {
+    return helper.selectWiseChoiceForGame(game, payload || {}, {
+      excludeTrackingOnly: true,
+      mode: "wise_choice",
+      gameLabelForGame: gameLabel,
+    });
+  }
+  const cards = game.best_card_options && typeof game.best_card_options === "object" ? game.best_card_options : {};
+  return cards.wise_choice || cards.best_value || cards.highest_ev || null;
+}
+
+function edgeClass(text) {
+  const trimmed = String(text || "").trim();
+  if (trimmed.startsWith("+")) return "good";
+  if (trimmed.startsWith("-") || trimmed.startsWith("−")) return "bad";
+  return "";
+}
+
+/* ---------- hero ---------- */
 
 function renderHero(game) {
   const matchupBranding = resolveGameBranding(game);
@@ -382,76 +613,42 @@ function renderHero(game) {
     </section>`;
 }
 
-function edgeClass(text) {
-  const trimmed = String(text || "").trim();
-  if (trimmed.startsWith("+")) return "good";
-  if (trimmed.startsWith("-") || trimmed.startsWith("−")) return "bad";
-  return "";
-}
+/* ---------- Wise Choice banner ---------- */
 
-// Mirrors the board's wiseStatusText so the detail page reports the same tier.
-function wiseStatusText(value) {
-  const key = String(value || "").trim();
-  const normalized = key.toUpperCase();
-  if (key === "pass_lte_0" || normalized === "NO EDGE") return "No Edge";
-  if (key === "pass_0_3" || normalized === "TRACKER") return "Tracker";
-  if (key === "pass_3_8" || normalized === "LEAN") return "Lean";
-  if (key === "pass_8_14" || normalized === "PLAYABLE") return "Playable";
-  if (key === "medium_high_14_20" || normalized === "STRONG" || normalized === "MEDIUM-HIGH") return "Strong";
-  if (key === "high_20_25" || normalized === "PRIME" || normalized === "HIGH") return "Prime";
-  if (key === "elite_verify_25_plus" || normalized === "VERIFY" || normalized === "ELITE / VERIFY") return "Verify";
-  return "No Edge";
-}
-
-// Derives the official-pick pill label from the option's Wise Choice tier
-// instead of hard-coding "Playable" (mirrors the board's officialTierBadge).
-function officialTierLabel(option) {
-  if (isTrackingOnly(option)) return "Tracking";
-  const tier = wiseStatusText(option.wise_choice_status || option.wise_choice_bucket_key || option.wise_choice_bucket_label);
-  if (tier === "Verify") return "Verify Line";
-  if (option.is_official && ["Strong", "Prime", "Playable"].includes(tier)) return `Official · ${tier}`;
-  if (tier === "Lean") return option.is_official ? "Official · Lean" : "Lean · Not Official";
-  return option.is_official ? "Official" : tier;
-}
-
-function wiseChoiceFor(game, payload) {
-  const helper = window.BoardWiseWiseChoice;
-  if (helper) {
-    return helper.selectWiseChoiceForGame(game, payload || {}, {
-      excludeTrackingOnly: true,
-      mode: "wise_choice",
-      gameLabelForGame: gameLabel,
-    });
-  }
-  const cards = game.best_card_options && typeof game.best_card_options === "object" ? game.best_card_options : {};
-  return cards.wise_choice || cards.best_value || cards.highest_ev || null;
+function renderTopPropTeaser() {
+  // Suppressed for finished/postponed games and whenever the full props
+  // payload has no ranked play to point at.
+  if (gameStatusLabel()) return "";
+  const props = gdState.props;
+  if (!props || gdState.propsError || propsAccessLevel(props) !== "full") return "";
+  const play = Array.isArray(props.top_plays) ? props.top_plays[0] : null;
+  if (!play || !play.bet_label) return "";
+  const name = lastNameOf(play.player_name) || String(play.player_name || "");
+  const label = [name, play.bet_label].filter(Boolean).join(" ");
+  const ev = Number(play.ev);
+  const evPart = Number.isFinite(ev) ? ` · ${sPct(ev)} EV` : "";
+  return `<button type="button" class="gd2-top-prop tnum" data-gd2-goto-props>Top prop: ${esc(label)}${esc(evPart)} →</button>`;
 }
 
 function renderWiseBanner(game, payload) {
   const option = wiseChoiceFor(game, payload);
-  if (!option) {
-    return `
-      <section id="wise-choice" class="gd-block">
-        ${sectionTitle("Wise Choice")}
-        <div class="gd-note">No Wise Choice recommendation is available for this game.</div>
-      </section>`;
-  }
+  if (!option) return "";
   const meta = [option.sportsbook, option.odds_text].filter(Boolean).join(" · ");
   const win = option.model_probability_text || option.model_prob_text || "";
   const edge = option.edge_text || "";
   const ev = option.ev_text || "";
   const bubble = (label, value, cls = "") =>
     value ? `<div class="gd-bubble"><div class="gd-bubble-label">${esc(label)}</div><div class="gd-bubble-value ${cls} tnum">${esc(value)}</div></div>` : "";
-  const official = option.is_official && !isTrackingOnly(option);
   return `
     <section id="wise-choice" class="gd-wise" aria-labelledby="wise-choice-title">
       <div class="gd-wise-copy">
         <div class="gd-wise-eyebrow">
           <h2 id="wise-choice-title" class="gd-wise-label">Wise Choice™</h2>
-          <span class="gd-official-pill">${esc(official ? officialTierLabel(option) : officialTierLabel(option))}</span>
+          <span class="gd-official-pill">${esc(officialTierLabel(option))}</span>
         </div>
         <div class="gd-wise-pick">${esc(option.selection_text || option.label || "No selection")}</div>
-        ${meta ? `<div class="gd-wise-meta">${esc(meta)}</div>` : ""}
+        ${meta ? `<div class="gd-wise-meta tnum">${esc(meta)}</div>` : ""}
+        ${renderTopPropTeaser()}
       </div>
       <div class="gd-bubbles">
         ${bubble("Win", win)}
@@ -461,184 +658,423 @@ function renderWiseBanner(game, payload) {
     </section>`;
 }
 
-function sectionTitle(text) {
-  return `<h2 class="gd-section-title">${esc(text)}</h2>`;
+/* ---------- tab bar + panels ---------- */
+
+function renderTabBar() {
+  const buttons = GD_TABS.map((tab) => {
+    if (tab.soon) {
+      return `<button type="button" class="gd2-tab is-soon" disabled>${esc(tab.label)} <span class="gd2-soon-chip">Soon</span></button>`;
+    }
+    const active = gdState.activeTab === tab.id;
+    return `<button type="button" class="gd2-tab${active ? " is-active" : ""}" data-gd2-tab="${esc(tab.id)}" aria-pressed="${active ? "true" : "false"}">${esc(tab.label)}</button>`;
+  }).join("");
+  return `<div class="gd2-tabbar" aria-label="Game detail sections">${buttons}</div>`;
 }
 
-function renderMarkets(game) {
-  const dropdowns = Array.isArray(game.market_dropdowns) ? game.market_dropdowns : [];
+function lockIcon() {
+  return `<span class="gd2-lock-glyph" aria-hidden="true"><span class="gd2-lock-shackle"></span><span class="gd2-lock-body"></span></span>`;
+}
+
+function renderLockedSection(title, copy, ctaHref) {
+  return `
+    <article class="gd2-lock">
+      ${lockIcon()}
+      <div class="gd2-lock-title">${esc(title)}</div>
+      <div class="gd2-lock-copy">${esc(copy)}</div>
+      <span class="gd2-lock-ctas">
+        <a class="gd2-btn gd2-btn-gold" href="${esc(ctaHref)}">View Founder access</a>
+      </span>
+    </article>`;
+}
+
+/* ---------- Markets tab ---------- */
+
+function marketSortIndex(market) {
+  const key = String(market?.market_key || "").toLowerCase();
+  const title = String(market?.title || "").toLowerCase();
+  if (key === "h2h" || key === "moneyline" || title.includes("money line") || title.includes("moneyline")) return 0;
+  if (key === "spreads" || key === "run_line" || title.includes("run line")) return 1;
+  if (key === "totals" || title.includes("total")) return 2;
+  return 3;
+}
+
+function isSameWiseOption(option, wise) {
+  if (!option || !wise) return false;
+  const norm = (value) => String(value || "").trim().toLowerCase();
+  const optionSelection = norm(option.selection_text || option.label);
+  const wiseSelection = norm(wise.selection_text || wise.label);
+  if (!optionSelection || optionSelection !== wiseSelection) return false;
+  const optionBook = norm(option.sportsbook);
+  const wiseBook = norm(wise.sportsbook);
+  if (optionBook && wiseBook && optionBook !== wiseBook) return false;
+  return true;
+}
+
+function renderMarketsPanel(payload, game) {
+  const dropdowns = marketDropdowns(game).slice().sort((a, b) => marketSortIndex(a) - marketSortIndex(b));
   if (!dropdowns.length) {
-    return `<section id="full-markets" class="gd-block">${sectionTitle("Full Markets")}<div class="gd-note">No matched markets are available for this game yet.</div></section>`;
+    return `<div class="gd-note">No matched markets are available for this game yet.</div>`;
   }
+  const wise = wiseChoiceFor(game, payload);
   const cell = (label, value, cls = "") =>
-    `<div class="gd-cell"><div class="gd-cell-label">${esc(label)}</div><div class="gd-cell-value ${cls} tnum">${esc(value || "—")}</div></div>`;
+    `<span class="gd2-mkt-cell"><span class="gd2-mkt-cell-label">${esc(label)}</span><span class="gd2-mkt-cell-value ${cls} tnum">${esc(value || "—")}</span></span>`;
   const optionCard = (option) => {
-    const official = option.is_official && !isTrackingOnly(option);
+    const isWise = isSameWiseOption(option, wise);
     const model = option.model_probability_text || option.model_prob_text || "";
     return `
-      <div class="gd-mkt-option ${official ? "official" : ""}">
-        <div class="gd-mkt-option-head">
-          <span class="gd-mkt-side">${esc(option.selection_text || option.label || "Option")}</span>
-          ${official ? `<span class="gd-official-pill sm">Official</span>` : `<span class="gd-pass">Pass</span>`}
-        </div>
-        <div class="gd-mkt-cells">
+      <article class="gd2-mkt-option${isWise ? " is-wise" : ""}">
+        <span class="gd2-mkt-option-head">
+          <span class="gd2-mkt-side">${esc(option.selection_text || option.label || "Option")}</span>
+          <span class="gd2-mkt-tag${isWise ? " is-wise" : ""}">${isWise ? "Wise Choice™" : "Pass"}</span>
+        </span>
+        <span class="gd2-mkt-cells">
           ${cell("Odds", option.odds_text)}
           ${cell("Model", model)}
           ${cell("Edge", option.edge_text, edgeClass(option.edge_text))}
-          ${option.ev_text ? cell("EV", option.ev_text, edgeClass(option.ev_text)) : ""}
-        </div>
-      </div>`;
+          ${cell("EV", option.ev_text, edgeClass(option.ev_text))}
+        </span>
+      </article>`;
   };
-  const markets = dropdowns.map((market) => {
+  const groups = dropdowns.map((market) => {
     const options = Array.isArray(market.options) ? market.options : [];
+    if (!options.length) return "";
     return `
-      <div class="gd-market">
-        <div class="gd-market-title">${esc(market.title || market.market_key || "Market")}</div>
-        <div class="gd-market-options">${options.length ? options.map(optionCard).join("") : `<div class="gd-note">No market options are available for this market yet.</div>`}</div>
+      <div class="gd2-mkt-group">
+        <div class="gd2-mkt-group-title">${esc(market.title || market.market_key || "Market")}</div>
+        <div class="gd2-mkt-options">${options.map(optionCard).join("")}</div>
       </div>`;
-  }).join("");
-  return `<section id="full-markets" class="gd-block">${sectionTitle("Full Markets")}<div class="gd-markets">${markets}</div></section>`;
+  }).filter(Boolean).join("");
+  return groups || `<div class="gd-note">No matched markets are available for this game yet.</div>`;
 }
 
-function renderModelBreakdown(game) {
-  const cells = Array.isArray(game.model_details_cells) ? game.model_details_cells : [];
-  const rows = cells.length ? cells : [
-    { label: "Away Win Prob", value: game.away_win_prob_text },
-    { label: "Home Win Prob", value: game.home_win_prob_text },
-    { label: "Projected Total", value: game.projected_total_text },
-    { label: "Projected Margin", value: game.projected_margin_text },
-  ].filter((row) => row.value);
-  if (!rows.length && !game.model_details_projected_score && !game.model_version) {
-    return `<section id="model-breakdown" class="gd-block">${sectionTitle("Model Breakdown")}<div class="gd-note">Model breakdown details are not available for this game yet.</div></section>`;
+/* ---------- Model tab ---------- */
+
+function renderModelPanel(payload, game) {
+  const props = gdState.props;
+  const engine = props && !gdState.propsError && props.engine && typeof props.engine === "object" ? props.engine : {};
+  const probs = winProbs(game);
+  const wise = wiseChoiceFor(game, payload);
+  const boardState = (wise && (wise.wise_choice_bucket_label || (wise.wise_choice_status ? wiseStatusText(wise.wise_choice_status) : "")))
+    || game.board_state_label
+    || "—";
+  const nSims = Number(engine.n_sims);
+  const simsText = Number.isFinite(nSims) && nSims > 0 ? `${Math.round(nSims / 1000)}k sim paths` : "—";
+  const metadata = payload && payload.model_metadata && typeof payload.model_metadata === "object" ? payload.model_metadata : {};
+  const gameModelVersion = game.model_version || metadata.model_version || "";
+  const engineModelVersion = engine.model_version || "";
+  const calibration = typeof engine.calibration === "string" ? engine.calibration.trim() : "";
+  const statCard = (label, value) =>
+    `<article class="gd2-stat-card"><div class="gd2-stat-label">${esc(label)}</div><div class="gd2-stat-value tnum">${esc(value || "—")}</div></article>`;
+  const disclaimer = `Prop forecasts are EE-Sim read-only tallies blended 50/50 with the trained head per market${calibration ? `; rolling calibration is currently ${calibration}` : ""}. Signal buckets, not guarantees — a higher score does not automatically mean higher historical ROI.`;
+  return `
+    <article class="gd2-proj-score">
+      <span class="gd2-stat-label">Projected score</span>
+      <span class="gd2-proj-score-value tnum">${esc(game.model_details_projected_score || "—")}</span>
+    </article>
+    <div class="gd2-stat-grid">
+      ${statCard("Away win prob", game.away_win_prob_text || (probs.away !== null ? percentText(probs.away) : ""))}
+      ${statCard("Home win prob", game.home_win_prob_text || (probs.home !== null ? percentText(probs.home) : ""))}
+      ${statCard("Projected total", game.projected_total_text)}
+      ${statCard("Projected margin", game.projected_margin_text)}
+      ${statCard("Board state", boardState)}
+      ${statCard("Props engine", simsText)}
+    </div>
+    <article class="gd2-version-card">
+      <div class="gd2-stat-label">Model version</div>
+      <div class="gd2-version-value tnum">${esc(gameModelVersion || "—")}</div>
+      ${engineModelVersion ? `<div class="gd2-version-value gd2-version-engine tnum">${esc(engineModelVersion)}</div>` : ""}
+    </article>
+    <p class="gd2-model-disclaimer">${esc(disclaimer)}</p>`;
+}
+
+/* ---------- Player Props tab ---------- */
+
+function renderPBetBar(pBet, fill, options = {}) {
+  const pct = pBetPctOf(pBet);
+  const text = pBetTextOf(pBet);
+  const fillStyle = options.muted
+    ? `background:${esc(fill)};background:color-mix(in srgb, ${esc(fill)} 55%, #ffffff)`
+    : `background:${esc(fill)}`;
+  return `
+    <span class="gd2-bar" role="img" aria-label="Model probability the bet cashes: ${esc(text)}">
+      <span class="gd2-bar-fill" style="width:${pct}%;${fillStyle}"></span>
+      <span class="gd2-bar-notch"></span>
+    </span>`;
+}
+
+function renderPropRow(row, matchupBranding) {
+  const fill = sideFill(rowSideBranding(row, matchupBranding), "#44546a");
+  if (row.model_only) {
+    return `
+      <div class="gd2-prop-row gd2-hr-row">
+        <span class="gd2-prop-label">${esc(row.bet_label || "1+ home run")}</span>
+        <span class="gd2-prop-right">
+          <span class="gd2-prop-quote gd2-noline">No line</span>
+          <span class="gd2-prop-ev gd2-noline tnum">—</span>
+        </span>
+        <span class="gd2-prop-barrow">
+          ${renderPBetBar(row.p_bet, fill, { muted: true })}
+          <span class="gd2-prop-pbet tnum">${esc(pBetTextOf(row.p_bet))}</span>
+        </span>
+      </div>`;
   }
-  const grid = rows.map((row) => `
-    <div class="gd-model-cell ${row.wide ? "wide" : ""}">
-      <div class="gd-cell-label">${esc(row.label || "")}</div>
-      <div class="gd-cell-value tnum">${esc(row.value ?? "—")}</div>
-    </div>`).join("");
-  const versionCell = game.model_version
-    ? `<div class="gd-model-cell wide"><div class="gd-cell-label">Model Version</div><div class="gd-cell-value">${esc(game.model_version)}</div></div>`
+  const pick = Boolean(row.is_pick);
+  return `
+    <div class="gd2-prop-row${pick ? " is-pick" : ""}">
+      <span class="gd2-prop-label">${esc(row.bet_label || "—")}${pick ? ` <span class="gd2-pick-pill">Pick</span>` : ""}</span>
+      <span class="gd2-prop-right">
+        <span class="gd2-prop-quote tnum">${esc(row.quote_short || "—")}</span>
+        <span class="gd2-prop-ev ${toneClass(row.ev)} tnum">${esc(sPct(row.ev))}</span>
+      </span>
+      <span class="gd2-prop-barrow">
+        ${renderPBetBar(row.p_bet, fill)}
+        <span class="gd2-prop-pbet tnum">${esc(pBetTextOf(row.p_bet))}</span>
+      </span>
+    </div>`;
+}
+
+function renderTopPlays(props) {
+  const plays = (Array.isArray(props.top_plays) ? props.top_plays : []).slice(0, 2);
+  if (!plays.length) return "";
+  const card = (play) => {
+    const name = lastNameOf(play.player_name) || String(play.player_name || "");
+    const meta = [play.quote_short, Number.isFinite(Number(play.p_bet)) ? `model ${pBetTextOf(play.p_bet)}` : ""]
+      .filter(Boolean).join(" · ");
+    return `
+      <article class="gd2-top-play">
+        <span class="gd2-top-play-copy">
+          <span class="gd2-top-play-eyebrow">Top prop play</span>
+          <span class="gd2-top-play-label">${esc([name, play.bet_label].filter(Boolean).join(" "))}</span>
+          ${meta ? `<span class="gd2-top-play-meta tnum">${esc(meta)}</span>` : ""}
+        </span>
+        <span class="gd2-top-play-ev">
+          <span class="gd2-top-play-ev-value ${toneClass(play.ev)} tnum">${esc(sPct(play.ev))}</span>
+          <span class="gd2-top-play-ev-label">EV / unit</span>
+        </span>
+      </article>`;
+  };
+  return `<div class="gd2-top-plays">${plays.map(card).join("")}</div>`;
+}
+
+function renderRankCard(row, matchupBranding) {
+  const side = rowSideBranding(row, matchupBranding);
+  const fill = sideFill(side, "#44546a");
+  const pick = Boolean(row.is_pick);
+  return `
+    <article class="gd2-rank-card${pick ? " is-pick" : ""}">
+      <span class="gd2-rank-top">
+        <span class="gd2-rank-who">
+          <span class="gd2-rank-dot" style="background:${esc(fill)}"></span>
+          <span class="gd2-rank-player">${esc(row.player_name || "—")}</span>
+          ${pick ? `<span class="gd2-pick-pill">Pick</span>` : ""}
+        </span>
+        <span class="gd2-rank-ev">
+          <span class="gd2-rank-ev-value ${toneClass(row.ev)} tnum">${esc(sPct(row.ev))}</span>
+          <span class="gd2-rank-ev-label">EV / unit</span>
+        </span>
+      </span>
+      <span class="gd2-rank-bet">${esc(row.bet_label || "—")} <span class="gd2-rank-quote tnum">${esc(row.quote_short || "")}</span></span>
+      <span class="gd2-rank-barrow">
+        ${renderPBetBar(row.p_bet, fill)}
+        <span class="gd2-rank-model tnum">model ${esc(pBetTextOf(row.p_bet))}</span>
+      </span>
+    </article>`;
+}
+
+function renderRanked(props, matchupBranding) {
+  const buckets = Array.isArray(props.buckets) ? props.buckets : [];
+  const withRows = buckets.filter((bucket) => Array.isArray(bucket?.rows) && bucket.rows.length);
+  const filterChip = (key, label) =>
+    `<button type="button" class="gd2-filter-chip${gdState.minBucket === key ? " is-active" : ""}" data-gd2-min-bucket="${esc(key)}" aria-pressed="${gdState.minBucket === key ? "true" : "false"}">${esc(label)}</button>`;
+  const bucketGroup = (bucket) => `
+    <div class="gd2-bucket" data-bucket-key="${esc(String(bucket.key || "").toLowerCase())}">
+      <div class="gd2-bucket-head">
+        <span class="gd2-bucket-name">${esc(bucket.label || bucketLabelFor(bucket.key))}</span>
+        <span class="gd2-bucket-meta tnum">${esc(bucket.meta || "")}</span>
+      </div>
+      <div class="gd2-bucket-rows">${bucket.rows.map((row) => renderRankCard(row, matchupBranding)).join("")}</div>
+    </div>`;
+  const noEdge = Number(propsCounts(props).no_edge);
+  const footer = Number.isFinite(noEdge) && noEdge > 0
+    ? `<div class="gd2-no-edge tnum">${esc(String(noEdge))} more quoted markets priced against the model — no edge</div>`
+    : "";
+  const list = withRows.length
+    ? withRows.map(bucketGroup).join("")
+    : `<div class="gd-note">No positive-EV props for this game today.</div>`;
+  return `
+    <div class="gd2-props-heading-row">
+      <div class="gd2-props-heading">Ranked plays</div>
+      <div class="gd2-rank-filter" role="group" aria-label="Minimum bucket filter">
+        ${filterChip("all", "All")}
+        ${filterChip("playable", "Playable+")}
+        ${filterChip("strong", "Strong+")}
+      </div>
+    </div>
+    <div class="gd2-ranked" data-min="${esc(gdState.minBucket)}">${list}</div>
+    ${footer}`;
+}
+
+function renderPitcherCards(props, matchupBranding) {
+  const pitchers = Array.isArray(props.pitchers) ? props.pitchers : [];
+  if (!pitchers.length) {
+    return `<div class="gd-note">No pitcher props posted for this game yet.</div>`;
+  }
+  const card = (pitcher) => {
+    const side = pitcher.is_home ? matchupBranding.home : matchupBranding.away;
+    const fill = sideFill(side, "#44546a");
+    const rows = Array.isArray(pitcher.rows) ? pitcher.rows : [];
+    const rowsWithSide = rows.map((row) => ({ ...row, is_home: Boolean(pitcher.is_home), team_abbr: pitcher.team_abbr }));
+    return `
+      <article class="gd2-pitcher-card" style="border-top-color:${esc(fill)}">
+        <div class="gd2-player-head">
+          ${renderSmallTeamMark(pitcher.team_abbr, side)}
+          <span class="gd2-player-id">
+            <span class="gd2-player-name">${esc(pitcher.name || "Pitcher TBD")}</span>
+            <span class="gd2-player-sub">${esc(pitcher.sub || "")}</span>
+          </span>
+          ${pitcher.has_pick ? `<span class="gd2-pick-pill gd2-head-pick">Pick</span>` : ""}
+        </div>
+        ${rowsWithSide.map((row) => renderPropRow(row, matchupBranding)).join("")}
+      </article>`;
+  };
+  return `<div class="gd2-pitchers">${pitchers.map(card).join("")}</div>`;
+}
+
+function renderBatterColumn(sideData, isHome, game, matchupBranding) {
+  const players = Array.isArray(sideData?.players) ? sideData.players : [];
+  const sideBranding = isHome ? matchupBranding.home : matchupBranding.away;
+  const fill = sideFill(sideBranding, "#44546a");
+  const teamName = isHome ? game.home_team : game.away_team;
+  const city = teamCityLabel(teamName, sideData?.team_abbr);
+  const cards = players.length ? players.map((player) => {
+    const rows = (Array.isArray(player.rows) ? player.rows : [])
+      .map((row) => ({ ...row, is_home: isHome, team_abbr: sideData?.team_abbr }));
+    return `
+      <article class="gd2-batter-card${player.has_pick ? " is-pick" : ""}">
+        <div class="gd2-player-head">
+          <span class="gd2-order-chip tnum" aria-hidden="true">${esc(String(player.batting_order ?? "—"))}</span>
+          <span class="gd2-player-name">${esc(player.name || "—")}</span>
+          ${player.has_pick ? `<span class="gd2-pick-pill gd2-head-pick">Pick</span>` : ""}
+        </div>
+        ${rows.map((row) => renderPropRow(row, matchupBranding)).join("")}
+      </article>`;
+  }).join("") : `<div class="gd-note">No batter props posted for this lineup yet.</div>`;
+  return `
+    <div class="gd2-lineup-col">
+      <div class="gd2-col-head">
+        <span class="gd2-col-dot" style="background:${esc(fill)}" aria-hidden="true"></span>
+        <span>${esc(city)} — ${isHome ? "home" : "away"}</span>
+      </div>
+      ${cards}
+    </div>`;
+}
+
+function renderPropsLock(props) {
+  const counts = propsCounts(props);
+  const picks = Number(counts.picks);
+  const bucketLabel = bucketLabelFor(props.top_bucket);
+  const picksClause = Number.isFinite(picks) && picks > 0 && bucketLabel
+    ? `, with ${numberWord(picks)} ${picks === 1 ? "play" : "plays"} above the ${bucketLabel} line today`
     : "";
   return `
-    <section id="model-breakdown" class="gd-block">
-    ${sectionTitle("Model Breakdown")}
-    ${game.model_details_projected_score ? `<div class="gd-proj-score"><span class="gd-cell-label">Projected Score</span><span class="gd-proj-value tnum">${esc(game.model_details_projected_score)}</span></div>` : ""}
-    ${grid || versionCell ? `<div class="gd-model-grid">${grid}${versionCell}</div>` : ""}
-    </section>`;
+    <article class="gd2-lock">
+      ${lockIcon()}
+      <div class="gd2-lock-title">Player props are Founder access</div>
+      <div class="gd2-lock-copy tnum">${esc(countText(counts.forecasts))} model forecasts for this game — ${esc(countText(counts.quoted))} quoted by the books, ranked by edge and EV${esc(picksClause)}.</div>
+      <span class="gd2-lock-ctas">
+        <a class="gd2-btn gd2-btn-gold" href="${esc(propsUpgradePath(props))}">View Founder access</a>
+        <a class="gd2-btn gd2-btn-ghost" href="/login/" data-auth-guest hidden>Sign in</a>
+      </span>
+    </article>`;
 }
 
-function renderPitching(game) {
-  const card = (which) => {
-    const isHome = which === "home";
-    const team = isHome ? game.home_team_abbr : game.away_team_abbr;
-    const name = isHome ? game.home_pitcher : game.away_pitcher;
-    const lineup = isHome ? game.lineup_status_home : game.lineup_status_away;
-    const lineupClass = ["confirmed", "projected"].includes(String(lineup)) ? String(lineup) : "unknown";
-    return `
-      <div class="gd-pitch-card">
-        <div class="gd-cell-label">${esc(isHome ? "Home" : "Away")}${team ? ` · ${esc(team)}` : ""}</div>
-        <div class="gd-pitch-name">${esc(name || "Pitcher TBD")}</div>
-        ${lineup ? `<span class="lineup-tag ${lineupClass}">${esc(lineup)}</span>` : ""}
-      </div>`;
-  };
+function renderPropsFull(props, game) {
+  const matchupBranding = resolveGameBranding(game);
+  const batters = props.batters && typeof props.batters === "object" ? props.batters : {};
+  const segButton = (key, label) =>
+    `<button type="button" class="gd2-seg-btn${gdState.propsSeg === key ? " is-active" : ""}" data-gd2-seg="${esc(key)}" aria-pressed="${gdState.propsSeg === key ? "true" : "false"}">${esc(label)}</button>`;
+  const sectionClass = (key) => `gd2-props-section${gdState.propsSeg === key ? " is-seg-active" : ""}`;
   return `
-    <section id="pitching-matchup" class="gd-block">
-    ${sectionTitle("Pitching Matchup")}
-    <div class="gd-pitch">${card("away")}${card("home")}</div>
-    <div class="gd-soon-line">ERA, K/9, WHIP, splits, and recent form are coming soon.</div>
-    </section>`;
-}
-
-function comingSoonCard(title, copy) {
-  return `
-    <div class="gd-soon">
-      <div class="gd-soon-head"><span class="gd-soon-title">${esc(title)}</span><span class="gd-soon-tag">Soon</span></div>
-      <div class="gd-soon-copy">${esc(copy)}</div>
-    </div>`;
-}
-
-function renderComingSoon(id, title, cards, extraClass = "") {
-  return `
-    <section id="${esc(id)}" class="gd-soon-section">
-      ${sectionTitle(title)}
-      <div class="gd-soon-grid ${esc(extraClass)}">
-        ${cards.map(([cardTitle, copy]) => comingSoonCard(cardTitle, copy)).join("")}
+    <div class="gd2-seg" role="group" aria-label="Player props views">
+      ${segButton("ranked", "Ranked")}
+      ${segButton("pitchers", "Pitchers")}
+      ${segButton("batters", "Batters")}
+    </div>
+    ${renderTopPlays(props)}
+    <section class="${sectionClass("ranked")}" data-gd2-props-section="ranked">
+      ${renderRanked(props, matchupBranding)}
+    </section>
+    <section class="${sectionClass("pitchers")}" data-gd2-props-section="pitchers">
+      <div class="gd2-props-heading-row">
+        <div class="gd2-props-heading">The pitcher duel</div>
+      </div>
+      ${renderPitcherCards(props, matchupBranding)}
+    </section>
+    <section class="${sectionClass("batters")}" data-gd2-props-section="batters">
+      <div class="gd2-props-heading-row">
+        <div class="gd2-props-heading">The lineups — batter props</div>
+        <div class="gd2-props-legend">Bar = model p the bet cashes · notch = 50/50 · gold = pick</div>
+      </div>
+      <div class="gd2-lineups">
+        ${renderBatterColumn(batters.away, false, game, matchupBranding)}
+        ${renderBatterColumn(batters.home, true, game, matchupBranding)}
       </div>
     </section>`;
 }
 
-function renderSectionNav() {
-  const chips = [
-    ["Wise Choice", "#wise-choice"],
-    ["Markets", "#full-markets"],
-    ["Player Props", "#player-props"],
-    ["Pitching", "#pitching-matchup"],
-    ["Model", "#model-breakdown"],
-    ["Weather", "#weather-park"],
-    ["Trends", "#line-trends"],
-  ];
-  return `<nav class="gd-section-nav" aria-label="Game detail sections">${chips.map(([label, href]) => `<a class="gd-section-chip" href="${esc(href)}">${esc(label)}</a>`).join("")}</nav>`;
+function renderPropsPanel(game) {
+  const props = gdState.props;
+  if (gdState.propsError || !props) {
+    return `<div class="gd-note gd2-props-note">Player props couldn't load for this game right now. The rest of the page is unaffected — try again in a moment.</div>`;
+  }
+  if (propsAccessLevel(props) === "summary") {
+    return renderPropsLock(props);
+  }
+  if (isPropsEmpty(props)) {
+    return `<div class="gd-note gd2-props-note">No player props have been published for this game yet. Props publish around 7:25 AM CT on game days.</div>`;
+  }
+  return renderPropsFull(props, game);
 }
 
-function renderProDetail(payload, game) {
+/* ---------- page assembly ---------- */
+
+function legalLine() {
+  return `<p class="gd2-legal">For informational and entertainment purposes only — not gambling, financial, legal, or investment advice. Must be 21+ and legally permitted to use BoardWise. If gambling may be a problem, call or text 1-800-MY-RESET, or in Iowa call 1-800-BETS-OFF.</p>`;
+}
+
+function defaultTab() {
+  const props = gdState.props;
+  if (props && !gdState.propsError) {
+    const quoted = Number(propsCounts(props).quoted);
+    if (Number.isFinite(quoted) && quoted > 0) return "props";
+  }
+  return "markets";
+}
+
+function renderPanels(payload, game) {
+  const preview = isPreviewPayload(payload);
+  const upgradeHref = safeUpgradePath(payload);
+  const panel = (id, content) =>
+    `<section class="gd2-panel" data-gd2-panel="${esc(id)}"${gdState.activeTab === id ? "" : " hidden"}>${content}</section>`;
+  return [
+    panel("markets", preview
+      ? renderLockedSection("Full markets are Founder access", "Every supported market side with the model's call, edge, and expected value.", upgradeHref)
+      : renderMarketsPanel(payload, game)),
+    panel("props", renderPropsPanel(game)),
+    panel("model", preview
+      ? renderLockedSection("The model breakdown is Founder access", "Projected score, win probabilities, projected total and margin, and model versions.", upgradeHref)
+      : renderModelPanel(payload, game)),
+  ].join("");
+}
+
+function renderDetailInner(payload, game) {
   return `
-    <div class="gd-detail-inner">
+    <div class="gd-detail-inner gd2-detail">
       ${renderHero(game)}
-      ${renderSectionNav()}
-      <div class="gd-sections">
-        ${renderWiseBanner(game, payload)}
-        ${renderMarkets(game)}
-        ${renderComingSoon("player-props", "Player Props", [["Player props", "Coming soon. Board payloads do not provide player props yet."]])}
-        ${renderPitching(game)}
-        ${renderModelBreakdown(game)}
-        ${renderComingSoon("weather-park", "Weather & Park", [["Weather & park", "Coming soon. Weather and park-factor payloads are not available yet."]])}
-        ${renderComingSoon("line-trends", "Line Movement & Trends", [["Line Movement", "Coming soon."], ["Head-to-Head & Recent", "Coming soon."]], "two")}
-      </div>
-    </div>`;
-}
-
-function renderUpsell(payload) {
-  const href = safeUpgradePath(payload);
-  return `
-    <section class="gd-upsell">
-      <div class="gd-upsell-lock">${lockIcon(22)}</div>
-      <div class="gd-upsell-copy">
-        <div class="gd-upsell-title">Unlock the full game with BoardWise Founder</div>
-        <div class="gd-upsell-sub">Full market context, the Wise Choice™ pick, model breakdown, pitching and more.</div>
-      </div>
-      <a class="button primary" href="${esc(href)}">Become a Founder</a>
-    </section>`;
-}
-
-function lockedRow(title, copy) {
-  return `
-    <div class="gd-locked-row">
-      <div class="gd-locked-icon">${lockIcon(14)}</div>
-      <div class="gd-locked-copy"><div class="gd-locked-title">${esc(title)}</div><div class="gd-locked-sub">${esc(copy)}</div></div>
-      <span class="gd-locked-tag">Founder</span>
-    </div>`;
-}
-
-function renderFreeDetail(payload, game) {
-  return `
-    <div class="gd-detail-inner">
-      ${renderHero(game)}
-      ${renderUpsell(payload)}
-      <div class="gd-sections">
-        <section class="gd-block">
-          ${sectionTitle("Locked with Founder")}
-          <div class="gd-locked-list">
-            ${lockedRow("Full Markets", "Every supported market side and model call.")}
-            ${lockedRow("Wise Choice™ Pick", "The official playable pick context.")}
-            ${lockedRow("Model Breakdown", "Projected score, win probability and model cells.")}
-            ${lockedRow("Pitching Matchup", "Starters, lineup status and future pitching metrics.")}
-            ${lockedRow("Player Props / Weather / Trends", "Additional Founder sections as payloads become available.")}
-          </div>
-        </section>
-        ${renderComingSoon("player-props", "Player Props", [["Player props", "Coming soon."]])}
-        ${renderComingSoon("weather-park", "Weather & Park", [["Weather & park", "Coming soon."]])}
-        ${renderComingSoon("line-trends", "Line Movement & Trends", [["Line Movement", "Coming soon."], ["Head-to-Head & Recent", "Coming soon."]], "two")}
-      </div>
+      ${isPreviewPayload(payload) ? "" : renderWiseBanner(game, payload)}
+      ${renderTabBar()}
+      ${renderPanels(payload, game)}
+      ${legalLine()}
     </div>`;
 }
 
@@ -647,11 +1083,12 @@ function renderNav(payload, game) {
   const planBadge = isPreviewPayload(payload)
     ? `<span class="gd-plan free">Free</span>`
     : `<span class="gd-plan founder">Founder</span>`;
-  const official = game && hasOfficialPlay(game)
-    ? `<span class="official-plays-pill">Official Plays</span>`
-    : "";
+  const statusLabel = game ? gameStatusLabel() : "";
+  const statusPill = statusLabel ? `<span class="gd2-status-pill">${esc(statusLabel)}</span>` : "";
   const label = game ? gameLabel(game) : "Game Detail";
-  const when = game ? [game.commence_time, game.venue].filter(Boolean).join(" · ") : "";
+  const dateLabel = formatBoardDate((payload && payload.target_date) || readTargetDate());
+  const dateTime = [dateLabel, game ? game.commence_time : ""].filter(Boolean).join(" | ");
+  const when = game ? [dateTime, game.venue].filter(Boolean).join(" · ") : "";
   gdEls.back.innerHTML = `
     <a class="gd-back-link" href="${esc(boardHref())}">← Today's Board</a>
     <div class="gd-title-wrap">
@@ -659,7 +1096,7 @@ function renderNav(payload, game) {
       <h1 id="gd-heading">${esc(label)}</h1>
       ${when ? `<div class="gd-top-meta tnum">${esc(when)}</div>` : ""}
     </div>
-    <span class="gd-nav-right">${planBadge}${official}</span>`;
+    <span class="gd-nav-right">${statusPill}${planBadge}</span>`;
 }
 
 function renderTitle(game) {
@@ -668,6 +1105,73 @@ function renderTitle(game) {
   const heading = document.getElementById("gd-heading");
   if (heading) heading.textContent = label;
 }
+
+/* ---------- interaction ---------- */
+
+function setActiveTab(tab) {
+  if (!tab || !gdEls.detail) return;
+  gdState.activeTab = tab;
+  gdEls.detail.querySelectorAll("[data-gd2-tab]").forEach((button) => {
+    const active = button.getAttribute("data-gd2-tab") === tab;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  gdEls.detail.querySelectorAll("[data-gd2-panel]").forEach((element) => {
+    const panel = /** @type {HTMLElement} */ (element);
+    panel.hidden = panel.getAttribute("data-gd2-panel") !== tab;
+  });
+}
+
+function setPropsSeg(seg) {
+  if (!seg || !gdEls.detail) return;
+  gdState.propsSeg = seg;
+  gdEls.detail.querySelectorAll("[data-gd2-seg]").forEach((button) => {
+    const active = button.getAttribute("data-gd2-seg") === seg;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  gdEls.detail.querySelectorAll("[data-gd2-props-section]").forEach((section) => {
+    section.classList.toggle("is-seg-active", section.getAttribute("data-gd2-props-section") === seg);
+  });
+}
+
+function setMinBucket(key) {
+  if (!key || !gdEls.detail) return;
+  gdState.minBucket = key;
+  gdEls.detail.querySelectorAll("[data-gd2-min-bucket]").forEach((button) => {
+    const active = button.getAttribute("data-gd2-min-bucket") === key;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  gdEls.detail.querySelectorAll(".gd2-ranked").forEach((element) => {
+    element.setAttribute("data-min", key);
+  });
+}
+
+function bindDetailEvents(root) {
+  root.querySelectorAll("[data-gd2-tab]").forEach((button) => {
+    button.addEventListener("click", () => setActiveTab(button.getAttribute("data-gd2-tab")));
+  });
+  root.querySelectorAll("[data-gd2-goto-props]").forEach((button) => {
+    button.addEventListener("click", () => setActiveTab("props"));
+  });
+  root.querySelectorAll("[data-gd2-seg]").forEach((button) => {
+    button.addEventListener("click", () => setPropsSeg(button.getAttribute("data-gd2-seg")));
+  });
+  root.querySelectorAll("[data-gd2-min-bucket]").forEach((button) => {
+    button.addEventListener("click", () => setMinBucket(button.getAttribute("data-gd2-min-bucket")));
+  });
+}
+
+function applyGates(root) {
+  // Reveals guest-only CTAs (e.g. the lock panel's Sign in link) using the
+  // shared gates helper; the auth state is cached by auth-state.js.
+  if (window.BoardWiseGates && typeof window.BoardWiseGates.applyFeatureGates === "function") {
+    Promise.resolve(window.BoardWiseGates.applyFeatureGates(root)).catch(() => {});
+  }
+}
+
+/* ---------- states / errors ---------- */
 
 function showError(message, options = {}) {
   setHidden(gdEls.loading, true);
@@ -708,15 +1212,36 @@ function renderDetail() {
   const payload = gdState.payload;
   const game = gdState.game;
   if (!gdEls.detail) return;
+  gdState.activeTab = defaultTab();
   renderNav(payload, game);
   renderTitle(game);
-  gdEls.detail.innerHTML = isPreviewPayload(payload)
-    ? renderFreeDetail(payload, game)
-    : renderProDetail(payload, game);
+  gdEls.detail.innerHTML = renderDetailInner(payload, game);
+  bindDetailEvents(gdEls.detail);
   bindRenderedLogos(gdEls.detail);
+  applyGates(gdEls.detail);
   setHidden(gdEls.loading, true);
   setHidden(gdEls.error, true);
   setHidden(gdEls.detail, false);
+}
+
+/* ---------- data loading ---------- */
+
+function fetchProps(date) {
+  if (!gdState.gamePk || !window.BoardWiseApi || typeof window.BoardWiseApi.getMlbGameProps !== "function") {
+    return Promise.resolve(null);
+  }
+  return window.BoardWiseApi.getMlbGameProps(gdState.gamePk, { date: date || undefined });
+}
+
+async function settleProps(propsPromise) {
+  try {
+    gdState.props = await propsPromise;
+    gdState.propsError = !gdState.props;
+  } catch (error) {
+    gdState.props = null;
+    gdState.propsError = true;
+    console.warn("BoardWise: player props fetch failed", error);
+  }
 }
 
 async function loadDetail(options = {}) {
@@ -725,6 +1250,9 @@ async function loadDetail(options = {}) {
   setHidden(gdEls.detail, true);
   const requestedModel = gdState.requestedModel;
   const date = readTargetDate();
+  // Both fetches run in parallel; the props fetch is family-agnostic so the
+  // board's model-fallback retry never re-issues it.
+  const propsPromise = options.propsPromise || fetchProps(date);
   try {
     const payload = await window.BoardWiseApi.getMlbBoard(date, {
       model: requestedModel || undefined,
@@ -734,28 +1262,40 @@ async function loadDetail(options = {}) {
       ? payload.model_metadata
       : {};
     gdState.selectedModel = metadata.selected_model_family || requestedModel || metadata.default_model_family || "";
+    // Stale bookmark normalization: whenever the URL carries a model param
+    // that differs from the family the API resolved (retired keys, eagle_eye,
+    // aliases), rewrite it in place — never 400 the user.
+    if (gdState.selectedModel && readParam("model") && readParam("model") !== gdState.selectedModel) {
+      writeModelToUrl(gdState.selectedModel);
+    }
     const game = findGame(payload, gdState.gamePk);
     if (!game) {
+      await settleProps(propsPromise);
       renderNav(payload, null);
       renderGameNotFound(payload);
       return;
     }
     gdState.game = game;
+    await settleProps(propsPromise);
     renderDetail();
   } catch (error) {
     if (requestedModel && !options.isModelFallback && Number(error?.status) === 400) {
       gdState.requestedModel = "";
-      await loadDetail({ isModelFallback: true });
+      await loadDetail({ isModelFallback: true, propsPromise });
       return;
     }
     console.error(error);
+    await settleProps(propsPromise);
     showAccessError(error);
   }
 }
 
 function init() {
   gdState.gamePk = readGamePk();
-  gdState.requestedModel = readModel();
+  const model = readModel();
+  // eagle* families are props engines, never board families — drop them up
+  // front so the board fetch resolves the default family in one round trip.
+  gdState.requestedModel = /^eagle/.test(model) ? "" : model;
   if (gdEls.back) {
     gdEls.back.innerHTML = `
       <a class="gd-back-link" href="${esc(boardHref())}">← Today's Board</a>
@@ -777,6 +1317,13 @@ if (["", "localhost", "127.0.0.1"].includes(window.location.hostname)) {
     resolveGameBranding,
     findGame,
     accessLevel,
+    sPct,
+    pBetPctOf,
+    pBetTextOf,
+    numberWord,
+    bucketLabelFor,
+    defaultTab,
+    gameStatusLabel,
   });
 }
 

@@ -1384,6 +1384,36 @@ describe("mlb-board model selector", () => {
     expect(href).toContain("model=classic_mlb");
   });
 
+  it("omits the model param from game detail links when the family is not advertised", async () => {
+    window.history.replaceState({}, "", "/mlb/?date=2026-05-27&model=eagle_eye");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("eagle_eye", {
+        target_date: "2026-05-27",
+        game_count: 1,
+        available_model_families: [
+          { key: "classic_mlb", label: "Classic MLB", available: true },
+        ],
+        games: [
+          {
+            game_pk: 123456,
+            game_label: "Away at Home",
+            best_card_options: {},
+            recommendations: [],
+            market_dropdowns: [],
+          },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tot-detail-link")).not.toBeNull());
+
+    const href = document.querySelector(".tot-detail-link")?.getAttribute("href") || "";
+    expect(href).toContain("/mlb/game/");
+    expect(href).toContain("game_pk=123456");
+    expect(href).not.toContain("model=");
+  });
+
   it("renders known team logo markup, resolved team colors, and accessible probability bars", async () => {
     window.history.replaceState({}, "", "/mlb/");
     const game = {

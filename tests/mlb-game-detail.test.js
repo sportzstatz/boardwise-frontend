@@ -5,13 +5,37 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const FULL_PAYLOAD = JSON.parse(
   readFileSync("tests/fixtures/mlb-game-detail-payload.json", "utf8")
 );
+const PROPS_PAYLOAD = JSON.parse(
+  readFileSync("tests/fixtures/mlb-game-props-payload.json", "utf8")
+);
+const PROPS_SUMMARY_PAYLOAD = JSON.parse(
+  readFileSync("tests/fixtures/mlb-game-props-summary-payload.json", "utf8")
+);
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function emptyPropsPayload() {
+  return {
+    access: "full",
+    game: { game_pk: 777001, date: "2026-06-18", away_abbr: "TOR", home_abbr: "BOS" },
+    engine: { family: "eagle_eye", display_name: "Eagle Eye", book: "draftkings" },
+    counts: { forecasts: 0, quoted: 0, picks: 0, no_edge: 0 },
+    top_plays: [],
+    buckets: [],
+    pitchers: [],
+    batters: { away: { team_abbr: "TOR", players: [] }, home: { team_abbr: "BOS", players: [] } },
+    state: "no_props_published",
+  };
+}
+
 function isHidden(selector) {
   return (/** @type {HTMLElement | null} */ (document.querySelector(selector)))?.hidden;
+}
+
+function panel(id) {
+  return /** @type {HTMLElement | null} */ (document.querySelector(`[data-gd2-panel="${id}"]`));
 }
 
 function installDetailDom() {
@@ -28,10 +52,13 @@ function installDetailDom() {
   `;
 }
 
-async function loadDetailScript(getMlbBoard) {
+async function loadDetailScript(getMlbBoard, getMlbGameProps) {
   vi.resetModules();
   installDetailDom();
-  window.BoardWiseApi = /** @type {any} */ ({ getMlbBoard });
+  window.BoardWiseApi = /** @type {any} */ ({
+    getMlbBoard,
+    getMlbGameProps: getMlbGameProps || vi.fn().mockResolvedValue(clone(PROPS_PAYLOAD)),
+  });
   await import("../assets/js/wise-choice.js");
   await import("../assets/js/mlb-team-branding.js");
   await import("../assets/js/mlb-game-detail.js");
@@ -88,15 +115,18 @@ afterEach(() => {
   window.history.replaceState({}, "", "/");
 });
 
-describe("mlb game detail", () => {
-  it("renders the full Founder detail for the requested game", async () => {
+describe("mlb game detail v2", () => {
+  it("renders the full Founder detail with tabs, defaulting to Player Props", async () => {
     window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
     const getMlbBoard = vi.fn().mockResolvedValue(clone(FULL_PAYLOAD));
+    const getMlbGameProps = vi.fn().mockResolvedValue(clone(PROPS_PAYLOAD));
 
-    await loadDetailScript(getMlbBoard);
+    await loadDetailScript(getMlbBoard, getMlbGameProps);
     await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
 
     expect(getMlbBoard).toHaveBeenCalledWith("", { model: undefined });
+    expect(getMlbGameProps).toHaveBeenCalledWith("777001", { date: undefined });
+
     const detail = document.querySelector("#gd-detail");
     const text = detail?.textContent || "";
     // Hero: both win probabilities, both pitchers
@@ -104,27 +134,37 @@ describe("mlb game detail", () => {
     expect(text).toContain("54.1");
     expect(text).toContain("Trey Yesavage");
     expect(text).toContain("Sonny Gray");
-    // Wise Choice banner
-    expect(detail?.querySelector(".gd-wise")?.textContent).toContain("Red Sox +1.5");
-    expect(detail?.querySelector(".gd-wise")?.textContent).toContain("73.4%");
-    expect(detail?.querySelector(".gd-wise")?.textContent).toContain("+9.1%");
-    // Tier is derived from the option's Wise Choice status, not hard-coded.
-    expect(detail?.querySelector(".gd-wise")?.textContent).toContain("Official · Strong");
-    expect(detail?.querySelector(".gd-wise")?.textContent).not.toContain("Official · Playable");
-    // Full markets with both sides + official badge
-    expect(text).toContain("Run Line");
-    expect(text).toContain("Money Line");
-    expect(text).toContain("Total Runs");
-    expect(detail?.querySelector(".gd-mkt-option.official")).not.toBeNull();
-    // Model breakdown
-    expect(text).toContain("Model Breakdown");
-    expect(text).toContain("Red Sox 4.0 · Blue Jays 4.2");
-    expect(text).toContain("Calibrated WP");
-    // Pitching matchup section
-    expect(text).toContain("Pitching Matchup");
-    // Coming soon honesty
-    expect(text).toContain("Player Props");
-    expect(text).toContain("Soon");
+    // Wise Choice banner with tier + top-prop teaser
+    const wise = detail?.querySelector(".gd-wise");
+    expect(wise?.textContent).toContain("Red Sox +1.5");
+    expect(wise?.textContent).toContain("Official · Strong");
+    const teaser = wise?.querySelector("[data-gd2-goto-props]");
+    expect(teaser?.textContent).toContain("Top prop: Gray Strikeouts U 9.5 · +47.2% EV");
+    // Tab bar: exact tabs, two disabled Soon tabs
+    const tabLabels = [...(detail?.querySelectorAll(".gd2-tab") || [])].map((el) => el.textContent?.trim());
+    expect(tabLabels?.[0]).toBe("Markets");
+    expect(tabLabels?.[1]).toBe("Player Props");
+    expect(tabLabels?.[2]).toBe("Model");
+    expect(tabLabels?.[3]).toContain("Weather & Park");
+    expect(tabLabels?.[4]).toContain("Trends");
+    const soonTabs = detail?.querySelectorAll(".gd2-tab.is-soon[disabled]");
+    expect(soonTabs?.length).toBe(2);
+    // Default tab is Player Props because counts.quoted > 0
+    expect(panel("props")?.hidden).toBe(false);
+    expect(panel("markets")?.hidden).toBe(true);
+    expect(panel("model")?.hidden).toBe(true);
+    // Props content: buckets, pitcher duel, lineups, no-edge footer
+    const props = panel("props");
+    expect(props?.textContent).toContain("Prime");
+    expect(props?.textContent).toContain("EV ≥ +30% per unit");
+    expect(props?.textContent).toContain("The pitcher duel");
+    expect(props?.textContent).toContain("Blue Jays · probable starter");
+    expect(props?.textContent).toContain("The lineups — batter props");
+    expect(props?.textContent).toContain("Toronto — away");
+    expect(props?.textContent).toContain("Boston — home");
+    expect(props?.textContent).toContain("4 more quoted markets priced against the model — no edge");
+    // U+2212 minus preserved from the API's quote_short
+    expect(props?.textContent).toContain("DK −128");
     // Founder plan badge + title
     expect(document.querySelector("#gd-back .gd-plan.founder")).not.toBeNull();
     expect(document.title).toContain("Blue Jays at Red Sox");
@@ -132,6 +172,132 @@ describe("mlb game detail", () => {
     // no raw leakage
     expect(text).not.toContain("undefined");
     expect(text).not.toContain("[object Object]");
+  });
+
+  it("switches tabs: Markets and Model render board-driven content", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    await loadDetailScript(vi.fn().mockResolvedValue(clone(FULL_PAYLOAD)));
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    const marketsTab = /** @type {HTMLElement} */ (document.querySelector('[data-gd2-tab="markets"]'));
+    marketsTab.click();
+    expect(panel("markets")?.hidden).toBe(false);
+    expect(panel("props")?.hidden).toBe(true);
+    const markets = panel("markets");
+    // Group ordering: Money Line first, then Run Line, then Total
+    const groupTitles = [...(markets?.querySelectorAll(".gd2-mkt-group-title") || [])].map((el) => el.textContent);
+    expect(groupTitles[0]).toBe("Money Line");
+    expect(groupTitles[1]).toBe("Run Line");
+    expect(groupTitles[2]).toBe("Total Runs");
+    // Wise Choice™ tag on the game's wise choice option, Pass elsewhere
+    const wiseCard = markets?.querySelector(".gd2-mkt-option.is-wise");
+    expect(wiseCard?.textContent).toContain("Red Sox +1.5");
+    expect(wiseCard?.querySelector(".gd2-mkt-tag.is-wise")?.textContent).toBe("Wise Choice™");
+    const passTags = [...(markets?.querySelectorAll(".gd2-mkt-tag:not(.is-wise)") || [])];
+    expect(passTags.length).toBeGreaterThan(0);
+    expect(passTags.every((el) => el.textContent === "Pass")).toBe(true);
+    expect(markets?.textContent).toContain("Odds");
+    expect(markets?.textContent).toContain("-205");
+
+    const modelTab = /** @type {HTMLElement} */ (document.querySelector('[data-gd2-tab="model"]'));
+    modelTab.click();
+    expect(panel("model")?.hidden).toBe(false);
+    const model = panel("model");
+    expect(model?.textContent).toContain("Projected score");
+    expect(model?.textContent).toContain("Red Sox 4.0 · Blue Jays 4.2");
+    expect(model?.querySelectorAll(".gd2-stat-card").length).toBe(6);
+    expect(model?.textContent).toContain("Away win prob");
+    expect(model?.textContent).toContain("Board state");
+    expect(model?.textContent).toContain("20k sim paths");
+    // Model version card: game family version + props engine version
+    expect(model?.textContent).toContain("ensemble_probable_snapshot_v1");
+    expect(model?.textContent).toContain("eagle_eye_props_engine_v0_20260618");
+    // Disclaimer with interpolated calibration
+    expect(model?.textContent).toContain("rolling calibration is currently identity");
+  });
+
+  it("the wise banner teaser jumps to the Player Props tab", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    await loadDetailScript(vi.fn().mockResolvedValue(clone(FULL_PAYLOAD)));
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    /** @type {HTMLElement} */ (document.querySelector('[data-gd2-tab="markets"]')).click();
+    expect(panel("props")?.hidden).toBe(true);
+    /** @type {HTMLElement} */ (document.querySelector("[data-gd2-goto-props]")).click();
+    expect(panel("props")?.hidden).toBe(false);
+    expect(document.querySelector('[data-gd2-tab="props"]')?.classList.contains("is-active")).toBe(true);
+  });
+
+  it("colors prop bars with resolved team fills and mutes model-only HR rows", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    const payload = clone(FULL_PAYLOAD);
+    await loadDetailScript(vi.fn().mockResolvedValue(payload));
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    const expected = window.BoardWiseMlbBranding?.resolveMatchupBranding(payload.games[0]);
+    const pitcherCards = document.querySelectorAll(".gd2-pitcher-card");
+    expect(pitcherCards.length).toBe(2);
+    // away pitcher card first, top border + bars in away fill
+    const awayCard = /** @type {HTMLElement} */ (pitcherCards[0]);
+    expect(awayCard.textContent).toContain("Trey Yesavage");
+    expect(awayCard.style.borderTopColor.length).toBeGreaterThan(0);
+    const awayBar = /** @type {HTMLElement} */ (awayCard.querySelector(".gd2-bar-fill"));
+    expect(awayBar.getAttribute("style")?.toUpperCase()).toContain(String(expected?.away.fill).toUpperCase());
+    const homeCard = /** @type {HTMLElement} */ (pitcherCards[1]);
+    const homeBar = /** @type {HTMLElement} */ (homeCard.querySelector(".gd2-bar-fill"));
+    expect(homeBar.getAttribute("style")?.toUpperCase()).toContain(String(expected?.home.fill).toUpperCase());
+    // pitcher marks carry the shared logo pattern
+    const mark = awayCard.querySelector(".gd2-team-mark[data-team-logo-mark]");
+    expect(mark?.querySelector("img[data-team-logo]")?.getAttribute("src")).toBe("/assets/img/mlb/team-logos/tor.svg");
+    expect(mark?.querySelector("img[data-team-logo]")?.getAttribute("alt")).toBe("");
+    // model-only HR row: muted color-mix fill with a solid fallback, No line columns
+    const hrRow = document.querySelector(".gd2-hr-row");
+    expect(hrRow?.textContent).toContain("1+ home run");
+    expect(hrRow?.textContent).toContain("No line");
+    const hrFill = /** @type {HTMLElement} */ (hrRow?.querySelector(".gd2-bar-fill"));
+    expect(hrFill.getAttribute("style")).toContain("color-mix");
+    // bars are accessible
+    const bar = document.querySelector(".gd2-bar");
+    expect(bar?.getAttribute("role")).toBe("img");
+    expect(bar?.getAttribute("aria-label")).toMatch(/^Model probability the bet cashes: \d/);
+  });
+
+  it("a batter with zero quoted rows renders only the model-only HR row", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    await loadDetailScript(vi.fn().mockResolvedValue(clone(FULL_PAYLOAD)));
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    const cards = [...document.querySelectorAll(".gd2-batter-card")];
+    const clement = cards.find((card) => card.textContent?.includes("Ernie Clement"));
+    expect(clement).toBeTruthy();
+    expect(clement?.querySelectorAll(".gd2-prop-row").length).toBe(1);
+    expect(clement?.querySelector(".gd2-prop-row")?.classList.contains("gd2-hr-row")).toBe(true);
+  });
+
+  it("filters ranked buckets with the minBucket control", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    await loadDetailScript(vi.fn().mockResolvedValue(clone(FULL_PAYLOAD)));
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    const ranked = /** @type {HTMLElement} */ (document.querySelector(".gd2-ranked"));
+    expect(ranked.getAttribute("data-min")).toBe("all");
+    expect(ranked.querySelectorAll(".gd2-bucket").length).toBe(4);
+    /** @type {HTMLElement} */ (document.querySelector('[data-gd2-min-bucket="strong"]')).click();
+    expect(ranked.getAttribute("data-min")).toBe("strong");
+    expect(document.querySelector('[data-gd2-min-bucket="strong"]')?.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("renders the mobile segmented control and switches props sections", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    await loadDetailScript(vi.fn().mockResolvedValue(clone(FULL_PAYLOAD)));
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    const segButtons = document.querySelectorAll("[data-gd2-seg]");
+    expect([...segButtons].map((el) => el.textContent)).toEqual(["Ranked", "Pitchers", "Batters"]);
+    expect(document.querySelector('[data-gd2-props-section="ranked"]')?.classList.contains("is-seg-active")).toBe(true);
+    /** @type {HTMLElement} */ (document.querySelector('[data-gd2-seg="batters"]')).click();
+    expect(document.querySelector('[data-gd2-props-section="batters"]')?.classList.contains("is-seg-active")).toBe(true);
+    expect(document.querySelector('[data-gd2-props-section="ranked"]')?.classList.contains("is-seg-active")).toBe(false);
   });
 
   it("renders shared team branding in the detail hero", async () => {
@@ -151,11 +317,7 @@ describe("mlb game detail", () => {
 
     expect(awayLogo.getAttribute("src")).toBe("/assets/img/mlb/team-logos/tor.svg");
     expect(awayLogo.getAttribute("alt")).toBe("");
-    expect(awayLogo.getAttribute("width")).toBe("184");
-    expect(awayLogo.getAttribute("height")).toBe("132");
     expect(awayLogo.closest(".tot-team-logo-mark")).not.toBeNull();
-    expect(awayLogo.closest(".tot-team-mark")).toBeNull();
-    expect(document.querySelector(".tot-team-mark.has-logo")).toBeNull();
     expect(awaySide.style.getPropertyValue("--team-fill")).toBe(expected?.away.fill);
     expect(homeSide.style.getPropertyValue("--team-fill")).toBe(expected?.home.fill);
     expect(bar.style.getPropertyValue("--away-team-fill")).toBe(expected?.away.fill);
@@ -163,41 +325,9 @@ describe("mlb game detail", () => {
     expect(bar.getAttribute("aria-label")).toBe("Toronto Blue Jays 45.9%, Boston Red Sox 54.1%");
   });
 
-  it("renders the gated Free detail without premium market data", async () => {
+  it("keeps logo fallback working on the detail hero", async () => {
     window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
-    const getMlbBoard = vi.fn().mockResolvedValue(previewPayload([clone(PREVIEW_GAME)]));
-
-    await loadDetailScript(getMlbBoard);
-    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
-
-    const detail = document.querySelector("#gd-detail");
-    const text = detail?.textContent || "";
-    // Hero still renders (teams, derived probs from favorite)
-    expect(text).toContain("Trey Yesavage");
-    expect(text).toContain("54.1");
-    // Upsell + locked rows, Free badge
-    expect(detail?.querySelector(".gd-upsell")).not.toBeNull();
-    expect(text).toContain("Become a Founder");
-    expect(text).not.toContain("Go Pro");
-    expect(text).toContain("Full Markets");
-    expect(text).toContain("Wise Choice");
-    expect(document.querySelector("#gd-back .gd-plan.free")).not.toBeNull();
-    // Must NOT fetch-and-hide premium data: no real odds/edge rendered
-    expect(detail?.querySelector(".gd-wise")).toBeNull();
-    expect(detail?.querySelector(".gd-mkt-option")).toBeNull();
-    expect(detail?.querySelector(".gd-section-nav")).toBeNull();
-    expect(text).not.toContain("Odds");
-    expect(text).not.toContain("Edge");
-    expect(text).not.toContain("EV");
-    expect(text).not.toContain("-205");
-    expect(text).not.toContain("+9.1%");
-  });
-
-  it("keeps logo fallback from revealing premium data in preview detail", async () => {
-    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
-    const getMlbBoard = vi.fn().mockResolvedValue(previewPayload([clone(PREVIEW_GAME)]));
-
-    await loadDetailScript(getMlbBoard);
+    await loadDetailScript(vi.fn().mockResolvedValue(clone(FULL_PAYLOAD)));
     await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
 
     const img = /** @type {HTMLImageElement} */ (document.querySelector(".gd-hero .tot-side.away [data-team-logo]"));
@@ -205,20 +335,98 @@ describe("mlb game detail", () => {
     const mark = /** @type {HTMLElement} */ (img.closest(".tot-team-logo-mark"));
     expect(mark.classList.contains("logo-failed")).toBe(true);
     expect(mark.querySelector(".tot-team-fallback")?.textContent).toBe("TOR");
+  });
+
+  it("renders the free/guest lock panel from summary counts without leaking premium data", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    const getMlbBoard = vi.fn().mockResolvedValue(previewPayload([clone(PREVIEW_GAME)]));
+    const getMlbGameProps = vi.fn().mockResolvedValue(clone(PROPS_SUMMARY_PAYLOAD));
+
+    await loadDetailScript(getMlbBoard, getMlbGameProps);
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
     const detail = document.querySelector("#gd-detail");
     const text = detail?.textContent || "";
+    // Hero still renders (teams, derived probs from favorite)
+    expect(text).toContain("Trey Yesavage");
+    expect(text).toContain("54.1");
+    // Default tab is Player Props (summary counts.quoted > 0) with the lock panel
+    expect(panel("props")?.hidden).toBe(false);
+    const lock = panel("props")?.querySelector(".gd2-lock");
+    expect(lock?.textContent).toContain("Player props are Founder access");
+    expect(lock?.textContent).toContain(
+      "100 model forecasts for this game — 15 quoted by the books, ranked by edge and EV, with two plays above the Prime line today."
+    );
+    const cta = lock?.querySelector(".gd2-btn-gold");
+    expect(cta?.getAttribute("href")).toBe("/pricing/");
+    // Sign-in CTA exists for guests only, wired through the gates pattern
+    const signIn = lock?.querySelector("[data-auth-guest]");
+    expect(signIn?.getAttribute("href")).toBe("/login/");
+    // Free plan badge, no wise banner, no premium market numbers
+    expect(document.querySelector("#gd-back .gd-plan.free")).not.toBeNull();
     expect(detail?.querySelector(".gd-wise")).toBeNull();
-    expect(detail?.querySelector(".gd-mkt-option")).toBeNull();
-    expect(text).not.toContain("Odds");
-    expect(text).not.toContain("Edge");
-    expect(text).not.toContain("EV");
+    expect(detail?.querySelector(".gd2-mkt-option")).toBeNull();
+    expect(text).not.toContain("-205");
+    expect(text).not.toContain("+9.1%");
+    // Markets/Model tabs show locked sections
+    /** @type {HTMLElement} */ (document.querySelector('[data-gd2-tab="markets"]')).click();
+    expect(panel("markets")?.textContent).toContain("Founder access");
+  });
+
+  it("keeps the page alive with an inline Props tab error when the props fetch fails", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const propsError = Object.assign(new Error("500"), { status: 500 });
+    const getMlbGameProps = vi.fn().mockRejectedValue(propsError);
+
+    await loadDetailScript(vi.fn().mockResolvedValue(clone(FULL_PAYLOAD)), getMlbGameProps);
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    // Board content renders; default tab falls back to Markets
+    expect(panel("markets")?.hidden).toBe(false);
+    expect(document.querySelector(".gd-wise")).not.toBeNull();
+    // Props tab carries a quiet inline error, not a blank page
+    /** @type {HTMLElement} */ (document.querySelector('[data-gd2-tab="props"]')).click();
+    expect(panel("props")?.textContent).toContain("Player props couldn't load");
+    expect(isHidden("#gd-error")).toBe(true);
+    // No top-prop teaser without props data
+    expect(document.querySelector("[data-gd2-goto-props]")).toBeNull();
+  });
+
+  it("shows the quiet not-published card when props are empty", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    const getMlbGameProps = vi.fn().mockResolvedValue(emptyPropsPayload());
+
+    await loadDetailScript(vi.fn().mockResolvedValue(clone(FULL_PAYLOAD)), getMlbGameProps);
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    expect(panel("markets")?.hidden).toBe(false);
+    /** @type {HTMLElement} */ (document.querySelector('[data-gd2-tab="props"]')).click();
+    expect(panel("props")?.textContent).toContain("No player props have been published for this game yet");
+    expect(panel("props")?.textContent).toContain("7:25");
+  });
+
+  it("shows a status chip and suppresses the teaser for final games", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    const props = clone(PROPS_PAYLOAD);
+    props.game.status = "final";
+    await loadDetailScript(
+      vi.fn().mockResolvedValue(clone(FULL_PAYLOAD)),
+      vi.fn().mockResolvedValue(props)
+    );
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    expect(document.querySelector("#gd-back .gd2-status-pill")?.textContent).toBe("Final");
+    expect(document.querySelector("[data-gd2-goto-props]")).toBeNull();
+    // Data stays visible
+    expect(panel("props")?.textContent).toContain("The pitcher duel");
   });
 
   it("shows a Founder gate when the requested game is missing from a preview board", async () => {
     window.history.replaceState({}, "", "/mlb/game/?game_pk=999999");
     const getMlbBoard = vi.fn().mockResolvedValue(previewPayload([clone(PREVIEW_GAME)]));
 
-    await loadDetailScript(getMlbBoard);
+    await loadDetailScript(getMlbBoard, vi.fn().mockResolvedValue(clone(PROPS_SUMMARY_PAYLOAD)));
     await vi.waitFor(() => expect(isHidden("#gd-error")).toBe(false));
 
     const error = document.querySelector("#gd-error");
@@ -239,10 +447,11 @@ describe("mlb game detail", () => {
   it("shows sign-in copy for unauthenticated access", async () => {
     window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
     vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const error = Object.assign(new Error("401"), { status: 401 });
     const getMlbBoard = vi.fn().mockRejectedValue(error);
 
-    await loadDetailScript(getMlbBoard);
+    await loadDetailScript(getMlbBoard, vi.fn().mockRejectedValue(error));
     await vi.waitFor(() => expect(isHidden("#gd-error")).toBe(false));
 
     expect(document.querySelector("#gd-error")?.textContent).toContain("Sign in");
@@ -261,7 +470,7 @@ describe("mlb game detail", () => {
     expect(document.querySelector("#gd-error")?.textContent).toContain("requires Founder access");
   });
 
-  it("forwards the model param and falls back once when rejected", async () => {
+  it("forwards the model param, falls back once when rejected, and rewrites the URL", async () => {
     window.history.replaceState({}, "", "/mlb/game/?game_pk=777001&model=not_a_real_model");
     vi.spyOn(console, "error").mockImplementation(() => {});
     const badRequest = Object.assign(new Error("400"), { status: 400 });
@@ -269,20 +478,37 @@ describe("mlb game detail", () => {
       .fn()
       .mockRejectedValueOnce(badRequest)
       .mockResolvedValueOnce(clone(FULL_PAYLOAD));
+    const getMlbGameProps = vi.fn().mockResolvedValue(clone(PROPS_PAYLOAD));
 
-    await loadDetailScript(getMlbBoard);
+    await loadDetailScript(getMlbBoard, getMlbGameProps);
     await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(2));
 
     expect(getMlbBoard).toHaveBeenNthCalledWith(1, "", { model: "not_a_real_model" });
     expect(getMlbBoard).toHaveBeenNthCalledWith(2, "", { model: undefined });
+    // The props fetch is family-agnostic and must not be re-issued by the retry.
+    expect(getMlbGameProps).toHaveBeenCalledTimes(1);
     await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+    // Stale bookmark normalized to the resolved family
+    expect(new URL(window.location.href).searchParams.get("model")).toBe("classic_mlb");
+  });
+
+  it("drops eagle* model params before fetching and rewrites the URL", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001&model=eagle_eye");
+    const getMlbBoard = vi.fn().mockResolvedValue(clone(FULL_PAYLOAD));
+
+    await loadDetailScript(getMlbBoard);
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    expect(getMlbBoard).toHaveBeenCalledTimes(1);
+    expect(getMlbBoard).toHaveBeenCalledWith("", { model: undefined });
+    expect(new URL(window.location.href).searchParams.get("model")).toBe("classic_mlb");
   });
 
   it("derives win probabilities from the favorite when explicit fields are absent", async () => {
     window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
     const getMlbBoard = vi.fn().mockResolvedValue(previewPayload([clone(PREVIEW_GAME)]));
 
-    await loadDetailScript(getMlbBoard);
+    await loadDetailScript(getMlbBoard, vi.fn().mockResolvedValue(clone(PROPS_SUMMARY_PAYLOAD)));
     await vi.waitFor(() => expect((/** @type {any} */ (window)).__BoardWiseGameDetailTestHooks).toBeTruthy());
 
     const hooks = (/** @type {any} */ (window)).__BoardWiseGameDetailTestHooks;
@@ -294,15 +520,20 @@ describe("mlb game detail", () => {
     });
     expect(probs.home).toBeCloseTo(54.1, 1);
     expect(probs.away).toBeCloseTo(45.9, 1);
+    // sPct uses a real minus sign
+    expect(hooks.sPct(-0.041)).toBe("−4.1%");
+    expect(hooks.sPct(0.472)).toBe("+47.2%");
   });
 
   it("preserves date and model on the back-to-board link", async () => {
     window.history.replaceState({}, "", "/mlb/game/?game_pk=777001&date=2026-06-18&model=classic_mlb");
     const getMlbBoard = vi.fn().mockResolvedValue(clone(FULL_PAYLOAD));
+    const getMlbGameProps = vi.fn().mockResolvedValue(clone(PROPS_PAYLOAD));
 
-    await loadDetailScript(getMlbBoard);
+    await loadDetailScript(getMlbBoard, getMlbGameProps);
     await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
 
+    expect(getMlbGameProps).toHaveBeenCalledWith("777001", { date: "2026-06-18" });
     const href = document.querySelector("#gd-back .gd-back-link")?.getAttribute("href") || "";
     expect(href).toContain("/mlb/");
     expect(href).toContain("date=2026-06-18");

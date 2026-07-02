@@ -1,0 +1,20 @@
+{
+  "access": "summary",
+  "game": {
+    "game_pk": 777001,
+    "date": "2026-06-18",
+    "away_abbr": "TOR",
+    "home_abbr": "BOS"
+  },
+  "engine": {
+    "family": "eagle_eye",
+    "display_name": "Eagle Eye",
+    "book": "draftkings"
+  },
+  "counts": { "forecasts": 100, "quoted": 15, "picks": 2, "no_edge": 4 },
+  "top_bucket": "prime",
+  "upgrade": {
+    "required_feature": "mlb_board_advanced",
+    "upgrade_path": "/pricing/"
+  }
+}

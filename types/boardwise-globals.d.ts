@@ -62,6 +62,27 @@ interface BoardWiseBoardPayload {
   visibility?: Record<string, any>;
 }
 
+interface BoardWiseGamePropsPayload {
+  [key: string]: any;
+  access?: "full" | "summary" | string;
+  game?: Record<string, any>;
+  engine?: Record<string, any>;
+  counts?: {
+    [key: string]: any;
+    forecasts?: number;
+    quoted?: number;
+    picks?: number;
+    no_edge?: number;
+  };
+  top_plays?: any[];
+  buckets?: any[];
+  pitchers?: any[];
+  batters?: { away?: Record<string, any>; home?: Record<string, any> };
+  top_bucket?: string | null;
+  upgrade?: { required_feature?: string; upgrade_path?: string };
+  state?: string;
+}
+
 interface BoardWiseMlbLandingPayload {
   sport: "mlb";
   timezone: string;
@@ -152,6 +173,10 @@ interface BoardWiseApiClient {
     targetDate?: string,
     options?: { model?: string }
   ): Promise<BoardWiseBoardPayload>;
+  getMlbGameProps(
+    gamePk: string | number,
+    options?: { date?: string }
+  ): Promise<BoardWiseGamePropsPayload>;
   getNhlBoard?(targetDate?: string): Promise<BoardWiseBoardPayload>;
   getPerformanceFilters(
     sport?: string,

@@ -763,7 +763,13 @@ function gameDetailHref(game) {
   params.set("game_pk", String(pk));
   const date = (state.payload && state.payload.target_date) || readTargetDate();
   if (date) params.set("date", date);
-  if (state.selectedModel) params.set("model", state.selectedModel);
+  // Only forward a model the API currently advertises as a selectable game
+  // family. Anything else (retired keys, eagle_eye/props engines, unknown
+  // values) is omitted so the detail page adopts the default family instead
+  // of carrying a param that would 400 on the board fetch.
+  if (state.selectedModel && modelAvailabilityMap().has(state.selectedModel)) {
+    params.set("model", state.selectedModel);
+  }
   return `/mlb/game/?${params.toString()}`;
 }
 

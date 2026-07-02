@@ -130,6 +130,23 @@
     return `--team-color:${color};--team-prob-color:${probColor}`;
   }
 
+  // Same logo-mark pattern as the game detail page: <img data-team-logo>
+  // inside the circle with the abbreviation as fallback. bindLogoFallbacks
+  // (called after render) collapses a failed SVG back to the colored circle.
+  function teamMark(team, sideBranding, fallbackAbbr) {
+    const abbr = team?.abbr || fallbackAbbr;
+    const logoPath = sideBranding?.brand?.logoPath || "";
+    const logo = logoPath
+      ? `<img class="landing-preview__team-logo" data-team-logo src="${escapeHtml(logoPath)}" alt="" width="34" height="34" decoding="async">`
+      : "";
+    return `
+      <div class="landing-preview__team-mark${logoPath ? " has-logo" : ""}" data-team-logo-mark aria-hidden="true">
+        ${logo}
+        <span class="landing-preview__team-fallback">${escapeHtml(abbr)}</span>
+      </div>
+    `;
+  }
+
   function probabilityPercent(team) {
     const number = Number(team?.win_probability);
     if (!Number.isFinite(number)) return 50;
@@ -242,7 +259,7 @@
 
         <div class="landing-preview__body">
           <div class="landing-preview__team" style="${teamStyle(branding.away)}">
-            <div class="landing-preview__team-mark" aria-hidden="true">${escapeHtml(away.abbr || "AWY")}</div>
+            ${teamMark(away, branding.away, "AWY")}
             <div class="landing-preview__team-name">${escapeHtml(away.short_name || away.team_name || "Away")}</div>
             <div class="landing-preview__prob tnum">${probabilityMarkup(away)}</div>
             <div class="landing-preview__odds tnum">${escapeHtml(moneylineText(away))}</div>
@@ -257,7 +274,7 @@
           </div>
 
           <div class="landing-preview__team" style="${teamStyle(branding.home)}">
-            <div class="landing-preview__team-mark" aria-hidden="true">${escapeHtml(home.abbr || "HME")}</div>
+            ${teamMark(home, branding.home, "HME")}
             <div class="landing-preview__team-name">${escapeHtml(home.short_name || home.team_name || "Home")}</div>
             <div class="landing-preview__prob tnum">${probabilityMarkup(home)}</div>
             <div class="landing-preview__odds tnum">${escapeHtml(moneylineText(home))}</div>
@@ -277,6 +294,9 @@
     if (empty) empty.setAttribute("hidden", "");
     if (!preview) return;
     preview.innerHTML = renderFeaturedMatchup(featured, targetDate);
+    if (window.BoardWiseMlbBranding && typeof window.BoardWiseMlbBranding.bindLogoFallbacks === "function") {
+      window.BoardWiseMlbBranding.bindLogoFallbacks(preview);
+    }
     preview.dataset.state = "ready";
     preview.removeAttribute("hidden");
   }

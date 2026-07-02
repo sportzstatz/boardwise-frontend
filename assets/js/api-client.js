@@ -14,6 +14,7 @@
     landingMlb: "/api/v1/public/landing/mlb",
     mlbBoardCurrent: "/api/v1/boards/mlb/current",
     mlbBoardDate: "/api/v1/boards/mlb/",
+    mlbGames: "/api/v1/mlb/games/",
     performanceFilters: "/api/v1/performance/filters",
     performanceSummary: "/api/v1/performance/summary",
     performanceBreakdown: "/api/v1/performance/breakdown",
@@ -204,6 +205,21 @@
           cache: "no-store",
         }
       );
+    },
+
+    /**
+     * Player props for one game. Family-agnostic: the endpoint takes no
+     * model param (the Player Props tab is identical under every game family).
+     * @param {string | number} gamePk
+     * @param {{ date?: string }} [options]
+     */
+    getMlbGameProps(gamePk, options = {}) {
+      const pk = encodeURIComponent(String(gamePk));
+      return jsonRequest(`${ENDPOINTS.mlbGames}${pk}/props`, {
+        query: options.date ? { date: options.date } : undefined,
+        credentials: "include",
+        cache: "no-store",
+      });
     },
 
     /**

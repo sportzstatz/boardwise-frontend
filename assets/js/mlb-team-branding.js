@@ -401,7 +401,7 @@
   }
 
   function markLogoFailed(img) {
-    const mark = img.closest(".tot-team-logo-mark, .tot-team-mark");
+    const mark = img.closest("[data-team-logo-mark], .tot-team-logo-mark, .tot-team-mark");
     if (mark) mark.classList.add("logo-failed");
   }
 

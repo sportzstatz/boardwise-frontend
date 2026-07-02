@@ -212,6 +212,33 @@
   color: var(--team-color, var(--bw-navy));
   font-size: 12px;
   font-weight: 900;
+  overflow: hidden;
+}
+
+.landing-preview__team-logo {
+  display: block;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  object-position: center;
+}
+
+.landing-preview__team-fallback {
+  display: none;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.landing-preview__team-mark:not(.has-logo) .landing-preview__team-fallback,
+.landing-preview__team-mark.logo-failed .landing-preview__team-fallback {
+  display: grid;
+}
+
+.landing-preview__team-mark.logo-failed .landing-preview__team-logo {
+  display: none;
 }
 
 .landing-preview__team-name {
