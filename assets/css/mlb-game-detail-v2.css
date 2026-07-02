@@ -389,40 +389,7 @@
   text-transform: uppercase;
 }
 
-/* ---------- Player Props tab: ranked buckets ---------- */
-
-.gd2-rank-filter {
-  display: inline-flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.gd2-filter-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  border-radius: 999px;
-  border: 1px solid var(--bw-border);
-  background: #ffffff;
-  color: var(--bw-navy-muted);
-  font-size: 11px;
-  font-weight: 800;
-  padding: 0 11px;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.gd2-filter-chip.is-active {
-  background: var(--bw-navy);
-  border-color: var(--bw-navy);
-  color: #ffffff;
-}
-
-.gd2-ranked[data-min="playable"] .gd2-bucket[data-bucket-key="lean"],
-.gd2-ranked[data-min="strong"] .gd2-bucket[data-bucket-key="lean"],
-.gd2-ranked[data-min="strong"] .gd2-bucket[data-bucket-key="playable"] {
-  display: none;
-}
+/* ---------- Player Props tab: ranked plays (Prime only) ---------- */
 
 .gd2-bucket-head {
   display: flex;
@@ -543,13 +510,6 @@
   color: var(--bw-navy-muted);
   font-size: 10px;
   font-weight: 800;
-}
-
-.gd2-no-edge {
-  margin-top: 10px;
-  color: var(--bw-navy-muted);
-  font-size: 10.5px;
-  text-align: center;
 }
 
 /* ---------- Player Props tab: pitcher + batter cards ---------- */
