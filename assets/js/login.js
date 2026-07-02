@@ -174,7 +174,7 @@
     const consentInput = /** @type {HTMLInputElement | null} */ (document.getElementById("login-consent"));
     if (consentInput && !consentInput.checked) {
       setMessage(
-        "Please confirm you are at least 18, legally permitted to use BoardWise, and agree to the Terms before continuing.",
+        "Please confirm you are at least 21, legally permitted to use BoardWise, and agree to the Terms before continuing.",
         "error"
       );
       if (typeof consentInput.reportValidity === "function") consentInput.reportValidity();

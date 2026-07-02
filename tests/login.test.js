@@ -30,7 +30,7 @@ async function loadLoginScript({
           ? ""
           : `<input name="cf-turnstile-response" value="${turnstileValue}">`
       }
-      <label for="login-consent"><input id="login-consent" name="login-consent" type="checkbox" required> I confirm I am 18+ and agree to the Terms.</label>
+      <label for="login-consent"><input id="login-consent" name="login-consent" type="checkbox" required> I confirm I am 21+ and agree to the Terms.</label>
       <button class="button primary" type="submit">Send email link</button>
     </form>
     <p id="login-message" hidden></p>
@@ -119,7 +119,7 @@ describe("login", () => {
     await settle();
 
     expect(fetch).not.toHaveBeenCalled();
-    expect(message.textContent).toContain("at least 18");
+    expect(message.textContent).toContain("at least 21");
     expect(message.dataset.kind).toBe("error");
     expect(message.hasAttribute("hidden")).toBe(false);
   });

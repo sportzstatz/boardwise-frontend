@@ -56,7 +56,7 @@ describe("nhl-board Wise Choice fallback", () => {
     await vi.waitFor(() => expect(document.querySelector(".best-card")).not.toBeNull());
 
     const bestCardText = document.querySelector(".best-card")?.textContent || "";
-    expect(bestCardText).toContain("Wise Choices");
+    expect(bestCardText).toContain("Wise Choice™");
     expect(bestCardText).toContain("Boston Bruins moneyline");
     expect(bestCardText).toContain("DraftKings");
     expect(bestCardText).toContain("-125");

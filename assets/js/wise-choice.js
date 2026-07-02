@@ -165,9 +165,7 @@
     const cards = bestCardOptions(game);
     const mode = options.mode || "wise_choice";
     const orders = {
-      wise_choice: ["wise_choice", "best_value", "highest_ev"],
-      best_value: ["best_value", "highest_ev"],
-      best_growth: ["best_growth", "wise_choice", "best_value", "highest_ev"]
+      wise_choice: ["wise_choice", "best_value", "highest_ev"]
     };
     const order = orders[mode] || [mode, "best_value", "highest_ev"];
     return firstValid(order.map((key) => cards[key]), options)
