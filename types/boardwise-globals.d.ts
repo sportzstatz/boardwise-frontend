@@ -145,6 +145,29 @@ interface BoardWisePerformanceBookComparisonPayload {
   visibility?: Record<string, any>;
 }
 
+interface BoardWiseBillingCheckoutPayload {
+  [key: string]: any;
+  checkout_url?: string;
+  checkout_session_id?: string;
+}
+
+interface BoardWiseBillingStatusPayload {
+  [key: string]: any;
+  plan?: string;
+  checkout_available?: boolean;
+  portal_available?: boolean;
+  subscription?: null | {
+    status?: string;
+    cancel_at_period_end?: boolean;
+    current_period_end?: string;
+  };
+}
+
+interface BoardWiseBillingPortalPayload {
+  [key: string]: any;
+  portal_url?: string;
+}
+
 interface BoardWiseApiClient {
   ApiError: {
     new (
@@ -194,6 +217,9 @@ interface BoardWiseApiClient {
   getPerformanceBookComparison(
     query: BoardWisePerformanceQuery
   ): Promise<BoardWisePerformanceBookComparisonPayload>;
+  createBillingCheckout(): Promise<BoardWiseBillingCheckoutPayload>;
+  getBillingStatus(): Promise<BoardWiseBillingStatusPayload>;
+  createBillingPortal(): Promise<BoardWiseBillingPortalPayload>;
 }
 
 interface BoardWiseWiseChoiceCandidate {
@@ -281,5 +307,6 @@ interface Window {
   BoardWiseWiseChoice?: BoardWiseWiseChoiceApi;
   BoardWiseMlbBranding?: BoardWiseMlbBrandingApi;
   BoardWiseLanding?: BoardWiseLandingApi;
+  BoardWiseNavigate?: (url: string) => void;
   turnstile?: TurnstileApi;
 }
