@@ -20,6 +20,9 @@
     performanceBreakdown: "/api/v1/performance/breakdown",
     performancePicks: "/api/v1/performance/picks",
     performanceBookComparison: "/api/v1/performance/book-comparison",
+    billingCheckout: "/api/v1/billing/checkout",
+    billingStatus: "/api/v1/billing/status",
+    billingPortal: "/api/v1/billing/portal",
   });
 
   class BoardWiseApiError extends Error {
@@ -187,6 +190,33 @@
 
     logout() {
       return jsonRequest(ENDPOINTS.logout, {
+        method: "POST",
+        credentials: "include",
+      });
+    },
+
+    /**
+     * Starts a Stripe-hosted Checkout Session for the Founder plan. The body
+     * is intentionally empty: the API fixes the plan, Price, and quantity
+     * server-side and ignores any billing choice fields.
+     */
+    createBillingCheckout() {
+      return jsonRequest(ENDPOINTS.billingCheckout, {
+        method: "POST",
+        credentials: "include",
+        body: {},
+      });
+    },
+
+    getBillingStatus() {
+      return jsonRequest(ENDPOINTS.billingStatus, {
+        credentials: "include",
+        cache: "no-store",
+      });
+    },
+
+    createBillingPortal() {
+      return jsonRequest(ENDPOINTS.billingPortal, {
         method: "POST",
         credentials: "include",
       });

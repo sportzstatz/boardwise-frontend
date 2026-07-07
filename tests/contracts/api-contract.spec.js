@@ -198,4 +198,37 @@ test.describe("BoardWise public API contract", () => {
     );
     await expectAdminOnlyPerformanceResponse(response, "book comparison");
   });
+
+  // Billing routes never leak provider/internal identifiers to guests. The
+  // assertions accept both the enabled (401 authentication_required) and the
+  // disabled / not-yet-deployed (404) states so this contract holds across
+  // billing rollout phases.
+  for (const [method, path, label] of [
+    ["post", "/api/v1/billing/checkout", "billing checkout"],
+    ["get", "/api/v1/billing/status", "billing status"],
+    ["post", "/api/v1/billing/portal", "billing portal"],
+  ]) {
+    test(`${method.toUpperCase()} ${path} is guest-safe`, async ({ request }) => {
+      const response =
+        method === "get"
+          ? await request.get(path)
+          : await request.post(path, { data: {} });
+
+      expect([401, 404], `${label} status`).toContain(response.status());
+
+      const contentType = response.headers()["content-type"] || "";
+      expect(contentType, `${label} content-type`).toContain("application/json");
+
+      const body = await response.json();
+      expectPlainObject(body, label);
+      const serialized = JSON.stringify(body).toLowerCase();
+      for (const forbidden of ["cus_", "sub_", "price_", "whsec_", "sk_live", "sk_test", "stripe.com"]) {
+        expect(
+          serialized.includes(forbidden),
+          `${label} body must not reveal "${forbidden}"`
+        ).toBe(false);
+      }
+      expectNoOperatorLeak(body, label);
+    });
+  }
 });

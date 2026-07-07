@@ -10,10 +10,12 @@ function installAccountDom() {
     <p id="account-status"></p>
     <div id="account-actions"></div>
     <div id="account-access-list"></div>
+    <p id="account-billing-notice" hidden></p>
+    <div id="account-billing-body"></div>
   `;
 }
 
-function installAuth(state) {
+function installAuth(state, apiOverrides = {}) {
   window.BoardWiseAuth = {
     loadAuthState: vi.fn().mockResolvedValue(state),
     hasFeature: vi.fn((authState, key) => Boolean(authState?.features?.[key])),
@@ -37,13 +39,14 @@ function installAuth(state) {
   };
   window.BoardWiseApi = /** @type {any} */ ({
     logout: vi.fn().mockResolvedValue({ ok: true }),
+    ...apiOverrides,
   });
 }
 
-async function renderAccount(state) {
+async function renderAccount(state, apiOverrides = {}) {
   vi.resetModules();
   installAccountDom();
-  installAuth(state);
+  installAuth(state, apiOverrides);
   await import("../assets/js/account.js");
   await vi.waitFor(() => {
     expect(document.querySelector("#account-status")?.textContent).not.toBe("");
@@ -51,13 +54,16 @@ async function renderAccount(state) {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   vi.resetModules();
   delete window.BoardWiseAuth;
   delete window.BoardWiseGates;
   delete window.BoardWiseApi;
+  delete window.BoardWiseNavigate;
   document.body.innerHTML = "";
+  window.history.pushState({}, "", "/account/");
 });
 
 describe("account page", () => {
@@ -137,5 +143,132 @@ describe("account page", () => {
     );
     expect(document.querySelector('[data-access-card="nhl"] .account-lock-mark')).not.toBeNull();
     expect(document.querySelector("#feature-list")).toBeNull();
+  });
+
+  it("founder billing opens the Stripe Customer Portal from Manage billing", async () => {
+    const founderState = {
+      authenticated: true,
+      user: { email: "founder@example.test", display_name: "Founder", member_since: "2025" },
+      plan: "founder",
+      features: { account_profile: true, mlb_board_basic: true, mlb_board_advanced: true },
+    };
+    const createBillingPortal = vi.fn().mockResolvedValue({
+      portal_url: "https://billing.stripe.com/p/session/test",
+    });
+    const navigate = vi.fn();
+    window.BoardWiseNavigate = navigate;
+
+    await renderAccount(founderState, { createBillingPortal });
+
+    const billingBody = document.querySelector("#account-billing-body");
+    expect(billingBody?.textContent).toContain("BoardWise Founder");
+    expect(billingBody?.textContent).toContain("$24.99/month");
+    expect(billingBody?.textContent).not.toContain("Contact billing support");
+
+    const manage = /** @type {HTMLButtonElement} */ (document.getElementById("account-manage-billing"));
+    expect(manage).not.toBeNull();
+    expect(manage.tagName).toBe("BUTTON");
+
+    manage.click();
+    await vi.waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith("https://billing.stripe.com/p/session/test");
+    });
+    expect(createBillingPortal).toHaveBeenCalledTimes(1);
+  });
+
+  it("founder billing surfaces a support fallback when the portal is unavailable", async () => {
+    const founderState = {
+      authenticated: true,
+      user: { email: "founder@example.test", display_name: "Founder", member_since: "2025" },
+      plan: "founder",
+      features: { account_profile: true },
+    };
+    const createBillingPortal = vi.fn().mockRejectedValue(
+      Object.assign(new Error("404"), { status: 404 })
+    );
+    const navigate = vi.fn();
+    window.BoardWiseNavigate = navigate;
+
+    await renderAccount(founderState, { createBillingPortal });
+
+    const manage = /** @type {HTMLButtonElement} */ (document.getElementById("account-manage-billing"));
+    manage.click();
+
+    await vi.waitFor(() => {
+      const notice = document.getElementById("account-billing-notice");
+      expect(notice?.hasAttribute("hidden")).toBe(false);
+      expect(notice?.textContent).toContain("billing portal is unavailable");
+    });
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("finalizes checkout success by polling billing status until founder access lands", async () => {
+    const freeState = {
+      authenticated: true,
+      user: { email: "buyer@example.test", display_name: "Buyer", member_since: "2026" },
+      plan: "free",
+      features: { account_profile: true },
+    };
+    const founderState = {
+      ...freeState,
+      plan: "founder",
+      features: { account_profile: true, mlb_board_basic: true, mlb_board_advanced: true },
+    };
+
+    vi.useFakeTimers();
+    vi.resetModules();
+    window.history.pushState({}, "", "/account/?checkout=success");
+    installAccountDom();
+    installAuth(freeState, {
+      getBillingStatus: vi
+        .fn()
+        .mockResolvedValueOnce({ plan: "free", checkout_available: true, portal_available: false, subscription: null })
+        .mockResolvedValue({ plan: "founder", checkout_available: false, portal_available: true, subscription: { status: "active" } }),
+    });
+    window.BoardWiseAuth.loadAuthState = vi
+      .fn()
+      .mockResolvedValueOnce(freeState)
+      .mockResolvedValue(founderState);
+
+    await import("../assets/js/account.js");
+    await vi.advanceTimersByTimeAsync(0);
+
+    const notice = document.getElementById("account-billing-notice");
+    expect(notice?.textContent).toContain("Finalizing Founder access");
+
+    await vi.advanceTimersByTimeAsync(1500); // poll 1: still free
+    await vi.advanceTimersByTimeAsync(1500); // poll 2: founder
+
+    expect(window.BoardWiseAuth.loadAuthState).toHaveBeenCalledTimes(2);
+    expect(document.querySelector("#account-billing-body")?.textContent).toContain("BoardWise Founder");
+    expect(notice?.textContent).toContain("Founder access is active");
+  });
+
+  it("shows a syncing message when checkout success has not reconciled in time", async () => {
+    const freeState = {
+      authenticated: true,
+      user: { email: "buyer@example.test", display_name: "Buyer", member_since: "2026" },
+      plan: "free",
+      features: { account_profile: true },
+    };
+
+    vi.useFakeTimers();
+    vi.resetModules();
+    window.history.pushState({}, "", "/account/?checkout=success");
+    installAccountDom();
+    installAuth(freeState, {
+      getBillingStatus: vi.fn().mockResolvedValue({ plan: "free", checkout_available: true, portal_available: false, subscription: null }),
+    });
+
+    await import("../assets/js/account.js");
+    await vi.advanceTimersByTimeAsync(0);
+
+    for (let i = 0; i < 10; i += 1) {
+      await vi.advanceTimersByTimeAsync(1500);
+    }
+
+    const notice = document.getElementById("account-billing-notice");
+    expect(notice?.textContent).toContain("Access is still syncing");
+    expect(window.BoardWiseApi.getBillingStatus).toHaveBeenCalledTimes(10);
   });
 });

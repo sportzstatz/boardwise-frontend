@@ -41,7 +41,7 @@
         <li>Renews monthly until canceled.</li>
         <li>No free trial. No coupons or promo codes.</li>
         <li>One person per account.</li>
-        <li>Cancel anytime &mdash; until self-serve billing launches, cancel via <a href="mailto:support@useboardwise.com">support@useboardwise.com</a>. Cancellation stops future renewals and normally leaves access active through the end of the current paid period.</li>
+        <li>Cancel anytime in the Stripe billing portal from your <a href="/account/">account page</a> (or via <a href="mailto:support@useboardwise.com">support@useboardwise.com</a>). Cancellation stops future renewals and normally leaves access active through the end of the current paid period.</li>
         <li>No refunds except where required by law or for approved billing errors.</li>
       </ul>
 
@@ -49,11 +49,14 @@
         BoardWise Founder is $24.99/month plus applicable taxes and renews automatically until canceled. Cancel before your next billing date to stop future charges. No free trial. Subscription fees are non-refundable except where required by law or approved for billing errors. BoardWise is not a sportsbook and does not accept or place wagers.
       </div>
 
+      <p id="pricing-checkout-notice" class="checkout-copy" role="status" aria-live="polite" hidden></p>
+
       <p style="margin-top:18px">
-        <a class="button primary" href="/login/" data-auth-guest>Sign in to BoardWise</a>
-        <a class="button primary" href="/account/" data-auth-authenticated data-auth-label>Account</a>
+        <a class="button primary" href="/login/?return_to=%2Fpricing%2F" data-auth-guest>Sign in to become a Founder</a>
+        <button class="button primary" id="pricing-checkout-button" type="button" data-auth-authenticated hidden>Become a Founder &mdash; $24.99/month</button>
+        <a class="button" href="/account/" data-auth-authenticated hidden>Account</a>
       </p>
-      <p class="muted" style="margin-top:8px">Paid checkout (powered by Stripe) is launching soon; at checkout you will confirm you are 21+ and agree to the <a href="/terms/">Terms of Service</a>. Until then, contact <a href="mailto:support@useboardwise.com">support@useboardwise.com</a> for billing questions. See the <a href="/subscription-policy/">Subscription &amp; Refund Policy</a>.</p>
+      <p class="muted" style="margin-top:8px">Paid checkout is powered by Stripe and opens on a secure Stripe-hosted page; at checkout you will confirm you are 21+ and agree to the <a href="/terms/">Terms of Service</a>. Billing questions: <a href="mailto:support@useboardwise.com">support@useboardwise.com</a>. See the <a href="/subscription-policy/">Subscription &amp; Refund Policy</a>.</p>
 
       <p class="fineprint">Forecasts, market data, units, and expected value are informational only and are not guarantees or personalized wagering advice. See <a href="/performance-methodology/">Performance &amp; Methodology</a> and <a href="/responsible-use/">Responsible Gaming</a>.</p>
     </section>
@@ -67,5 +70,6 @@
   <script src="/assets/js/auth-state.js"></script>
   <script src="/assets/js/gates.js"></script>
   <script src="/assets/js/apply-gates.js"></script>
+  <script src="/assets/js/pricing.js"></script>
 </body>
 </html>

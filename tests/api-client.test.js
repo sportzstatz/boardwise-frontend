@@ -224,6 +224,66 @@ describe("api-client", () => {
     expect(url.searchParams.get("performance_scope")).toBe("tracking");
   });
 
+  it("billing checkout posts an empty JSON body with credentials include", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      jsonResponse({ checkout_url: "https://checkout.stripe.com/c/pay/cs_test", checkout_session_id: "cs_test" })
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    const api = await loadApiClient();
+    const result = await api.createBillingCheckout();
+
+    expect(result.checkout_url).toBe("https://checkout.stripe.com/c/pay/cs_test");
+    expect(fetch).toHaveBeenCalledWith(
+      `${DEFAULT_API_BASE}/api/v1/billing/checkout`,
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify({}),
+      })
+    );
+  });
+
+  it("billing status is an authenticated no-store read", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      jsonResponse({ plan: "free", checkout_available: true, portal_available: false, subscription: null })
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    const api = await loadApiClient();
+    const result = await api.getBillingStatus();
+
+    expect(result.plan).toBe("free");
+    expect(fetch).toHaveBeenCalledWith(
+      `${DEFAULT_API_BASE}/api/v1/billing/status`,
+      expect.objectContaining({
+        credentials: "include",
+        cache: "no-store",
+      })
+    );
+    expect(fetch.mock.calls[0][1].method).toBe("GET");
+  });
+
+  it("billing portal posts with credentials include and no body", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      jsonResponse({ portal_url: "https://billing.stripe.com/p/session/test" })
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    const api = await loadApiClient();
+    const result = await api.createBillingPortal();
+
+    expect(result.portal_url).toBe("https://billing.stripe.com/p/session/test");
+    expect(fetch).toHaveBeenCalledWith(
+      `${DEFAULT_API_BASE}/api/v1/billing/portal`,
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+      })
+    );
+    expect(fetch.mock.calls[0][1]).not.toHaveProperty("body");
+  });
+
   it("throws BoardWiseApiError for non-2xx responses", async () => {
     vi.stubGlobal(
       "fetch",
