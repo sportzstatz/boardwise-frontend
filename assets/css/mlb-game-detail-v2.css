@@ -946,13 +946,13 @@
 
 /* ---------- responsive: one page, breakpoint ~720px ---------- */
 
-@media (min-width: 721px) {
+@media (min-width: 761px) {
   .gd2-seg {
     display: none;
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 760px) {
   .gd2-tabbar {
     flex-wrap: nowrap;
     overflow-x: auto;

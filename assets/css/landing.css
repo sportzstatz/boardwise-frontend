@@ -1,8 +1,5 @@
 .landing-page {
   min-height: 100vh;
-  --bw-muted: #4f5f6f;
-  --bw-muted-light: #5e6e7e;
-  --bw-muted-faint: #5f6d7a;
 }
 
 .landing-topbar {
@@ -737,7 +734,7 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 760px) {
   .landing-topbar {
     padding: 14px 16px 10px;
   }

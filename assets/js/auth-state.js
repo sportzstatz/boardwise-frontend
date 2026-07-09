@@ -48,11 +48,15 @@
     inflightRequest = (async () => {
       try {
         cachedState = normaliseState(await window.BoardWiseApi.getMe());
+        inflightRequest = null;
+        return cachedState;
       } catch (_err) {
-        cachedState = normaliseState(guestState);
+        // Fall back to guest for this caller, but do NOT cache the fallback:
+        // a transient /me failure must not demote a signed-in user for the
+        // rest of the page lifetime. The next loadAuthState() call retries.
+        inflightRequest = null;
+        return normaliseState(guestState);
       }
-      inflightRequest = null;
-      return cachedState;
     })();
     return inflightRequest;
   }

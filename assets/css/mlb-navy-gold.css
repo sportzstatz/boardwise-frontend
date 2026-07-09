@@ -1,36 +1,10 @@
 :root {
-  --bw-page: #e7e5df;
-  --bw-panel: #fbfaf7;
-  --bw-surface: #ffffff;
-  --bw-ink: #11263b;
-  --bw-muted: #6b7a89;
-  --bw-muted-light: #94a2b1;
-  --bw-muted-faint: #9aa7b4;
-
-  --bw-navy: #13243c;
-  --bw-navy-soft: #1d3252;
-  --bw-navy-muted: #44546a;
-  --bw-navy-on-dark: #9db4cf;
-
-  --bw-gold: #c79a3a;
-  --bw-gold-ink: #7a5e16;
-  --bw-gold-soft: #faf6ec;
-
-  --bw-border: #eee7da;
-  --bw-row-border: #f0ece2;
-  --bw-table-head: #f6f3ec;
-
-  --bw-positive: #15803d;
-  --bw-positive-soft: #edf7ee;
-  --bw-negative: #b42318;
-  --bw-negative-soft: #fef3f2;
-
+  /* Board-only tokens; everything else comes from boardwise-theme.css. */
   --bw-underdog: #9aa7b4;
   --bw-underdog-bar: #cdd5dd;
 
   --bw-radius-card: 18px;
   --bw-radius-panel: 14px;
-  --bw-shadow: 0 1px 3px rgba(16, 24, 40, 0.10);
 }
 
 * {
@@ -48,7 +22,7 @@ body {
   overflow-x: hidden;
   color: var(--bw-ink);
   background: var(--bw-page);
-  font-family: var(--bw-font-sans, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
+  font-family: var(--bw-font-sans);
 }
 
 a {
@@ -1812,7 +1786,7 @@ h1 {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 760px) {
   .wrap {
     padding: 18px 16px 42px;
   }

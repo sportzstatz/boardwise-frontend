@@ -2,9 +2,6 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  --bw-muted: #4f5f6f;
-  --bw-muted-light: #5e6e7e;
-  --bw-muted-faint: #5f6d7a;
 }
 
 .login-topbar {
@@ -319,7 +316,7 @@
   }
 }
 
-@media (max-width: 430px) {
+@media (max-width: 420px) {
   .login-back-link span {
     position: absolute;
     width: 1px;

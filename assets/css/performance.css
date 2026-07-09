@@ -1,8 +1,5 @@
 .performance-page {
   min-height: 100vh;
-  --bw-muted: #4f5f6f;
-  --bw-muted-light: #5e6e7e;
-  --bw-muted-faint: #5f6d7a;
 }
 
 .performance-shell {
