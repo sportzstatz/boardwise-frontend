@@ -33,6 +33,28 @@
     window.location.assign(url);
   }
 
+  /**
+   * Only ever hand off to an https Stripe-hosted billing page. The URL comes
+   * from the API response body, so we treat it as untrusted: a compromised or
+   * cache-poisoned response must not be able to redirect a checkout click to an
+   * attacker-controlled look-alike.
+   * @param {unknown} value
+   * @returns {string}
+   */
+  function safeStripeUrl(value) {
+    if (typeof value !== "string" || !value) return "";
+    let parsed;
+    try {
+      parsed = new URL(value);
+    } catch (_err) {
+      return "";
+    }
+    if (parsed.protocol !== "https:") return "";
+    const host = parsed.hostname.toLowerCase();
+    if (host === "stripe.com" || host.endsWith(".stripe.com")) return value;
+    return "";
+  }
+
   function checkoutCanceled() {
     try {
       return new URLSearchParams(window.location.search).get("checkout") === "canceled";
@@ -52,7 +74,7 @@
       const api = window.BoardWiseApi;
       if (!api) throw new Error("BoardWiseApi unavailable");
       const result = await api.createBillingCheckout();
-      const url = result && typeof result.checkout_url === "string" ? result.checkout_url : "";
+      const url = safeStripeUrl(result && result.checkout_url);
       if (!url) throw new Error("missing checkout_url");
       navigateTo(url);
       return;
