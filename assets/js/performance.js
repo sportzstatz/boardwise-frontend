@@ -681,7 +681,13 @@ function toneForNumber(value) {
 }
 
 function todayIso() {
-  return new Date(Date.now()).toISOString().slice(0, 10);
+  // The board day rolls over on US Central time (like every other page), not UTC.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(Date.now()));
 }
 
 function addDaysIso(value, days) {
@@ -764,7 +770,7 @@ function updateFilterSummary(filters) {
 
 function groupLabel(groupBy) {
   const labels = {
-    wise_choice_bucket: "Wise Tier",
+    wise_choice_bucket: "Wise Choice™ tier",
     confidence_bucket: "Confidence bucket",
     model_probability_bucket: "Model probability bucket",
     model_version: "Model version",
@@ -1072,7 +1078,7 @@ function renderPicks(payload) {
           <div class="performance-data-card__metric"><span>Selection</span><strong>${esc(selection || "—")} <span class="tnum">${esc(fmtAmerican(p.price_american))}</span></strong></div>
           <div class="performance-data-card__metric"><span>Book</span><strong>${esc(p.bookmaker_title || p.bookmaker_key || "—")}</strong></div>
           <div class="performance-data-card__metric"><span>Model %</span><strong class="tnum">${esc(modelPct)}</strong></div>
-          <div class="performance-data-card__metric"><span>Wise Tier</span><strong>${esc(wiseText)}</strong></div>
+          <div class="performance-data-card__metric"><span>Wise Choice</span><strong>${esc(wiseText)}</strong></div>
           <div class="performance-data-card__metric"><span>Units</span><strong class="tnum ${esc(toneForNumber(p.units_won))}">${esc(unitsWon)}</strong></div>
           <div class="performance-data-card__metric"><span>CLV</span><strong class="tnum ${esc(toneForNumber(p.clv_prob_delta))}">${esc(clv)}</strong></div>
         </div>
@@ -1456,9 +1462,10 @@ async function loadBookComparison(filters) {
     setRuntimeVisibility(data.visibility);
     renderBookComparison(data);
   } catch (err) {
+    console.error(err);
     if (els.bookCmpSummary) els.bookCmpSummary.textContent = "";
     setHidden(els.bookCmpEmpty, false);
-    els.bookCmpEmpty.textContent = `Could not load book comparison: ${err.message}`;
+    els.bookCmpEmpty.textContent = "Could not load the book comparison right now. Try refreshing the page.";
     els.bookCmpTable.innerHTML = "";
     if (els.bookCmpCards) els.bookCmpCards.innerHTML = "";
   }
@@ -1592,7 +1599,8 @@ async function loadFilters(filters, { preloaded = null } = {}) {
       showAccessDenied(err);
       return false;
     }
-    showError(`Failed to load filter options: ${err.message}`);
+    console.error(err);
+    showError("Could not load the performance filters right now. Try refreshing the page.");
     return false;
   }
 }
@@ -1642,14 +1650,14 @@ async function loadAll(filters) {
     }
 
     const safeRender = (label, fn) => {
-      try { fn(); } catch (err) { anyFailed = true; firstErr = firstErr || `${label}: ${err.message}`; }
+      try { fn(); } catch (err) { console.error(label, err); anyFailed = true; firstErr = firstErr || label; }
     };
 
     if (summaryR.ok) {
       setRuntimeVisibility(summaryR.value && summaryR.value.visibility);
       safeRender("summary", () => renderSummary(summaryR.value && summaryR.value.summary));
     } else {
-      anyFailed = true; firstErr = firstErr || `summary: ${summaryR.error.message}`;
+      console.error(summaryR.error); anyFailed = true; firstErr = firstErr || "summary";
       // Make sure stale KPIs cannot remain on a failed summary fetch.
       setHidden(els.kpiGrid, true);
       setHidden(els.emptySummary, false);
@@ -1660,27 +1668,27 @@ async function loadAll(filters) {
       setRuntimeVisibility(breakdownR.value && breakdownR.value.visibility);
       safeRender("breakdown", () => renderBreakdown(breakdownR.value));
     } else {
-      anyFailed = true; firstErr = firstErr || `breakdown: ${breakdownR.error.message}`;
+      console.error(breakdownR.error); anyFailed = true; firstErr = firstErr || "breakdown";
     }
 
     if (picksR.ok) {
       setRuntimeVisibility(picksR.value && picksR.value.visibility);
       safeRender("picks", () => renderPicks(picksR.value));
     } else {
-      anyFailed = true; firstErr = firstErr || `picks: ${picksR.error.message}`;
+      console.error(picksR.error); anyFailed = true; firstErr = firstErr || "picks";
     }
 
     if (chartR.ok) {
       setRuntimeVisibility(chartR.value && chartR.value.visibility);
       safeRender("chart", () => renderChart(chartR.value));
     } else {
-      anyFailed = true; firstErr = firstErr || `chart: ${chartR.error.message}`;
+      console.error(chartR.error); anyFailed = true; firstErr = firstErr || "chart";
       if (els.chartMeta) els.chartMeta.textContent = "Failed to load";
       setHidden(els.chartEmpty, false);
       if (els.chartEmpty) els.chartEmpty.textContent = "Could not load the cumulative units chart.";
     }
 
-    if (anyFailed) showError(`Failed to load performance data (${firstErr}).`);
+    if (anyFailed) showError(`Some performance data (${firstErr}) could not be loaded right now. Try refreshing the page.`);
   } finally {
     setHidden(els.loading, true);
   }
@@ -1739,7 +1747,8 @@ async function init() {
       setHidden(els.loading, true);
       return;
     }
-    showError(`Failed to load performance visibility settings: ${err.message}`);
+    console.error(err);
+    showError("Could not load the performance page settings right now. Try refreshing the page.");
   }
 
   const filters = readFilters();
@@ -1928,6 +1937,7 @@ async function bootstrapPerformancePage() {
   await init();
 }
 
-bootstrapPerformancePage().catch((err) =>
-  showError(`Failed to initialize performance page: ${err.message}`)
-);
+bootstrapPerformancePage().catch((err) => {
+  console.error(err);
+  showError("Could not load the performance page right now. Try refreshing the page.");
+});

@@ -130,7 +130,6 @@ function installLandingDom() {
     <article class="landing-board-card landing-board-card--offseason" aria-label="NHL off-season board">
       <p id="landing-nhl-status">Hockey</p>
       <div class="landing-board-card__return">Returns Oct 2026</div>
-      <div class="landing-board-card__cta">Notify me</div>
     </article>
     <div id="landing-preview-loading" class="landing-preview landing-preview--loading" role="status">Loading today's featured matchup...</div>
     <div id="landing-preview" hidden></div>
@@ -546,7 +545,8 @@ describe("landing page", () => {
     expect(html).toContain('class="landing-board-card landing-board-card--offseason"');
     expect(html).toContain("Off-season");
     expect(html).toContain("Returns Oct 2026");
-    expect(html).toContain("Notify me");
+    // Retired: no "Notify me" CTA — the card is informational only.
+    expect(html).not.toContain("Notify me");
     expect(html).not.toContain('href="/nhl/"');
   });
 

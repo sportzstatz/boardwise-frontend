@@ -396,7 +396,7 @@ function topLevelCounts(payload) {
 
 function setPageMeta(payload, requestedDate) {
   const targetDate = payload.target_date || requestedDate || "-";
-  document.title = `BoardWise MLB - ${targetDate}`;
+  document.title = `MLB Board ${targetDate} - BoardWise`;
   updatePageSubtitle(payload);
   if (metaEl) {
     metaEl.innerHTML = topLevelCounts(payload)
@@ -1388,12 +1388,20 @@ function renderBoard() {
     bindRenderedLogos(gamesEl);
     return;
   }
+  // An empty slate (off-day, future date) is not a filter miss — say so
+  // instead of telling the user to un-apply a filter that doesn't exist.
+  const emptySlate = `<article class="empty-state">No MLB games are on the board for this date. Check back after the next board is published, or pick another date above.</article>`;
   if (state.mode !== "full_board") {
     gamesEl.className = "bet-pill-list";
-    const filteredBets = collectRecommendedBets(games).filter(betPassesFilter);
+    const bets = collectRecommendedBets(games);
+    const filteredBets = bets.filter(betPassesFilter);
     gamesEl.innerHTML = filteredBets.length
       ? filteredBets.map(renderBetPill).join("")
-      : `<article class="empty-state">No recommended bets match this filter.</article>`;
+      : (bets.length
+        ? `<article class="empty-state">No recommended bets match this filter.</article>`
+        : (games.length
+          ? `<article class="empty-state">No recommended bets are available for this date yet.</article>`
+          : emptySlate));
     bindRenderedLogos(gamesEl);
     return;
   }
@@ -1401,7 +1409,9 @@ function renderBoard() {
   const filtered = games.filter(gamePassesFilter);
   gamesEl.innerHTML = filtered.length
     ? filtered.map((game) => renderGame(game, "wise_choice")).join("")
-    : `<article class="empty-state">No games match this filter.</article>`;
+    : (games.length
+      ? `<article class="empty-state">No games match this filter.</article>`
+      : emptySlate);
   bindRenderedLogos(gamesEl);
 }
 

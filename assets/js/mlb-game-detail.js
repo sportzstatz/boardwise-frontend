@@ -1030,7 +1030,7 @@ function renderPropsPanel(game) {
 /* ---------- page assembly ---------- */
 
 function legalLine() {
-  return `<p class="gd2-legal">For informational and entertainment purposes only — not gambling, financial, legal, or investment advice. Must be 21+ and legally permitted to use BoardWise. If gambling may be a problem, call or text 1-800-MY-RESET, or in Iowa call 1-800-BETS-OFF.</p>`;
+  return `<p class="gd2-legal">For informational and entertainment purposes only — not gambling, financial, legal, or investment advice. Must be 21+ and legally permitted to use BoardWise. If gambling is a problem, call or text 1-800-GAMBLER, or in Iowa call 1-800-BETS-OFF (1-800-238-7633).</p>`;
 }
 
 function defaultTab() {
@@ -1092,7 +1092,7 @@ function renderNav(payload, game) {
 
 function renderTitle(game) {
   const label = gameLabel(game);
-  document.title = `${label} · BoardWise MLB`;
+  document.title = `${label} - BoardWise`;
   const heading = document.getElementById("gd-heading");
   if (heading) heading.textContent = label;
 }

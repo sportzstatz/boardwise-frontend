@@ -1,6 +1,7 @@
 // @ts-check
 (function () {
   const DEFAULT_API_BASE = "https://api.useboardwise.com";
+  const REQUEST_TIMEOUT_MS = 20000;
 
   /**
    * @typedef {string | URLSearchParams | Record<string, string | number | boolean | null | undefined | Array<string | number | boolean | null | undefined>>} ApiQuery
@@ -122,8 +123,25 @@
       init.headers["Content-Type"] = "application/json";
       init.body = JSON.stringify(options.body);
     }
+    // Abort hung requests so loading states resolve to an error instead of
+    // spinning forever on a stalled connection.
+    if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+      init.signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+    }
 
-    const response = await fetch(url, init);
+    let response;
+    try {
+      response = await fetch(url, init);
+    } catch (err) {
+      if (err && (err.name === "TimeoutError" || err.name === "AbortError")) {
+        throw new BoardWiseApiError("Request timed out", {
+          status: 0,
+          statusText: "Timeout",
+          url,
+        });
+      }
+      throw err;
+    }
     const body = await readJson(response);
     if (!response.ok) {
       throw new BoardWiseApiError(`${response.status} ${response.statusText}`, {

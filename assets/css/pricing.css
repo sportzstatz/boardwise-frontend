@@ -1,0 +1,200 @@
+/* Styles for /pricing/ — the BoardWise Founder plan page. */
+
+.pricing-shell {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: 24px 24px 64px;
+}
+
+.pricing-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--bw-navy);
+  box-shadow: var(--bw-shadow-strong);
+}
+
+.pricing-hero__glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(900px 340px at 88% -10%, rgba(199, 154, 58, 0.22), transparent 62%);
+}
+
+.pricing-hero__pad {
+  position: relative;
+  padding: 44px 48px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.pricing-hero__eyebrow {
+  margin: 0;
+  color: #e2c277;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.pricing-hero__title {
+  margin: 14px 0 0;
+  color: #fff;
+  font-family: var(--bw-font-display);
+  font-size: clamp(44px, 7vw, 64px);
+  line-height: 0.95;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.pricing-hero__sub {
+  max-width: 52ch;
+  margin: 14px 0 0;
+  color: var(--bw-navy-on-dark);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.pricing-hero__price {
+  text-align: right;
+}
+
+.pricing-hero__amount {
+  color: #fff;
+  font-family: var(--bw-font-display);
+  font-size: clamp(40px, 6vw, 56px);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.pricing-hero__cadence {
+  margin-top: 6px;
+  color: var(--bw-navy-on-dark);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 18px;
+  margin-top: 18px;
+  align-items: start;
+}
+
+.pricing-card {
+  border: 1px solid var(--bw-border);
+  border-radius: 18px;
+  background: var(--bw-panel);
+  box-shadow: var(--bw-shadow);
+  padding: 26px 28px;
+}
+
+.pricing-card h2 {
+  margin: 0;
+  font-family: var(--bw-font-display);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.pricing-terms {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.pricing-terms li {
+  display: flex;
+  gap: 12px;
+  color: var(--bw-ink);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.pricing-terms__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 8px;
+  border-radius: 50%;
+  background: var(--bw-gold);
+}
+
+.pricing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.pricing-notice {
+  margin: 16px 0 0;
+  border: 1.5px solid var(--bw-gold);
+  border-radius: 14px;
+  background: var(--bw-gold-soft);
+  padding: 13px 16px;
+  color: var(--bw-ink);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.pricing-checkout-copy {
+  margin-top: 18px;
+  border: 1px solid var(--bw-border);
+  border-radius: 14px;
+  background: var(--bw-table-head);
+  padding: 14px 16px;
+  color: var(--bw-ink);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.pricing-fineprint {
+  margin: 14px 0 0;
+  color: var(--bw-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.pricing-fineprint a,
+.pricing-checkout-note a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pricing-checkout-note {
+  margin: 14px 0 0;
+  color: var(--bw-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+@media (max-width: 760px) {
+  .pricing-shell {
+    padding: 16px 14px 48px;
+  }
+
+  .pricing-hero__pad {
+    padding: 30px 24px;
+  }
+
+  .pricing-hero__price {
+    text-align: left;
+  }
+
+  .pricing-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pricing-card {
+    padding: 22px;
+  }
+}

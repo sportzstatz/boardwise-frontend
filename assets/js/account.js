@@ -238,8 +238,9 @@
     }
 
     body.innerHTML = `
-      <p class="account-billing__note">You do not have an active BoardWise Founder subscription. BoardWise Founder is $24.99/month plus applicable taxes and renews monthly until canceled.</p>
+      <p class="account-billing__note">You do not currently have an active BoardWise Founder subscription. If you subscribed before, that subscription has ended or its last payment did not go through — resubscribing restores full access right away. BoardWise Founder is $24.99/month plus applicable taxes and renews monthly until canceled.</p>
       <a class="bw-button bw-button--gold" href="/pricing/">View Founder access</a>
+      <p class="account-billing__note">Questions about a past subscription or charge? Contact <a href="mailto:support@useboardwise.com">support@useboardwise.com</a>.</p>
     `;
   }
 

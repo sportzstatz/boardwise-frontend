@@ -44,7 +44,7 @@ function installPerformanceDom() {
       <button id="reset-filters" type="button">Reset</button>
     </form>
     </section>
-    <select id="group-by"><option value="wise_choice_bucket">Wise Tier</option><option value="date">Date</option></select>
+    <select id="group-by"><option value="wise_choice_bucket">Wise Choice tier</option><option value="date">Date</option></select>
     <section id="loading"></section>
     <section id="error" hidden></section>
     <section id="empty-summary" hidden></section>
