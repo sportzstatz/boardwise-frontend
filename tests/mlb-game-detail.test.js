@@ -11,6 +11,7 @@ const PROPS_PAYLOAD = JSON.parse(
 const PROPS_SUMMARY_PAYLOAD = JSON.parse(
   readFileSync("tests/fixtures/mlb-game-props-summary-payload.json", "utf8")
 );
+const GAME_PAGE_HTML = readFileSync("mlb/game/index.html", "utf8");
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -116,6 +117,11 @@ afterEach(() => {
 });
 
 describe("mlb game detail v2", () => {
+  it("cache-busts both launch-critical game detail scripts together", () => {
+    expect(GAME_PAGE_HTML).toContain('/assets/js/api-client.js?v=20260702');
+    expect(GAME_PAGE_HTML).toContain('/assets/js/mlb-game-detail.js?v=20260702');
+  });
+
   it("renders the full Founder detail with tabs, defaulting to Player Props", async () => {
     window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
     const getMlbBoard = vi.fn().mockResolvedValue(clone(FULL_PAYLOAD));
