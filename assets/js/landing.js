@@ -355,7 +355,7 @@
           <div class="landing-result-card__price tnum">${escapeHtml(price)}</div>
           <div class="landing-result-card__units">
             <span>Units won</span>
-            <strong class="tnum">${escapeHtml(formatUnits(highlight?.units_won))}</strong>
+            <strong class="tnum">${escapeHtml(formatUnits(highlight?.units_won) || "—")}</strong>
           </div>
         </div>
       </article>

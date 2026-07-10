@@ -180,28 +180,72 @@
     }
   }
 
+  // Test seam: jsdom cannot spy on window.location.assign, so tests inject
+  // window.BoardWiseNavigate instead.
+  function navigateTo(url) {
+    if (typeof window.BoardWiseNavigate === 'function') {
+      window.BoardWiseNavigate(url);
+      return;
+    }
+    window.location.assign(url);
+  }
+
+  // Only ever hand off to an https Stripe-hosted billing page. The portal URL
+  // comes from the API response body and is treated as untrusted: a compromised
+  // or cache-poisoned response must not redirect the user to a look-alike host.
+  function safeStripeUrl(value) {
+    if (typeof value !== 'string' || !value) return '';
+    let parsed;
+    try {
+      parsed = new URL(value);
+    } catch (_err) {
+      return '';
+    }
+    if (parsed.protocol !== 'https:') return '';
+    const host = parsed.hostname.toLowerCase();
+    if (host === 'stripe.com' || host.endsWith('.stripe.com')) return value;
+    return '';
+  }
+
+  function showBillingNotice(message) {
+    const notice = document.getElementById('account-billing-notice');
+    if (!notice) return;
+    notice.textContent = message;
+    notice.removeAttribute('hidden');
+  }
+
   function renderBilling(state) {
     const body = document.getElementById('account-billing-body');
     if (!body) return;
     const plan = String(state.plan || '').toLowerCase();
 
     if (plan === 'founder') {
-      // Self-serve billing (Stripe Customer Portal) is not wired yet — there is
-      // no portal/session endpoint on the API. Until paid checkout ships, the
-      // real cancellation path is BoardWise support, so the action and copy
-      // point there rather than bouncing the user to a policy page. When the
-      // billing backend lands, swap this href to the portal session URL and
-      // restore the "Manage billing" / Customer Portal copy.
       body.innerHTML = `
         <dl class="account-billing__rows">
           <div><dt>Plan</dt><dd>BoardWise Founder</dd></div>
           <div><dt>Price</dt><dd>$24.99/month plus applicable taxes</dd></div>
           <div><dt>Renewal</dt><dd>Monthly until canceled</dd></div>
-          <div><dt>Cancellation</dt><dd>Contact BoardWise support to cancel or change billing</dd></div>
+          <div><dt>Cancellation</dt><dd>Cancel anytime in the billing portal; access normally stays active through the end of the current paid period</dd></div>
         </dl>
-        <a id="account-manage-billing" class="bw-button bw-button--secondary" href="mailto:support@useboardwise.com?subject=BoardWise%20billing%20request">Contact billing support</a>
-        <p class="account-billing__note">Self-serve billing management (the Stripe Customer Portal) opens when paid checkout launches. Until then, contact <a href="mailto:support@useboardwise.com">support@useboardwise.com</a> to cancel or update billing before your next renewal.</p>
+        <button id="account-manage-billing" class="bw-button bw-button--secondary" type="button">Manage billing</button>
+        <p class="account-billing__note">Manage billing opens the secure Stripe Customer Portal to update your payment method, view invoices, or cancel. Questions? Contact <a href="mailto:support@useboardwise.com">support@useboardwise.com</a>.</p>
       `;
+
+      const manage = document.getElementById('account-manage-billing');
+      if (manage) {
+        manage.addEventListener('click', async () => {
+          manage.setAttribute('aria-busy', 'true');
+          try {
+            const result = await window.BoardWiseApi.createBillingPortal();
+            const url = safeStripeUrl(result && result.portal_url);
+            if (!url) throw new Error('missing portal_url');
+            navigateTo(url);
+          } catch (_err) {
+            manage.removeAttribute('aria-busy');
+            showBillingNotice('The billing portal is unavailable right now. Try again shortly or contact support@useboardwise.com to cancel or update billing.');
+          }
+        });
+      }
       return;
     }
 
@@ -211,8 +255,9 @@
     }
 
     body.innerHTML = `
-      <p class="account-billing__note">You do not have an active BoardWise Founder subscription. BoardWise Founder is $24.99/month plus applicable taxes and renews monthly until canceled.</p>
+      <p class="account-billing__note">You do not currently have an active BoardWise Founder subscription. If you subscribed before, that subscription has ended or its last payment did not go through — resubscribing restores full access right away. BoardWise Founder is $24.99/month plus applicable taxes and renews monthly until canceled.</p>
       <a class="bw-button bw-button--gold" href="/pricing/">View Founder access</a>
+      <p class="account-billing__note">Questions about a past subscription or charge? Contact <a href="mailto:support@useboardwise.com">support@useboardwise.com</a>.</p>
     `;
   }
 
@@ -257,5 +302,54 @@
     }
   }
 
-  window.BoardWiseAuth.loadAuthState({ force: true }).then(renderAccount);
+  const CHECKOUT_POLL_INTERVAL_MS = 1500;
+  const CHECKOUT_POLL_ATTEMPTS = 10; // 10 × 1.5s = the documented 15s budget
+
+  function delay(ms) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  }
+
+  function checkoutSuccessRequested() {
+    try {
+      return new URLSearchParams(window.location.search).get('checkout') === 'success';
+    } catch (_err) {
+      return false;
+    }
+  }
+
+  // The redirect back from Stripe is never proof of payment: access appears
+  // only after webhook reconciliation grants it server-side, so poll billing
+  // status and re-render from a fresh /me — never set plan/features locally.
+  async function finalizeCheckout(state) {
+    if (!checkoutSuccessRequested()) return;
+    if (!state.authenticated) return;
+    if (String(state.plan || '').toLowerCase() === 'founder') return;
+
+    showBillingNotice('Finalizing Founder access…');
+
+    for (let attempt = 0; attempt < CHECKOUT_POLL_ATTEMPTS; attempt += 1) {
+      await delay(CHECKOUT_POLL_INTERVAL_MS);
+      let status = null;
+      try {
+        status = await window.BoardWiseApi.getBillingStatus();
+      } catch (_err) {
+        continue;
+      }
+      if (status && String(status.plan || '').toLowerCase() === 'founder') {
+        const fresh = await window.BoardWiseAuth.loadAuthState({ force: true });
+        renderAccount(fresh);
+        showBillingNotice('Your BoardWise Founder access is active.');
+        return;
+      }
+    }
+
+    showBillingNotice('Payment received. Access is still syncing. Refresh shortly or contact support@useboardwise.com.');
+  }
+
+  window.BoardWiseAuth.loadAuthState({ force: true }).then(async (state) => {
+    renderAccount(state);
+    await finalizeCheckout(state);
+  });
 })();

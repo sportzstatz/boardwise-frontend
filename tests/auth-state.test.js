@@ -42,6 +42,34 @@ describe("auth-state", () => {
     expect(auth.displayName(state)).toBe("Sign in");
   });
 
+  it("does not cache the guest fallback — a later call retries /me", async () => {
+    const fetch = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("transient outage"))
+      .mockResolvedValue(
+        jsonResponse({
+          authenticated: true,
+          plan: "founder",
+          user: { email: "founder@example.com" },
+          features: { mlb_board_advanced: true },
+        })
+      );
+    vi.stubGlobal("fetch", fetch);
+
+    const auth = await loadAuthStateScript();
+
+    const first = await auth.loadAuthState({ force: true });
+    expect(first.plan).toBe("guest");
+
+    // No force: a fresh call after a failure must retry instead of serving
+    // the cached guest fallback (a blip must not demote a signed-in user
+    // for the rest of the page lifetime).
+    const second = await auth.loadAuthState();
+    expect(second.authenticated).toBe(true);
+    expect(second.plan).toBe("founder");
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
   it("normalizes authenticated state and feature flags from the API", async () => {
     vi.stubGlobal(
       "fetch",

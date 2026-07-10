@@ -155,7 +155,7 @@ async function renderPerformance(page) {
 test.describe("performance visual baselines", () => {
   test("desktop", async ({ page }) => {
     await renderPerformance(page);
-    await expect(page.locator("#breakdown-heading")).toHaveText("By Wise Tier");
+    await expect(page.locator("#breakdown-heading")).toHaveText("By Wise Choice™ tier");
     await expect(page).toHaveScreenshot("performance-desktop.png", { fullPage: true });
   });
 
