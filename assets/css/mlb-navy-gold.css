@@ -529,6 +529,20 @@ h1 {
   white-space: nowrap;
 }
 
+.starter-stale-warning {
+  width: min(100%, 180px);
+  margin-top: 6px;
+  padding: 4px 7px;
+  border: 1px solid rgba(199, 154, 58, 0.55);
+  border-radius: 7px;
+  background: var(--bw-gold-soft);
+  color: var(--bw-gold-ink);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
 .lineup-tag {
   display: inline-flex;
   align-items: center;

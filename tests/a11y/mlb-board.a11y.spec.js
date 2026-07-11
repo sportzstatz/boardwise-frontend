@@ -171,6 +171,29 @@ test.describe("MLB board accessibility", () => {
     await expect(page.locator(".tot-bar").first()).toHaveAttribute("aria-label", /New York Mets .*Chicago Cubs/);
   });
 
+  test("starter mismatch warnings are included in each side's accessible name", async ({ page }) => {
+    const payload = await fixture("mlb-classic-payload.json");
+    Object.assign(payload.games[0], {
+      away_pitcher_source: "Kodai Senga",
+      away_pitcher_stale: true,
+      away_pitcher_stale_age_minutes: 12,
+      home_pitcher_source: "TBD",
+      home_pitcher_stale: true,
+      home_pitcher_stale_age_minutes: 1,
+    });
+    await renderBoard(page, payload);
+
+    await expect(page.locator(".tot-side.away")).toHaveAttribute(
+      "aria-label",
+      /Starting pitcher David Peterson.*Latest source starter Kodai Senga.*12 minutes/
+    );
+    await expect(page.locator(".tot-side.home")).toHaveAttribute(
+      "aria-label",
+      /Starting pitcher Shota Imanaga.*Latest source starter TBD.*1 minute/
+    );
+    await expectNoA11yViolations(page);
+  });
+
   test("mobile market summaries preserve hidden call and model context in the accessible name", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await renderBoard(page, await fixture("mlb-classic-payload.json"));

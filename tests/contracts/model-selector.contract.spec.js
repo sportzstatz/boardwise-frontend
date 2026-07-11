@@ -118,4 +118,27 @@ test.describe("MLB model selector renders from API model family metadata", () =>
     await expect(page.locator('[data-model-family="obsidian_steed"]')).toHaveCount(0);
     await expect(page.locator("#model-selector")).not.toContainText("Obsidian Steed");
   });
+
+  test("starter-state fields preserve modeled pitchers and expose source mismatches", async ({ page }) => {
+    const payload = await fixture("mlb-classic-payload.json");
+    Object.assign(payload.games[0], {
+      away_pitcher_source: "Kodai Senga",
+      away_pitcher_stale: true,
+      away_pitcher_stale_age_minutes: 12,
+      home_pitcher_source: "TBD",
+      home_pitcher_stale: true,
+      home_pitcher_stale_age_minutes: 1,
+    });
+
+    await renderBoard(page, payload);
+
+    const away = page.locator(".tot-side.away");
+    const home = page.locator(".tot-side.home");
+    await expect(away.locator(".tot-pitcher")).toHaveText(payload.games[0].away_pitcher);
+    await expect(away.locator(".starter-stale-warning")).toHaveText("Latest: Kodai Senga · pending 12m");
+    await expect(away).toHaveAttribute("aria-label", /Latest source starter Kodai Senga/);
+    await expect(home.locator(".tot-pitcher")).toHaveText(payload.games[0].home_pitcher);
+    await expect(home.locator(".starter-stale-warning")).toHaveText("Latest: TBD · pending 1m");
+    await expect(home).toHaveAttribute("aria-label", /Latest source starter TBD/);
+  });
 });
