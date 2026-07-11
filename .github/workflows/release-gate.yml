@@ -108,10 +108,10 @@ jobs:
           test -f dist/_headers
           test -f dist/_redirects
           test -f dist/assets/js/api-client.js
+          test -f dist/assets/js/mlb-access.js
           test -f dist/assets/js/mlb-team-branding.js
           test -f dist/assets/js/mlb-board.js
           test -f dist/assets/img/mlb/team-logos/PROVENANCE.md
-          test -f dist/assets/js/nhl-board.js
           test -f dist/assets/js/performance.js
 
       - name: Release handoff
@@ -135,7 +135,7 @@ jobs:
           - / returns 200.
           - /login/ renders form and Turnstile area.
           - /mlb/ loads board data.
-          - /nhl/ loads board payload.
+          - /nhl/ redirects to / while hockey is off-season.
           - /performance/ loads filters/summary/breakdown/picks.
           - No BoardWiseApi undefined errors.
           - No /api/v1/operator calls.
