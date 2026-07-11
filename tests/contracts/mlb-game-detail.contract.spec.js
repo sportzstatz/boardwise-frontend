@@ -19,6 +19,7 @@ async function fixture(name) {
 }
 
 async function mockDetailApis(page, { board, props, authenticated }) {
+  const limitedBoard = board?.access?.level === "preview";
   await page.addInitScript((now) => {
     Date.now = () => now;
   }, FROZEN_NOW);
@@ -29,8 +30,8 @@ async function mockDetailApis(page, { board, props, authenticated }) {
       body: JSON.stringify({
         authenticated,
         user: authenticated ? { email: "founder@example.com" } : null,
-        plan: authenticated ? "founder" : "guest",
-        features: { mlb_board_basic: true, mlb_board_advanced: authenticated },
+        plan: authenticated ? (limitedBoard ? "free" : "founder") : "guest",
+        features: { mlb_board_basic: authenticated, mlb_board_advanced: authenticated && !limitedBoard },
       }),
     });
   });
@@ -112,9 +113,19 @@ test.describe("MLB game detail v2 consumes the props response contract", () => {
   });
 
   test("access:summary renders the lock panel from counts + top_bucket + upgrade", async ({ page }) => {
-    const board = await fixture("mlb-game-detail-preview-payload.json");
+    const board = await fixture("mlb-game-detail-payload.json");
+    board.access = {
+      level: "preview",
+      card_access: "full",
+      preview: true,
+      full_access: false,
+      max_preview_games: 2,
+      preview_game_count: board.games.length,
+      required_feature: "mlb_board_advanced",
+      upgrade_path: "/pricing/",
+    };
     const props = await fixture("mlb-game-props-summary-payload.json");
-    await renderDetail(page, { board, props, authenticated: false });
+    await renderDetail(page, { board, props, authenticated: true });
 
     const lock = page.locator('[data-gd2-panel="props"] .gd2-lock');
     await expect(lock).toBeVisible();
@@ -123,10 +134,16 @@ test.describe("MLB game detail v2 consumes the props response contract", () => {
     );
     await expect(lock).toContainText("two plays above the Prime line today");
     await expect(lock.locator(".gd2-btn-gold")).toHaveAttribute("href", props.upgrade.upgrade_path);
-    await expect(lock.locator("[data-auth-guest]")).toHaveAttribute("href", "/login/");
+    await expect(lock.locator("[data-auth-guest]")).toBeHidden();
     // Summary payloads carry no rows — nothing premium may render.
     await expect(page.locator(".gd2-rank-card")).toHaveCount(0);
     await expect(page.locator(".gd2-pitcher-card")).toHaveCount(0);
+    await expect(page.locator(".gd-wise")).toBeVisible();
+    await expect(page.locator("#gd-back .gd-back-link")).toHaveAttribute("href", "/mlb/");
+    await page.locator('[data-gd2-tab="markets"]').click();
+    await expect(page.locator(".gd2-mkt-option.is-wise")).toBeVisible();
+    await page.locator('[data-gd2-tab="model"]').click();
+    await expect(page.locator(".gd2-stat-card")).toHaveCount(6);
   });
 
   test("state:no_props_published renders the quiet empty card, board tabs unaffected", async ({ page }) => {

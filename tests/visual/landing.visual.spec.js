@@ -173,7 +173,8 @@ test.describe("landing visual baselines", () => {
     await expect(page.locator("#landing-preview")).toHaveAttribute("data-state", "ready");
     await waitForTeamLogos(page);
     await expect(page.locator("#proof")).toBeVisible();
-    await expect(page.locator(".landing-preview__label")).toHaveText("Official");
+    await expect(page.locator(".landing-preview__label")).toHaveText("Today's matchup");
+    await expect(page.locator(".landing-result-stat")).toHaveCount(4);
     await expect(page.getByLabel("NHL off-season board")).toContainText("Off-season");
     await expect(page.locator('a[href="/nhl/"]')).toHaveCount(0);
     await expect(page).toHaveScreenshot("landing-desktop.png", {
@@ -193,7 +194,8 @@ test.describe("landing visual baselines", () => {
     await expect(page.locator("#landing-preview")).toHaveAttribute("data-state", "ready");
     await waitForTeamLogos(page);
     await expect(page.locator("#proof")).toBeVisible();
-    await expect(page.locator(".landing-preview__label")).toHaveText("Official");
+    await expect(page.locator(".landing-preview__label")).toHaveText("Today's matchup");
+    await expect(page.locator(".landing-result-stat")).toHaveCount(4);
     await expect(page.getByLabel("NHL off-season board")).toContainText("Off-season");
     await expect(page.locator('a[href="/nhl/"]')).toHaveCount(0);
     await expect(page).toHaveScreenshot("landing-mobile.png", { fullPage: true });

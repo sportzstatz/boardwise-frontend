@@ -61,6 +61,7 @@ function landingSnapshot() {
       fully_settled: true,
       model_family: "classic_mlb",
       summary: {
+        pick_count: 8,
         record: "6-2",
         units_won: 4.31,
         roi: 0.187,
@@ -120,9 +121,10 @@ async function expectLandingSemantics(page) {
   await expect(page.locator(".landing-board-card__icon[aria-hidden='true']")).toHaveCount(4);
   await expect(page.getByLabel("NHL off-season board")).toContainText("Off-season");
   await expect(page.locator('a[href="/nhl/"]')).toHaveCount(0);
-  await expect(page.locator(".landing-preview__bar")).toHaveAttribute("aria-label", /Blue Jays 45\.9%/);
-  await expect(page.locator(".landing-result-card__status").first()).toHaveText("Win");
-  await expect(page.locator(".landing-result-card__status").nth(1)).toHaveText("Win");
+  await expect(page.locator(".landing-preview__label")).toHaveText("Today's matchup");
+  await expect(page.locator(".landing-preview__bar")).toHaveCount(0);
+  await expect(page.locator(".landing-result-stat")).toHaveCount(4);
+  await expect(page.locator(".landing-result-stat__label")).toHaveText(["Record", "Picks", "Units", "ROI"]);
   const hiddenFocusableCount = await page.locator("[aria-hidden='true'] a, [aria-hidden='true'] button, [aria-hidden='true'] input, [aria-hidden='true'] select, [aria-hidden='true'] textarea, [aria-hidden='true'] [tabindex]:not([tabindex='-1'])").count();
   expect(hiddenFocusableCount).toBe(0);
 }

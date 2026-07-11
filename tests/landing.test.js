@@ -217,20 +217,32 @@ describe("landing page", () => {
     expect(document.querySelector("#landing-hero-status")?.textContent).toContain("15 MLB games on today's board");
   });
 
-  it("renders featured matchup values from the payload", async () => {
+  it("renders matchup identity while ignoring stale actionable fields", async () => {
     await loadLanding();
 
     const preview = document.querySelector("#landing-preview");
     expect(preview?.textContent).toContain("Blue Jays at Red Sox");
     expect(preview?.textContent).toContain("TOR");
     expect(preview?.textContent).toContain("BOS");
-    expect(preview?.textContent).toContain("45.9");
-    expect(preview?.textContent).toContain("ML +106");
-    expect(preview?.textContent).toContain("Red Sox -1.5");
-    expect(preview?.textContent).toContain("FanDuel");
-    expect(preview?.textContent).toContain("73.4%");
-    expect(preview?.textContent).toContain("+9.1%");
-    expect(preview?.textContent).toContain("+0.09u");
+    expect(preview?.textContent).toContain("Fenway Park");
+    expect(preview?.textContent).toContain("Today's matchup");
+    for (const sensitive of [
+      "45.9%",
+      "54.1%",
+      "ML +106",
+      "Red Sox -1.5",
+      "FanDuel",
+      "73.4%",
+      "+9.1%",
+      "+0.09u",
+      "Wise Choice",
+      "Official",
+      "Preview",
+    ]) {
+      expect(preview?.textContent).not.toContain(sensitive);
+    }
+    expect(preview?.querySelector(".landing-preview__bar")).toBeNull();
+    expect(preview?.querySelector(".landing-preview__choice")).toBeNull();
   });
 
   it("renders team logo marks with an abbreviation fallback in the featured matchup", async () => {
@@ -283,57 +295,7 @@ describe("landing page", () => {
     expect(teams[1].getAttribute("style")).toContain("--team-color:#0C2340");
   });
 
-  it("renders official badges only when an official pick exists", async () => {
-    await loadLanding();
-    expect(document.querySelector("#landing-preview")?.textContent).toContain("Official");
-
-    const payload = landingPayload({
-      board: {
-        ...landingPayload().board,
-        featured: {
-          ...landingPayload().board.featured,
-          pick: null,
-        },
-      },
-    });
-    await loadLanding({
-      api: {
-        getMlbLanding: vi.fn().mockResolvedValue(payload),
-        getNhlBoard: vi.fn().mockResolvedValue({ games: [] }),
-      },
-    });
-
-    expect(document.querySelector("#landing-preview")?.textContent).not.toContain("Official");
-    expect(document.querySelector("#landing-preview")?.textContent).toContain("Preview");
-  });
-
-  it("labels a non-official featured pick as a preview", async () => {
-    const base = landingPayload();
-    const payload = landingPayload({
-      board: {
-        ...base.board,
-        featured: {
-          ...base.board.featured,
-          pick: {
-            ...base.board.featured.pick,
-            is_official: false,
-          },
-        },
-      },
-    });
-
-    await loadLanding({
-      api: {
-        getMlbLanding: vi.fn().mockResolvedValue(payload),
-        getNhlBoard: vi.fn().mockResolvedValue({ games: [] }),
-      },
-    });
-
-    expect(document.querySelector(".landing-preview__label")?.textContent).toBe("Preview");
-    expect(document.querySelector(".landing-preview__choice-pill")?.textContent).toBe("Preview");
-  });
-
-  it("no-pick state does not fabricate metrics", async () => {
+  it("renders the same neutral matchup when the featured pick is absent", async () => {
     const payload = landingPayload({
       board: {
         ...landingPayload().board,
@@ -351,15 +313,15 @@ describe("landing page", () => {
       },
     });
 
-    expect(document.querySelector("#landing-preview")?.textContent).toContain("No official play has been published");
-    expect(document.querySelector("#landing-preview .landing-preview__metrics")).toBeNull();
+    expect(document.querySelector("#landing-preview")?.textContent).toContain("Today's matchup");
+    expect(document.querySelector("#landing-preview .landing-preview__choice")).toBeNull();
   });
 
   it("selects yesterday result copy when is_yesterday is true", async () => {
     await loadLanding();
 
-    expect(document.querySelector("#landing-results-kicker")?.textContent).toBe("Obsidian Steed · yesterday's winners");
-    expect(document.querySelector("#landing-results-title")?.textContent).toBe("What hit on Jun 21");
+    expect(document.querySelector("#landing-results-kicker")?.textContent).toBe("Obsidian Steed · yesterday's results");
+    expect(document.querySelector("#landing-results-title")?.textContent).toBe("Results for Jun 21");
     expect(document.querySelector("#landing-secondary-cta")?.textContent).toBe("See yesterday's results");
   });
 
@@ -377,19 +339,32 @@ describe("landing page", () => {
       },
     });
 
-    expect(document.querySelector("#landing-results-kicker")?.textContent).toBe("Obsidian Steed · latest winners");
-    expect(document.querySelector("#landing-results-title")?.textContent).toBe("What hit on Jun 20");
+    expect(document.querySelector("#landing-results-kicker")?.textContent).toBe("Obsidian Steed · latest results");
+    expect(document.querySelector("#landing-results-title")?.textContent).toBe("Results for Jun 20");
     expect(document.querySelector("#landing-secondary-cta")?.textContent).toBe("See latest results");
   });
 
-  it("renders only winning result cards and filters out losses", async () => {
+  it("renders only the four aggregate result metrics", async () => {
     await loadLanding();
 
     const cards = document.querySelectorAll(".landing-result-card");
-    expect(cards).toHaveLength(2);
-    expect([...cards].every((card) => card.classList.contains("is-win"))).toBe(true);
-    expect([...cards].every((card) => card.textContent.includes("Win"))).toBe(true);
-    expect(document.querySelector(".landing-result-card.is-loss")).toBeNull();
+    expect(cards).toHaveLength(4);
+    expect([...document.querySelectorAll(".landing-result-stat__label")].map((card) => card.textContent)).toEqual([
+      "Record",
+      "Picks",
+      "Units",
+      "ROI",
+    ]);
+    expect([...document.querySelectorAll(".landing-result-stat__value")].map((card) => card.textContent)).toEqual([
+      "6-2",
+      "8",
+      "+4.31u",
+      "+18.7%",
+    ]);
+    const proof = document.querySelector("#proof")?.textContent || "";
+    expect(proof).not.toContain("Yankees at Orioles");
+    expect(proof).not.toContain("Yankees ML");
+    expect(proof).not.toContain("DraftKings");
   });
 
   it("hides the results section when results are null", async () => {
@@ -411,7 +386,7 @@ describe("landing page", () => {
       { authenticated: true, features: { mlb_board_basic: true, mlb_board_advanced: true } },
     ],
   ])(
-    "conceals the tracked-record /performance/ link from %s while keeping the public winners",
+    "conceals the tracked-record /performance/ link from %s while keeping the public aggregates",
     async (_label, auth) => {
       await loadLanding({ auth });
 
@@ -420,9 +395,9 @@ describe("landing page", () => {
       // or told about the /performance/ dashboard.
       expect(link?.hasAttribute("hidden")).toBe(true);
       expect(link?.getAttribute("href")).toBeNull();
-      // The public winners snapshot itself still renders (guest-readable).
+      // The public aggregate snapshot itself still renders (guest-readable).
       expect(document.querySelector("#proof")?.hasAttribute("hidden")).toBe(false);
-      expect(document.querySelector(".landing-result-card.is-win")).not.toBeNull();
+      expect(document.querySelectorAll(".landing-result-stat")).toHaveLength(4);
     }
   );
 
@@ -439,19 +414,28 @@ describe("landing page", () => {
     const href = link?.getAttribute("href") || "";
     expect(href).toContain("/performance/");
     expect(href).toContain("start_date=2026-06-21");
-    // The panel shows Obsidian Steed (tracked) winners, so the admin record link
+    // The panel shows Obsidian Steed tracked results, so the admin record link
     // must open the tracking scope, not the official/classic record.
     expect(href).toContain("performance_scope=tracking");
     expect(href).not.toContain("performance_scope=official");
   });
 
-  it("hides #proof when no bets won (all-losses settled date)", async () => {
+  it("shows a valid aggregate panel when every settled pick lost", async () => {
     const base = landingPayload().results;
     await loadLanding({
       api: {
         getMlbLanding: vi.fn().mockResolvedValue(landingPayload({
           results: {
             ...base,
+            summary: {
+              ...base.summary,
+              wins: 0,
+              losses: 8,
+              record: "0-8",
+              units_won: -8,
+              roi: -1,
+              roi_pct: -100,
+            },
             highlights: [
               { published_pick_id: 9001, game_label: "A at B", selection_text: "Over 8", bookmaker_abbr: "DK", price_text: "-110", result_status: "loss", units_won: -1 },
               { published_pick_id: 9002, game_label: "C at D", selection_text: "Under 9", bookmaker_abbr: "FD", price_text: "-105", result_status: "push", units_won: 0 },
@@ -462,17 +446,19 @@ describe("landing page", () => {
       },
     });
 
-    // No winning cards → suppress the whole winners panel rather than show a blank grid.
-    expect(document.querySelector("#proof")?.hasAttribute("hidden")).toBe(true);
-    expect(document.querySelector("#landing-results-cards")?.innerHTML).toBe("");
-    expect(document.querySelectorAll(".landing-result-card")).toHaveLength(0);
-    // And repoint the secondary CTA away from the now-hidden #proof.
+    expect(document.querySelector("#proof")?.hasAttribute("hidden")).toBe(false);
+    expect([...document.querySelectorAll(".landing-result-stat__value")].map((card) => card.textContent)).toEqual([
+      "0-8",
+      "8",
+      "-8.00u",
+      "-100.0%",
+    ]);
     const cta = document.querySelector("#landing-secondary-cta");
-    expect(cta?.getAttribute("href")).toBe("#how");
-    expect(cta?.textContent).toBe("How the model works");
+    expect(cta?.getAttribute("href")).toBe("#proof");
+    expect(cta?.textContent).toBe("See yesterday's results");
   });
 
-  it("hides #proof when the highlights array is empty", async () => {
+  it("does not depend on individual highlights to show aggregates", async () => {
     const base = landingPayload().results;
     await loadLanding({
       api: {
@@ -483,11 +469,57 @@ describe("landing page", () => {
       },
     });
 
+    expect(document.querySelector("#proof")?.hasAttribute("hidden")).toBe(false);
+    expect(document.querySelectorAll(".landing-result-stat")).toHaveLength(4);
+  });
+
+  it("keeps zero-valued aggregates visible and derives record/ROI fallbacks", async () => {
+    const base = landingPayload().results;
+    await loadLanding({
+      api: {
+        getMlbLanding: vi.fn().mockResolvedValue(landingPayload({
+          results: {
+            ...base,
+            summary: {
+              pick_count: 0,
+              wins: 0,
+              losses: 0,
+              record: null,
+              units_won: 0,
+              roi: 0,
+              roi_pct: null,
+            },
+          },
+        })),
+        getNhlBoard: vi.fn().mockResolvedValue({ games: [] }),
+      },
+    });
+
+    expect(document.querySelector("#proof")?.hasAttribute("hidden")).toBe(false);
+    expect([...document.querySelectorAll(".landing-result-stat__value")].map((card) => card.textContent)).toEqual([
+      "0-0",
+      "0",
+      "+0.00u",
+      "0.0%",
+    ]);
+  });
+
+  it("hides #proof when the aggregate summary is absent", async () => {
+    const base = landingPayload().results;
+    await loadLanding({
+      api: {
+        getMlbLanding: vi.fn().mockResolvedValue(landingPayload({
+          results: { ...base, summary: null },
+        })),
+        getNhlBoard: vi.fn().mockResolvedValue({ games: [] }),
+      },
+    });
+
     expect(document.querySelector("#proof")?.hasAttribute("hidden")).toBe(true);
     expect(document.querySelector("#landing-results-cards")?.innerHTML).toBe("");
   });
 
-  it("keeps the admin record link hidden when no bets won", async () => {
+  it("keeps the admin record link available for a valid all-loss aggregate", async () => {
     const base = landingPayload().results;
     await loadLanding({
       auth: { authenticated: true, features: { mlb_board_basic: true, performance_summary: true } },
@@ -495,6 +527,14 @@ describe("landing page", () => {
         getMlbLanding: vi.fn().mockResolvedValue(landingPayload({
           results: {
             ...base,
+            summary: {
+              ...base.summary,
+              wins: 0,
+              losses: 8,
+              record: "0-8",
+              units_won: -8,
+              roi_pct: -100,
+            },
             highlights: [
               { published_pick_id: 9003, game_label: "E at F", selection_text: "Yankees ML", bookmaker_abbr: "DK", price_text: "+120", result_status: "loss", units_won: -1 },
             ],
@@ -504,9 +544,8 @@ describe("landing page", () => {
       },
     });
 
-    // The early-return suppresses the panel, so even an admin gets no link to a hidden section.
-    expect(document.querySelector("#proof")?.hasAttribute("hidden")).toBe(true);
-    expect(document.querySelector("#landing-results-link")?.hasAttribute("hidden")).toBe(true);
+    expect(document.querySelector("#proof")?.hasAttribute("hidden")).toBe(false);
+    expect(document.querySelector("#landing-results-link")?.hasAttribute("hidden")).toBe(false);
   });
 
   it("public snapshot failure leaves the page usable", async () => {

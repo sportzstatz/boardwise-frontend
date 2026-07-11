@@ -16,7 +16,23 @@ async function fixture(name) {
   return JSON.parse(raw);
 }
 
+function freeBoardPayload(basePayload) {
+  const payload = structuredClone(basePayload);
+  payload.access = {
+    level: "preview",
+    card_access: "full",
+    preview: true,
+    full_access: false,
+    max_preview_games: 2,
+    preview_game_count: payload.games.length,
+    required_feature: "mlb_board_advanced",
+    upgrade_path: "/pricing/",
+  };
+  return payload;
+}
+
 async function mockBoardPayload(page, payload) {
+  const limitedBoard = payload?.access?.level === "preview";
   await page.addInitScript((now) => {
     Date.now = () => now;
   }, FROZEN_NOW);
@@ -25,13 +41,14 @@ async function mockBoardPayload(page, payload) {
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({
-        authenticated: false,
-        user: null,
-        plan: "guest",
+        authenticated: limitedBoard,
+        user: limitedBoard ? { email: "free@example.test", display_name: "Free Member" } : null,
+        plan: limitedBoard ? "free" : "guest",
         features: {
           mlb_board_basic: true,
           nhl_board_basic: true,
-          performance_summary: true,
+          mlb_board_advanced: false,
+          performance_summary: !limitedBoard,
         },
       }),
     });
@@ -81,6 +98,13 @@ async function expectVisibleFocus(locator) {
 }
 
 test.describe("MLB board accessibility", () => {
+  test("Free complete card has no automated WCAG A/AA violations", async ({ page }) => {
+    await renderBoard(page, freeBoardPayload(await fixture("mlb-game-detail-payload.json")));
+    await expect(page.locator(".best-card")).toBeVisible();
+    await expect(page.locator("#date-form")).toBeHidden();
+    await expectNoA11yViolations(page);
+  });
+
   for (const [name, fixtureName, query] of [
     ["Classic", "mlb-classic-payload.json", ""],
     ["Obsidian shadow", "mlb-obsidian-shadow-payload.json", "?model=obsidian_steed"],

@@ -80,7 +80,23 @@ function collisionPayload(basePayload) {
   return payload;
 }
 
+function freeBoardPayload(basePayload) {
+  const payload = structuredClone(basePayload);
+  payload.access = {
+    level: "preview",
+    card_access: "full",
+    preview: true,
+    full_access: false,
+    max_preview_games: 2,
+    preview_game_count: payload.games.length,
+    required_feature: "mlb_board_advanced",
+    upgrade_path: "/pricing/",
+  };
+  return payload;
+}
+
 async function mockBoardPayload(page, payload) {
+  const limitedBoard = payload?.access?.level === "preview";
   await page.addInitScript((now) => {
     Date.now = () => now;
   }, FROZEN_NOW);
@@ -89,13 +105,14 @@ async function mockBoardPayload(page, payload) {
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({
-        authenticated: false,
-        user: null,
-        plan: "guest",
+        authenticated: limitedBoard,
+        user: limitedBoard ? { email: "free@example.test", display_name: "Free Member" } : null,
+        plan: limitedBoard ? "free" : "guest",
         features: {
           mlb_board_basic: true,
           nhl_board_basic: true,
-          performance_summary: true,
+          mlb_board_advanced: false,
+          performance_summary: !limitedBoard,
         },
       }),
     });
@@ -122,6 +139,18 @@ async function renderBoard(page, payload, query = "") {
 }
 
 test.describe("MLB board visual baselines", () => {
+  test("Free complete card", async ({ page }) => {
+    await renderBoard(page, freeBoardPayload(await fixture("mlb-game-detail-payload.json")));
+
+    await expect(page.locator(".best-card")).toBeVisible();
+    await expect(page.locator(".market-dropdown")).toHaveCount(4);
+    await expect(page.locator("#date-form")).toBeHidden();
+    await expect(page.locator("#model-selector")).toBeHidden();
+    await expect(page.locator(".tot-detail-link")).toHaveAttribute("href", "/mlb/game/?game_pk=777001");
+    await expect(page.locator(".preview-upgrade-copy")).toContainText("two complete MLB cards daily");
+    await expect(page).toHaveScreenshot("mlb-free-complete-card.png", { fullPage: true });
+  });
+
   test("Classic", async ({ page }) => {
     await renderBoard(page, await fixture("mlb-classic-payload.json"));
 

@@ -352,12 +352,21 @@ function gameLabel(game) {
 }
 
 function accessLevel(payload) {
+  if (window.BoardWiseMlbAccess) return window.BoardWiseMlbAccess.accessLevel(payload);
   const access = payload && payload.access && typeof payload.access === "object" ? payload.access : {};
   return String(access.level || (access.preview ? "preview" : "full"));
 }
 
 function isPreviewPayload(payload) {
-  return accessLevel(payload) === "preview";
+  return window.BoardWiseMlbAccess
+    ? window.BoardWiseMlbAccess.isLimitedBoard(payload)
+    : accessLevel(payload) === "preview";
+}
+
+function hasFullCardAccess(payload) {
+  if (window.BoardWiseMlbAccess) return window.BoardWiseMlbAccess.hasFullCardAccess(payload);
+  const access = payload && payload.access && typeof payload.access === "object" ? payload.access : {};
+  return accessLevel(payload) === "full" || String(access.card_access || "") === "full";
 }
 
 function safeUpgradePath(payload) {
@@ -382,6 +391,10 @@ function findGame(payload, gamePk) {
 }
 
 function boardHref() {
+  // A limited Free board is available only through the canonical current
+  // route. Even though its payload identifies the selected family, forwarding
+  // that model (or a date) would turn the back link into a Founder-only request.
+  if (gdState.payload && isPreviewPayload(gdState.payload)) return "/mlb/";
   const params = new URLSearchParams();
   const date = readTargetDate();
   if (date) params.set("date", date);
@@ -1043,18 +1056,18 @@ function defaultTab() {
 }
 
 function renderPanels(payload, game) {
-  const preview = isPreviewPayload(payload);
+  const fullCards = hasFullCardAccess(payload);
   const upgradeHref = safeUpgradePath(payload);
   const panel = (id, content) =>
     `<section class="gd2-panel" data-gd2-panel="${esc(id)}"${gdState.activeTab === id ? "" : " hidden"}>${content}</section>`;
   return [
-    panel("markets", preview
-      ? renderLockedSection("Full markets are Founder access", "Every supported market side with the model's call, edge, and expected value.", upgradeHref)
-      : renderMarketsPanel(payload, game)),
+    panel("markets", fullCards
+      ? renderMarketsPanel(payload, game)
+      : renderLockedSection("Full markets are Founder access", "Every supported market side with the model's call, edge, and expected value.", upgradeHref)),
     panel("props", renderPropsPanel(game)),
-    panel("model", preview
-      ? renderLockedSection("The model breakdown is Founder access", "Projected score, win probabilities, projected total and margin, and model versions.", upgradeHref)
-      : renderModelPanel(payload, game)),
+    panel("model", fullCards
+      ? renderModelPanel(payload, game)
+      : renderLockedSection("The model breakdown is Founder access", "Projected score, win probabilities, projected total and margin, and model versions.", upgradeHref)),
   ].join("");
 }
 
@@ -1062,7 +1075,7 @@ function renderDetailInner(payload, game) {
   return `
     <div class="gd-detail-inner gd2-detail">
       ${renderHero(game)}
-      ${isPreviewPayload(payload) ? "" : renderWiseBanner(game, payload)}
+      ${hasFullCardAccess(payload) ? renderWiseBanner(game, payload) : ""}
       ${renderTabBar()}
       ${renderPanels(payload, game)}
       ${legalLine()}
@@ -1292,6 +1305,7 @@ if (["", "localhost", "127.0.0.1"].includes(window.location.hostname)) {
     resolveGameBranding,
     findGame,
     accessLevel,
+    hasFullCardAccess,
     sPct,
     pBetPctOf,
     pBetTextOf,

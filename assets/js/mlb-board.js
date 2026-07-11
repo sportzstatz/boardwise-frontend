@@ -169,6 +169,7 @@ function hasTrackerMarkets(payload = state.payload) {
 }
 
 function accessLevel(payload = state.payload) {
+  if (window.BoardWiseMlbAccess) return window.BoardWiseMlbAccess.accessLevel(payload);
   const access = payload && payload.access && typeof payload.access === "object"
     ? payload.access
     : {};
@@ -176,7 +177,17 @@ function accessLevel(payload = state.payload) {
 }
 
 function isPreviewPayload(payload = state.payload) {
-  return accessLevel(payload) === "preview";
+  return window.BoardWiseMlbAccess
+    ? window.BoardWiseMlbAccess.isLimitedBoard(payload)
+    : accessLevel(payload) === "preview";
+}
+
+function hasFullCardAccess(payload = state.payload) {
+  if (window.BoardWiseMlbAccess) return window.BoardWiseMlbAccess.hasFullCardAccess(payload);
+  const access = payload && payload.access && typeof payload.access === "object"
+    ? payload.access
+    : {};
+  return accessLevel(payload) === "full" || String(access.card_access || "") === "full";
 }
 
 function shouldShowObsidianTreatment(payload = state.payload) {
@@ -762,6 +773,10 @@ function gameDetailHref(game) {
   if (pk === null || pk === undefined || pk === "") return "";
   const params = new URLSearchParams();
   params.set("game_pk", String(pk));
+  // Free cards come from the canonical current board. Date/model parameters
+  // request Founder-only board variants, so limited-board links intentionally
+  // carry only the game identifier.
+  if (isPreviewPayload()) return `/mlb/game/?${params.toString()}`;
   const date = (state.payload && state.payload.target_date) || readTargetDate();
   if (date) params.set("date", date);
   // Only forward a model the API currently advertises as a selectable game
@@ -1363,10 +1378,18 @@ function renderPreviewUpgradeCard(payload = state.payload) {
     ? payload.access
     : {};
   const href = safePreviewUpgradePath(access.upgrade_path);
+  const configuredCardCount = Number(access.max_preview_games);
+  const cardCount = Number.isFinite(configuredCardCount) && configuredCardCount > 0
+    ? configuredCardCount
+    : 2;
+  const cardCountLabel = cardCount === 2 ? "two" : esc(cardCount);
+  const accessCopy = hasFullCardAccess(payload)
+    ? `Free includes ${cardCountLabel} complete MLB cards daily. Founder unlocks every card on the board.`
+    : `The preview shows your ${esc(access.max_preview_games || 2)} MLB cards for today.`;
   return `
     <article class="empty-state">
       <strong>Full MLB board requires Founder access.</strong>
-      <div class="preview-upgrade-copy">The preview shows your ${esc(access.max_preview_games || 2)} MLB cards for today.</div>
+      <div class="preview-upgrade-copy">${accessCopy}</div>
       <a class="button primary" href="${esc(href)}">Become a Founder</a>
     </article>
   `;
@@ -1381,7 +1404,7 @@ function renderBoard() {
   const games = Array.isArray(state.payload.games) ? state.payload.games : [];
   if (!gamesEl) return;
   gamesEl.hidden = false;
-  if (isPreviewPayload()) {
+  if (isPreviewPayload() && !hasFullCardAccess()) {
     gamesEl.className = "tile-list";
     gamesEl.innerHTML = games.length
       ? `${games.map(renderPreviewGame).join("")}${renderPreviewUpgradeCard()}`
@@ -1391,7 +1414,9 @@ function renderBoard() {
   }
   // An empty slate (off-day, future date) is not a filter miss — say so
   // instead of telling the user to un-apply a filter that doesn't exist.
-  const emptySlate = `<article class="empty-state">No MLB games are on the board for this date. Check back after the next board is published, or pick another date above.</article>`;
+  const emptySlate = isPreviewPayload()
+    ? `<article class="empty-state">No MLB games are on today's board. Check back after the next board is published.</article>`
+    : `<article class="empty-state">No MLB games are on the board for this date. Check back after the next board is published, or pick another date above.</article>`;
   if (state.mode !== "full_board") {
     gamesEl.className = "bet-pill-list";
     const bets = collectRecommendedBets(games);
@@ -1408,11 +1433,14 @@ function renderBoard() {
   }
   gamesEl.className = "tile-list";
   const filtered = games.filter(gamePassesFilter);
-  gamesEl.innerHTML = filtered.length
+  const gameCards = filtered.length
     ? filtered.map((game) => renderGame(game, "wise_choice")).join("")
     : (games.length
       ? `<article class="empty-state">No games match this filter.</article>`
       : emptySlate);
+  gamesEl.innerHTML = isPreviewPayload()
+    ? `${gameCards}${renderPreviewUpgradeCard()}`
+    : gameCards;
   bindRenderedLogos(gamesEl);
 }
 
@@ -1447,6 +1475,7 @@ async function loadBoard(targetDate, options = {}) {
     }
     setHidden(loadingEl, true);
     setHidden(errorEl, true);
+    if (dateForm) dateForm.hidden = isPreviewPayload(payload);
     setPageMeta(payload, targetDate);
     setStatusNote(payload);
     if (isPreviewPayload(payload)) state.mode = "full_board";

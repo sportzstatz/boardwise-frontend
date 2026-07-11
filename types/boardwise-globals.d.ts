@@ -59,7 +59,23 @@ interface BoardWiseApiErrorLike extends Error {
 interface BoardWiseBoardPayload {
   [key: string]: any;
   games?: any[];
+  access?: {
+    level?: "preview" | "full" | string;
+    card_access?: "full" | string;
+    preview?: boolean;
+    full_access?: boolean;
+    max_preview_games?: number;
+    preview_game_count?: number;
+    required_feature?: string;
+    upgrade_path?: string;
+  };
   visibility?: Record<string, any>;
+}
+
+interface BoardWiseMlbAccessApi {
+  accessLevel(payload: BoardWiseBoardPayload | null | undefined): string;
+  hasFullCardAccess(payload: BoardWiseBoardPayload | null | undefined): boolean;
+  isLimitedBoard(payload: BoardWiseBoardPayload | null | undefined): boolean;
 }
 
 interface BoardWiseGamePropsPayload {
@@ -93,15 +109,41 @@ interface BoardWiseMlbLandingPayload {
     model_display_name: string;
     game_count: number;
     available: boolean;
-    featured: null | Record<string, any>;
+    featured: null | {
+      game_pk?: number | string;
+      game_label?: string;
+      commence_time?: string;
+      venue?: string;
+      away?: {
+        team_name?: string;
+        short_name?: string;
+        abbr?: string;
+      };
+      home?: {
+        team_name?: string;
+        short_name?: string;
+        abbr?: string;
+      };
+    };
   };
   results: null | {
     target_date: string;
     is_yesterday: boolean;
     fully_settled: boolean;
     model_family: string;
-    summary: Record<string, any>;
-    highlights: any[];
+    summary: {
+      pick_count?: number;
+      settled_count?: number;
+      wins?: number;
+      losses?: number;
+      pushes?: number;
+      voids?: number;
+      record?: string;
+      units_risked?: number;
+      units_won?: number;
+      roi?: number;
+      roi_pct?: number;
+    };
   };
 }
 
@@ -297,6 +339,10 @@ interface BoardWiseLandingApi {
   canLoadMlb(auth: BoardWiseAuthState | null | undefined): boolean;
   gameCount(payload: BoardWiseBoardPayload | null | undefined): number;
   init(): Promise<void>;
+}
+
+interface Window {
+  BoardWiseMlbAccess?: BoardWiseMlbAccessApi;
 }
 
 interface Window {

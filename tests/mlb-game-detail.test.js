@@ -60,6 +60,7 @@ async function loadDetailScript(getMlbBoard, getMlbGameProps) {
     getMlbBoard,
     getMlbGameProps: getMlbGameProps || vi.fn().mockResolvedValue(clone(PROPS_PAYLOAD)),
   });
+  await import("../assets/js/mlb-access.js");
   await import("../assets/js/wise-choice.js");
   await import("../assets/js/mlb-team-branding.js");
   await import("../assets/js/mlb-game-detail.js");
@@ -88,6 +89,21 @@ function previewPayload(games) {
   };
 }
 
+function freeFullCardPayload() {
+  const payload = clone(FULL_PAYLOAD);
+  payload.access = {
+    level: "preview",
+    card_access: "full",
+    preview: true,
+    full_access: false,
+    max_preview_games: 2,
+    preview_game_count: payload.games.length,
+    required_feature: "mlb_board_advanced",
+    upgrade_path: "/pricing/",
+  };
+  return payload;
+}
+
 const PREVIEW_GAME = {
   game_pk: 777001,
   game_label: "Blue Jays at Red Sox",
@@ -108,6 +124,7 @@ const PREVIEW_GAME = {
 afterEach(() => {
   vi.unstubAllGlobals();
   delete window.BoardWiseApi;
+  delete window.BoardWiseMlbAccess;
   delete window.BoardWiseWiseChoice;
   delete window.BoardWiseMlbBranding;
   delete (/** @type {any} */ (window)).__BoardWiseGameDetailTestHooks;
@@ -366,7 +383,36 @@ describe("mlb game detail v2", () => {
     expect(mark.querySelector(".tot-team-fallback")?.textContent).toBe("TOR");
   });
 
-  it("renders the free/guest lock panel from summary counts without leaking premium data", async () => {
+  it("renders complete board-derived detail for a selected Free card and locks only props", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    const getMlbBoard = vi.fn().mockResolvedValue(freeFullCardPayload());
+    const getMlbGameProps = vi.fn().mockResolvedValue(clone(PROPS_SUMMARY_PAYLOAD));
+
+    await loadDetailScript(getMlbBoard, getMlbGameProps);
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    expect(getMlbBoard).toHaveBeenCalledWith("", { model: undefined });
+    expect(getMlbGameProps).toHaveBeenCalledWith("777001", { date: undefined });
+    expect(document.querySelector("#gd-back .gd-plan.free")).not.toBeNull();
+    expect(document.querySelector("#gd-back .gd-back-link")?.getAttribute("href")).toBe("/mlb/");
+    expect(document.querySelector(".gd-wise")?.textContent).toContain("Red Sox +1.5");
+
+    const props = panel("props");
+    expect(props?.hidden).toBe(false);
+    expect(props?.querySelector(".gd2-lock")?.textContent).toContain("Player props are Founder access");
+    expect(props?.querySelector(".gd2-rank-card")).toBeNull();
+
+    /** @type {HTMLElement} */ (document.querySelector('[data-gd2-tab="markets"]')).click();
+    expect(panel("markets")?.querySelector(".gd2-mkt-option.is-wise")?.textContent).toContain("Red Sox +1.5");
+    expect(panel("markets")?.textContent).not.toContain("Full markets are Founder access");
+
+    /** @type {HTMLElement} */ (document.querySelector('[data-gd2-tab="model"]')).click();
+    expect(panel("model")?.textContent).toContain("Projected score");
+    expect(panel("model")?.textContent).toContain("ensemble_probable_snapshot_v1");
+    expect(panel("model")?.textContent).not.toContain("The model breakdown is Founder access");
+  });
+
+  it("keeps the legacy sanitized-detail renderer for old preview payloads", async () => {
     window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
     const getMlbBoard = vi.fn().mockResolvedValue(previewPayload([clone(PREVIEW_GAME)]));
     const getMlbGameProps = vi.fn().mockResolvedValue(clone(PROPS_SUMMARY_PAYLOAD));

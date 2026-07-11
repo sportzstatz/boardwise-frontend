@@ -13,7 +13,23 @@ async function fixture(name) {
   return JSON.parse(await readFile(resolve(FIXTURE_DIR, name), "utf8"));
 }
 
+function freeBoardPayload(basePayload) {
+  const payload = structuredClone(basePayload);
+  payload.access = {
+    level: "preview",
+    card_access: "full",
+    preview: true,
+    full_access: false,
+    max_preview_games: 2,
+    preview_game_count: payload.games.length,
+    required_feature: "mlb_board_advanced",
+    upgrade_path: "/pricing/",
+  };
+  return payload;
+}
+
 async function mockBoardPayload(page, payload) {
+  const limitedBoard = payload?.access?.level === "preview";
   await page.addInitScript((now) => {
     Date.now = () => now;
   }, FROZEN_NOW);
@@ -22,13 +38,14 @@ async function mockBoardPayload(page, payload) {
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({
-        authenticated: false,
-        user: null,
-        plan: "guest",
+        authenticated: limitedBoard,
+        user: limitedBoard ? { email: "free@example.test", display_name: "Free Member" } : null,
+        plan: limitedBoard ? "free" : "guest",
         features: {
           mlb_board_basic: true,
           nhl_board_basic: true,
-          performance_summary: true,
+          mlb_board_advanced: false,
+          performance_summary: !limitedBoard,
         },
       }),
     });
@@ -128,7 +145,7 @@ async function mockLandingPage(page) {
           is_yesterday: true,
           fully_settled: true,
           model_family: "classic_mlb",
-          summary: { record: "6-2", units_won: 4.31, roi: 0.187 },
+          summary: { pick_count: 8, record: "6-2", units_won: 4.31, roi: 0.187 },
           highlights: [{
             published_pick_id: 1234,
             game_label: "Yankees at Orioles",
@@ -261,6 +278,17 @@ async function mockAccountPage(page) {
 }
 
 test.describe("MLB mobile WebKit layout", () => {
+  test("keeps the complete Free card usable without exposing board-wide controls", async ({ page }) => {
+    await renderBoard(page, freeBoardPayload(await fixture("mlb-game-detail-payload.json")));
+
+    await expect(page.locator(".best-card")).toBeVisible();
+    await expect(page.locator(".market-dropdown")).toHaveCount(4);
+    await expect(page.locator("#date-form")).toBeHidden();
+    await expect(page.locator("#model-selector")).toBeHidden();
+    await expect(page.locator(".tot-detail-link")).toHaveAttribute("href", "/mlb/game/?game_pk=777001");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+
   test("keeps market summary columns separated and direct team logos visible", async ({ page }) => {
     await renderBoard(page, await fixture("mlb-classic-payload.json"));
 
@@ -348,6 +376,8 @@ test.describe("MLB mobile WebKit layout", () => {
     expect(previewBox.x).toBeGreaterThanOrEqual(0);
     expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(390);
     await expect(page.locator(".landing-result-card").first()).toBeVisible();
+    await expect(page.locator(".landing-result-stat")).toHaveCount(4);
+    await expect(page.locator("#landing-preview")).not.toContainText("FanDuel");
   });
 
   test("login redesign keeps form first and Turnstile inside the card", async ({ page }) => {

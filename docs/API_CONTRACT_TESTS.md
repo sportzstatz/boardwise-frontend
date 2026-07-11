@@ -7,6 +7,11 @@ They are contract drift checks, not browser end-to-end tests and not data
 correctness tests. The assertions stay broad enough to catch missing fields or
 type changes without failing on normal slate and performance-data movement.
 
+The guest checks also enforce the access boundary: the landing snapshot is
+shared-cacheable and contains matchup identity plus aggregate results only,
+while both player-props route aliases return the structured `mlb_board_basic`
+`401` before malformed-date validation.
+
 ## Run Locally
 
 ```bash
@@ -36,7 +41,10 @@ BOARDWISE_CONTRACT_SPORT=mlb npm run test:contracts
 ## Covered Endpoints
 
 - `/api/v1/me`
+- `/api/v1/public/landing/mlb`
 - `/api/v1/boards/mlb/current`
+- `/api/v1/mlb/games/{game_pk}/props`
+- `/api/mlb/game/{game_pk}/props` (legacy alias)
 - `/api/v1/performance/filters`
 - `/api/v1/performance/summary`
 - `/api/v1/performance/breakdown`
