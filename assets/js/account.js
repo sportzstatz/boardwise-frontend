@@ -8,7 +8,7 @@
       feature: 'mlb_board_basic',
       advancedFeature: 'mlb_board_advanced',
       lockedBody: 'Sign in or become a Founder to unlock MLB board access.',
-      statusAvailable: 'Preview access',
+      statusAvailable: 'Two complete cards daily',
       statusAdvanced: 'Full access',
     },
     {
@@ -273,7 +273,7 @@
     const name = window.BoardWiseAuth.displayName(state);
     const hasMlbBasic = hasFeature(state, 'mlb_board_basic');
     const hasMlbAdvanced = hasFeature(state, 'mlb_board_advanced');
-    const mlbAccess = hasMlbAdvanced ? 'full MLB board' : hasMlbBasic ? 'MLB preview' : 'no MLB board access';
+    const mlbAccess = hasMlbAdvanced ? 'full MLB board' : hasMlbBasic ? 'two complete MLB cards daily' : 'no MLB board access';
     setText(
       'account-status',
       `Signed in as ${name}. Plan: ${humanizePlan(state.plan)}. Access: ${mlbAccess}.`

@@ -9,6 +9,7 @@
   "books_seen": ["FanDuel", "DraftKings"],
   "access": {
     "level": "full",
+    "card_access": "full",
     "preview": false,
     "full_access": true,
     "required_feature": "mlb_board_advanced"

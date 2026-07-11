@@ -111,6 +111,24 @@ describe("account page", () => {
     expect(document.querySelector('[data-access-card="mlb"]')).not.toBeNull();
   });
 
+  it("describes Free MLB access as two complete cards daily", async () => {
+    await renderAccount({
+      authenticated: true,
+      user: { email: "free@example.test", display_name: "Free Member", member_since: "2026" },
+      plan: "free",
+      features: {
+        account_profile: true,
+        mlb_board_basic: true,
+        mlb_board_advanced: false,
+      },
+    });
+
+    expect(document.querySelector("#account-status")?.textContent).toContain("two complete MLB cards daily");
+    expect(document.querySelector('[data-access-card="mlb"] .account-access-status')?.textContent).toBe(
+      "Two complete cards daily"
+    );
+  });
+
   it("renders authenticated profile and product links without the feature-access section", async () => {
     await renderAccount({
       authenticated: true,

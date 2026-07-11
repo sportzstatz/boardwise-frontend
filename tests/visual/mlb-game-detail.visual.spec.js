@@ -29,6 +29,7 @@ async function waitForTeamLogos(page) {
 }
 
 async function mockDetailApis(page, { board, props, authenticated }) {
+  const limitedBoard = board?.access?.level === "preview";
   await page.addInitScript((now) => {
     Date.now = () => now;
   }, FROZEN_NOW);
@@ -39,8 +40,8 @@ async function mockDetailApis(page, { board, props, authenticated }) {
       body: JSON.stringify({
         authenticated,
         user: authenticated ? { email: "founder@example.com" } : null,
-        plan: authenticated ? "founder" : "guest",
-        features: { mlb_board_basic: true, mlb_board_advanced: authenticated },
+        plan: authenticated ? (limitedBoard ? "free" : "founder") : "guest",
+        features: { mlb_board_basic: authenticated, mlb_board_advanced: authenticated && !limitedBoard },
       }),
     });
   });
@@ -74,10 +75,21 @@ async function founderPayloads() {
 }
 
 async function freePayloads() {
+  const board = await fixture("mlb-game-detail-payload.json");
+  board.access = {
+    level: "preview",
+    card_access: "full",
+    preview: true,
+    full_access: false,
+    max_preview_games: 2,
+    preview_game_count: board.games.length,
+    required_feature: "mlb_board_advanced",
+    upgrade_path: "/pricing/",
+  };
   return {
-    board: await fixture("mlb-game-detail-preview-payload.json"),
+    board,
     props: await fixture("mlb-game-props-summary-payload.json"),
-    authenticated: false,
+    authenticated: true,
   };
 }
 
@@ -125,7 +137,8 @@ test.describe("MLB game detail v2 visual baselines", () => {
     const lock = page.locator('[data-gd2-panel="props"] .gd2-lock');
     await expect(lock).toBeVisible();
     await expect(lock).toContainText("Player props are Founder access");
-    await expect(lock.locator("[data-auth-guest]")).toBeVisible();
+    await expect(lock.locator("[data-auth-guest]")).toBeHidden();
+    await expect(page.locator(".gd-wise")).toBeVisible();
     await expect(page).toHaveScreenshot("gd2-free-lock.png", { fullPage: true });
   });
 

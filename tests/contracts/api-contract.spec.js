@@ -10,6 +10,19 @@ import {
 
 const SPORT = process.env.BOARDWISE_CONTRACT_SPORT || "mlb";
 
+function keysDeep(value, keys = new Set()) {
+  if (Array.isArray(value)) {
+    for (const item of value) keysDeep(item, keys);
+    return keys;
+  }
+  if (!value || typeof value !== "object") return keys;
+  for (const [key, child] of Object.entries(value)) {
+    keys.add(key);
+    keysDeep(child, keys);
+  }
+  return keys;
+}
+
 function performanceQuery(overrides = {}) {
   return new URLSearchParams({
     sport: SPORT,
@@ -85,6 +98,61 @@ async function expectMlbBasicRequiredResponse(response, label) {
 }
 
 test.describe("BoardWise public API contract", () => {
+  test("GET /api/v1/public/landing/mlb is cacheable and marketing-only", async ({
+    request,
+  }) => {
+    const response = await request.get("/api/v1/public/landing/mlb");
+    const body = await expectJsonResponse(response, "public MLB landing");
+
+    const cacheControl = response.headers()["cache-control"] || "";
+    expect(cacheControl, "public MLB landing cache-control").toContain("public");
+    expect(cacheControl, "public MLB landing shared cache").toContain("s-maxage");
+
+    expect(body.sport).toBe("mlb");
+    expectPlainObject(body.board, "public MLB landing.board");
+    expectBoolean(body.board.available, "public MLB landing.board.available");
+    if (body.board.featured !== null) {
+      expectPlainObject(body.board.featured, "public MLB landing.board.featured");
+      expectPlainObject(body.board.featured.away, "public MLB landing.board.featured.away");
+      expectPlainObject(body.board.featured.home, "public MLB landing.board.featured.home");
+    }
+
+    const forbiddenKeys = [
+      "pick",
+      "highlights",
+      "selection_text",
+      "sportsbook",
+      "bookmaker_key",
+      "bookmaker_title",
+      "bookmaker_abbr",
+      "price_american",
+      "price_text",
+      "odds",
+      "model_probability",
+      "model_probability_text",
+      "win_probability",
+      "win_probability_text",
+      "moneyline_american",
+      "moneyline_text",
+      "probability_edge",
+      "edge_text",
+      "expected_value_per_unit",
+      "ev_text",
+      "wise_choice_score",
+      "wise_choice_status",
+      "is_official",
+    ];
+    const keys = keysDeep(body);
+    for (const key of forbiddenKeys) {
+      expect(keys.has(key), `public MLB landing must omit ${key}`).toBe(false);
+    }
+
+    if (body.results !== null) {
+      expectPlainObject(body.results, "public MLB landing.results");
+      expectPlainObject(body.results.summary, "public MLB landing.results.summary");
+    }
+  });
+
   test("GET /api/v1/me returns guest/auth state shape", async ({ request }) => {
     const response = await request.get("/api/v1/me");
     const body = await expectJsonResponse(response, "/api/v1/me");
@@ -111,6 +179,16 @@ test.describe("BoardWise public API contract", () => {
     const response = await request.get("/api/v1/boards/mlb/current");
     await expectMlbBasicRequiredResponse(response, "mlb current board");
   });
+
+  for (const path of [
+    "/api/v1/mlb/games/1/props",
+    "/api/mlb/game/1/props",
+  ]) {
+    test(`GET ${path} requires MLB basic auth before date validation`, async ({ request }) => {
+      const response = await request.get(`${path}?date=07-03-2026`);
+      await expectMlbBasicRequiredResponse(response, `guest props ${path}`);
+    });
+  }
 
   test("GET /api/v1/performance/filters requires admin auth", async ({
     request,

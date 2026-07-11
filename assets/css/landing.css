@@ -189,7 +189,7 @@
   grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr);
   gap: 0;
   align-items: stretch;
-  padding: 18px 18px 14px;
+  padding: 52px 18px 56px;
 }
 
 .landing-preview__team {
@@ -239,6 +239,7 @@
 }
 
 .landing-preview__team-name {
+  margin-top: 10px;
   font-size: 13px;
   font-weight: 800;
 }
@@ -291,7 +292,14 @@
 }
 
 .landing-preview__vs {
-  margin-top: 8px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  margin: 0;
+  border: 1px solid var(--bw-border);
+  border-radius: 50%;
+  background: var(--bw-gold-soft);
   color: var(--bw-gold-ink);
   font-size: 10px;
   font-weight: 900;
@@ -557,6 +565,32 @@
   background: #fff;
 }
 
+.landing-result-stat {
+  display: grid;
+  min-height: 128px;
+  align-content: center;
+  gap: 8px;
+  border-top: 4px solid var(--bw-gold);
+  padding: 20px 14px;
+  text-align: center;
+}
+
+.landing-result-stat__label {
+  color: var(--bw-muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.landing-result-stat__value {
+  color: var(--bw-navy);
+  font-family: var(--bw-font-display);
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .landing-result-card__accent {
   height: 4px;
   background: #98a2b3;
@@ -780,6 +814,7 @@
 
   .landing-preview__body {
     padding-inline: 12px;
+    padding-block: 42px 46px;
     grid-template-columns: minmax(0, 1fr) 42px minmax(0, 1fr);
   }
 

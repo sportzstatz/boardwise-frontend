@@ -1,6 +1,9 @@
+import { readFileSync } from "node:fs";
+
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const API_BASE = "https://api.example.test";
+const LOGIN_HTML = readFileSync("login/index.html", "utf8");
 
 /**
  * @param {{ turnstileEnabled?: boolean, turnstileValue?: string | null, url?: string, consentChecked?: boolean }} [options]
@@ -94,6 +97,11 @@ afterEach(() => {
 });
 
 describe("login", () => {
+  it("describes the Free MLB contract as two complete cards daily", () => {
+    expect(LOGIN_HTML).toContain("Signed-in Free accounts receive two complete MLB cards daily.");
+    expect(LOGIN_HTML).not.toContain("basic MLB board experience");
+  });
+
   it("blocks fetch and shows an error when the Turnstile token is missing", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);

@@ -107,10 +107,49 @@ function previewGame(id, label) {
   };
 }
 
+function fullGame(id, label) {
+  const pick = {
+    selection_text: `Home ${id} Moneyline`,
+    label: `Home ${id} Moneyline`,
+    sportsbook: "FanDuel",
+    odds_text: "-120",
+    model_probability_text: "56.0%",
+    market_probability_text: "54.5%",
+    edge_text: "+1.5%",
+    ev_text: "+0.03u",
+    wise_choice_score: 16,
+    wise_choice_bucket_key: "medium_high_14_20",
+    wise_choice_status: "Strong",
+    is_official: true,
+  };
+  return {
+    ...previewGame(id, label),
+    away_team: `Away ${id}`,
+    home_team: `Home ${id}`,
+    away_win_prob_text: "44.0%",
+    home_win_prob_text: "56.0%",
+    projected_total_text: "8.5",
+    projected_margin_text: "HOM +0.7",
+    model_details_projected_score: "Home 4.6 · Away 3.9",
+    model_version: "ensemble_probable_snapshot_v1",
+    best_card_options: { wise_choice: pick },
+    recommendations: [pick],
+    market_dropdowns: [
+      {
+        title: "Money Line",
+        market_key: "h2h",
+        summary_center_text: pick.label,
+        options: [pick],
+      },
+    ],
+  };
+}
+
 async function loadMlbBoardScript(getMlbBoard) {
   vi.resetModules();
   installMlbDom();
   window.BoardWiseApi = /** @type {any} */ ({ getMlbBoard });
+  await import("../assets/js/mlb-access.js");
   await import("../assets/js/wise-choice.js");
   await import("../assets/js/mlb-team-branding.js");
   await import("../assets/js/mlb-board.js");
@@ -119,6 +158,7 @@ async function loadMlbBoardScript(getMlbBoard) {
 afterEach(() => {
   vi.unstubAllGlobals();
   delete window.BoardWiseApi;
+  delete window.BoardWiseMlbAccess;
   delete window.BoardWiseWiseChoice;
   delete window.BoardWiseMlbBranding;
   delete (/** @type {any} */ (window)).__BoardWiseMlbTestHooks;
@@ -130,7 +170,45 @@ afterEach(() => {
 });
 
 describe("mlb-board model selector", () => {
-  it("renders free preview payloads as two sanitized cards", async () => {
+  it("renders two complete Free cards while keeping board-wide controls hidden", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 2,
+        access: {
+          level: "preview",
+          card_access: "full",
+          preview: true,
+          full_access: false,
+          max_preview_games: 2,
+          preview_game_count: 2,
+          required_feature: "mlb_board_advanced",
+          upgrade_path: "/pricing/",
+        },
+        games: [
+          fullGame(1, "One at Home"),
+          fullGame(2, "Two at Home"),
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+
+    await vi.waitFor(() => expect(document.querySelectorAll(".tile").length).toBe(2));
+    expect(document.querySelectorAll(".preview-tile")).toHaveLength(0);
+    expect(document.querySelectorAll(".best-card")).toHaveLength(2);
+    expect(document.querySelectorAll(".market-dropdown")).toHaveLength(4);
+    expect(document.querySelector("#games")?.textContent).toContain("Home 1 Moneyline");
+    expect(document.querySelector("#games")?.textContent).toContain("Free includes two complete MLB cards daily");
+    expect(/** @type {HTMLFormElement | null} */ (document.querySelector("#date-form"))?.hidden).toBe(true);
+    expect(/** @type {HTMLElement | null} */ (document.querySelector("#model-selector"))?.hidden).toBe(true);
+    expect(/** @type {HTMLElement | null} */ (document.querySelector("#best-card-toggle"))?.style.display).toBe("none");
+    expect(/** @type {HTMLElement | null} */ (document.querySelector("#ev-filters"))?.style.display).toBe("none");
+    const hrefs = [...document.querySelectorAll(".tot-detail-link")].map((link) => link.getAttribute("href"));
+    expect(hrefs).toEqual(["/mlb/game/?game_pk=1", "/mlb/game/?game_pk=2"]);
+  });
+
+  it("keeps the sanitized renderer for legacy Free preview payloads", async () => {
     window.history.replaceState({}, "", "/mlb/");
     const getMlbBoard = vi.fn().mockResolvedValue(
       payload("classic_mlb", {
