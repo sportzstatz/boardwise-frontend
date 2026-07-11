@@ -332,11 +332,37 @@ function renderSmallTeamMark(abbr, sideBranding) {
     </span>`;
 }
 
-function sideAriaLabel({ isHome, team, abbr, pitcher, lineup, prob, odds }) {
+function starterStatus(game, which) {
+  if (game?.[`${which}_pitcher_stale`] !== true) return null;
+
+  const rawSource = game?.[`${which}_pitcher_source`];
+  const source = String(rawSource ?? "").trim();
+  if (!source) return null;
+  const ageValue = game?.[`${which}_pitcher_stale_age_minutes`];
+  const rawAge = ageValue === null || ageValue === undefined || ageValue === "" ? Number.NaN : Number(ageValue);
+  const ageMinutes = Number.isFinite(rawAge) && rawAge >= 0 ? Math.floor(rawAge) : null;
+  const pendingText = ageMinutes === null ? "update pending" : `pending ${ageMinutes}m`;
+  const pendingAria = ageMinutes === null
+    ? "Forecast starter update pending"
+    : `Forecast starter update pending for ${ageMinutes} ${ageMinutes === 1 ? "minute" : "minutes"}`;
+
+  return {
+    text: `Latest: ${source} · ${pendingText}`,
+    aria: `Latest source starter ${source}. ${pendingAria}`,
+  };
+}
+
+function renderStarterStatus(status) {
+  if (!status) return "";
+  return `<div class="starter-stale-warning" aria-hidden="true">${esc(status.text)}</div>`;
+}
+
+function sideAriaLabel({ isHome, team, abbr, pitcher, starter, lineup, prob, odds }) {
   const parts = [
     `${isHome ? "Home" : "Away"} team ${team || teamAbbrText(team, abbr)}`,
     `Starting pitcher ${pitcher || "Pitcher TBD"}`,
   ];
+  if (starter) parts.push(starter.aria);
   if (lineup) parts.push(`Lineup ${lineup}`);
   parts.push(`Win probability ${percentText(prob)}`);
   if (odds) parts.push(`Moneyline ${odds}`);
@@ -585,12 +611,14 @@ function renderHero(game) {
     const tone = sideToneClass(game, which);
     const sideBranding = isHome ? matchupBranding.home : matchupBranding.away;
     const sideStyle = teamBrandStyle(sideBranding);
-    const sideLabel = sideAriaLabel({ isHome, team, abbr, pitcher, lineup, prob, odds });
+    const starter = starterStatus(game, which);
+    const sideLabel = sideAriaLabel({ isHome, team, abbr, pitcher, starter, lineup, prob, odds });
     return `
       <div class="tot-side ${which} ${tone}"${sideStyle ? ` style="${esc(sideStyle)}"` : ""} aria-label="${esc(sideLabel)}">
         ${renderTeamMark(team, abbr, sideBranding)}
         <div class="tot-team">${esc(team || (isHome ? "Home" : "Away"))}</div>
         <div class="tot-pitcher">${esc(pitcher || "Pitcher TBD")}</div>
+        ${renderStarterStatus(starter)}
         ${lineup ? `<span class="lineup-tag ${lineupClass}">${esc(lineup)}</span>` : ""}
         <div class="tot-prob tnum">${prob !== null ? `${prob.toFixed(1)}<span class="pct">%</span>` : "&mdash;"}</div>
         ${odds ? `<div class="tot-ml tnum">ML ${esc(odds)}</div>` : ""}

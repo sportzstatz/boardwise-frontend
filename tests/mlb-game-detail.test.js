@@ -135,8 +135,8 @@ afterEach(() => {
 
 describe("mlb game detail v2", () => {
   it("cache-busts both launch-critical game detail scripts together", () => {
-    expect(GAME_PAGE_HTML).toContain('/assets/js/api-client.js?v=20260702');
-    expect(GAME_PAGE_HTML).toContain('/assets/js/mlb-game-detail.js?v=20260702');
+    expect(GAME_PAGE_HTML).toContain('/assets/js/api-client.js?v=20260711');
+    expect(GAME_PAGE_HTML).toContain('/assets/js/mlb-game-detail.js?v=20260711');
   });
 
   it("renders the full Founder detail with tabs, defaulting to Player Props", async () => {
@@ -369,6 +369,50 @@ describe("mlb game detail v2", () => {
     expect(bar.style.getPropertyValue("--away-team-fill")).toBe(expected?.away.fill);
     expect(bar.style.getPropertyValue("--home-team-fill")).toBe(expected?.home.fill);
     expect(bar.getAttribute("aria-label")).toBe("Toronto Blue Jays 45.9%, Boston Red Sox 54.1%");
+  });
+
+  it("keeps modeled hero pitchers while surfacing the latest source state", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    const payload = clone(FULL_PAYLOAD);
+    Object.assign(payload.games[0], {
+      away_pitcher_source: "Bowden Francis",
+      away_pitcher_stale: true,
+      away_pitcher_stale_age_minutes: 12,
+      home_pitcher_source: "TBD",
+      home_pitcher_stale: true,
+      home_pitcher_stale_age_minutes: 1,
+    });
+
+    await loadDetailScript(vi.fn().mockResolvedValue(payload));
+    await vi.waitFor(() => expect(document.querySelectorAll(".gd-hero .starter-stale-warning")).toHaveLength(2));
+
+    const awaySide = /** @type {HTMLElement} */ (document.querySelector(".gd-hero .tot-side.away"));
+    const homeSide = /** @type {HTMLElement} */ (document.querySelector(".gd-hero .tot-side.home"));
+    expect(awaySide.querySelector(".tot-pitcher")?.textContent).toBe("Trey Yesavage");
+    expect(awaySide.querySelector(".starter-stale-warning")?.textContent).toBe("Latest: Bowden Francis · pending 12m");
+    expect(awaySide.getAttribute("aria-label")).toContain("Starting pitcher Trey Yesavage");
+    expect(awaySide.getAttribute("aria-label")).toContain("Latest source starter Bowden Francis");
+    expect(awaySide.getAttribute("aria-label")).toContain("Forecast starter update pending for 12 minutes");
+    expect(homeSide.querySelector(".tot-pitcher")?.textContent).toBe("Sonny Gray");
+    expect(homeSide.querySelector(".starter-stale-warning")?.textContent).toBe("Latest: TBD · pending 1m");
+    expect(homeSide.getAttribute("aria-label")).toContain("Latest source starter TBD");
+    expect(homeSide.getAttribute("aria-label")).toContain("Forecast starter update pending for 1 minute");
+  });
+
+  it("does not render a hero warning for matched or legacy starter fields", async () => {
+    window.history.replaceState({}, "", "/mlb/game/?game_pk=777001");
+    const payload = clone(FULL_PAYLOAD);
+    Object.assign(payload.games[0], {
+      away_pitcher_source: payload.games[0].away_pitcher,
+      away_pitcher_stale: false,
+      away_pitcher_stale_age_minutes: 4,
+    });
+
+    await loadDetailScript(vi.fn().mockResolvedValue(payload));
+    await vi.waitFor(() => expect(isHidden("#gd-detail")).toBe(false));
+
+    expect(document.querySelector(".gd-hero .starter-stale-warning")).toBeNull();
+    expect(document.querySelector(".gd-hero .tot-side.away")?.getAttribute("aria-label")).not.toContain("Latest source starter");
   });
 
   it("keeps logo fallback working on the detail hero", async () => {

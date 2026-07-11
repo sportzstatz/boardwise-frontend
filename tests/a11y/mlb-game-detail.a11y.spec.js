@@ -144,4 +144,27 @@ test.describe("MLB game detail v2 accessibility", () => {
     // Color is never the only pick signal: gold Pick pill text present
     await expect(page.locator(".gd2-pick-pill").first()).toHaveText("Pick");
   });
+
+  test("starter mismatch warnings are exposed through the hero side labels", async ({ page }) => {
+    const payloads = await founderPayloads();
+    Object.assign(payloads.board.games[0], {
+      away_pitcher_source: "Bowden Francis",
+      away_pitcher_stale: true,
+      away_pitcher_stale_age_minutes: 12,
+      home_pitcher_source: "TBD",
+      home_pitcher_stale: true,
+      home_pitcher_stale_age_minutes: 1,
+    });
+    await renderDetail(page, payloads);
+
+    await expect(page.locator(".gd-hero .tot-side.away")).toHaveAttribute(
+      "aria-label",
+      /Starting pitcher Trey Yesavage.*Latest source starter Bowden Francis.*12 minutes/
+    );
+    await expect(page.locator(".gd-hero .tot-side.home")).toHaveAttribute(
+      "aria-label",
+      /Starting pitcher Sonny Gray.*Latest source starter TBD.*1 minute/
+    );
+    await expectNoA11yViolations(page);
+  });
 });

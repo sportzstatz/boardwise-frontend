@@ -168,6 +168,30 @@ test.describe("MLB game detail v2 consumes the props response contract", () => {
     await expect(page.locator('[data-gd2-panel="props"]')).toContainText("No player props have been published");
   });
 
+  test("starter-state fields decorate the hero without replacing modeled pitchers", async ({ page }) => {
+    const board = await fixture("mlb-game-detail-payload.json");
+    const props = await fixture("mlb-game-props-payload.json");
+    Object.assign(board.games[0], {
+      away_pitcher_source: "Bowden Francis",
+      away_pitcher_stale: true,
+      away_pitcher_stale_age_minutes: 12,
+      home_pitcher_source: "TBD",
+      home_pitcher_stale: true,
+      home_pitcher_stale_age_minutes: 1,
+    });
+
+    await renderDetail(page, { board, props, authenticated: true });
+
+    const away = page.locator(".gd-hero .tot-side.away");
+    const home = page.locator(".gd-hero .tot-side.home");
+    await expect(away.locator(".tot-pitcher")).toHaveText(board.games[0].away_pitcher);
+    await expect(away.locator(".starter-stale-warning")).toHaveText("Latest: Bowden Francis · pending 12m");
+    await expect(away).toHaveAttribute("aria-label", /Latest source starter Bowden Francis/);
+    await expect(home.locator(".tot-pitcher")).toHaveText(board.games[0].home_pitcher);
+    await expect(home.locator(".starter-stale-warning")).toHaveText("Latest: TBD · pending 1m");
+    await expect(home).toHaveAttribute("aria-label", /Latest source starter TBD/);
+  });
+
   test("a failing props endpoint never blanks the page", async ({ page }) => {
     const board = await fixture("mlb-game-detail-payload.json");
     await page.addInitScript((now) => {

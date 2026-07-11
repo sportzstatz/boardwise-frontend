@@ -1492,6 +1492,77 @@ describe("mlb-board model selector", () => {
     expect(href).not.toContain("model=");
   });
 
+  it("keeps modeled pitchers and renders named and TBD source mismatches accessibly", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const game = fullGame("starter-state", "Reds at Cardinals");
+    Object.assign(game, {
+      away_pitcher: "Modeled Away Starter",
+      away_pitcher_source: "Latest Away Starter",
+      away_pitcher_stale: true,
+      away_pitcher_stale_age_minutes: 12,
+      home_pitcher: "Modeled Home Starter",
+      home_pitcher_source: "TBD",
+      home_pitcher_stale: true,
+      home_pitcher_stale_age_minutes: 1,
+    });
+    const getMlbBoard = vi.fn().mockResolvedValue(payload("classic_mlb", {
+      game_count: 1,
+      games: [game],
+    }));
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelectorAll(".starter-stale-warning")).toHaveLength(2));
+
+    const awaySide = /** @type {HTMLElement} */ (document.querySelector(".tot-side.away"));
+    const homeSide = /** @type {HTMLElement} */ (document.querySelector(".tot-side.home"));
+    expect(awaySide.querySelector(".tot-pitcher")?.textContent).toBe("Modeled Away Starter");
+    expect(awaySide.querySelector(".starter-stale-warning")?.textContent).toBe("Latest: Latest Away Starter · pending 12m");
+    expect(awaySide.getAttribute("aria-label")).toContain("Starting pitcher Modeled Away Starter");
+    expect(awaySide.getAttribute("aria-label")).toContain("Latest source starter Latest Away Starter");
+    expect(awaySide.getAttribute("aria-label")).toContain("Forecast starter update pending for 12 minutes");
+    expect(homeSide.querySelector(".tot-pitcher")?.textContent).toBe("Modeled Home Starter");
+    expect(homeSide.querySelector(".starter-stale-warning")?.textContent).toBe("Latest: TBD · pending 1m");
+    expect(homeSide.getAttribute("aria-label")).toContain("Latest source starter TBD");
+    expect(homeSide.getAttribute("aria-label")).toContain("Forecast starter update pending for 1 minute");
+  });
+
+  it("leaves matched and legacy pitcher rows unchanged", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const matched = fullGame("matched", "Matched Away at Matched Home");
+    Object.assign(matched, {
+      away_pitcher_source: matched.away_pitcher,
+      away_pitcher_stale: false,
+      away_pitcher_stale_age_minutes: 8,
+    });
+    const legacy = fullGame("legacy", "Legacy Away at Legacy Home");
+    const getMlbBoard = vi.fn().mockResolvedValue(payload("classic_mlb", {
+      game_count: 2,
+      games: [matched, legacy],
+    }));
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelectorAll(".tile")).toHaveLength(2));
+
+    expect(document.querySelector(".starter-stale-warning")).toBeNull();
+    expect(document.querySelector(".tot-side.away")?.getAttribute("aria-label")).not.toContain("Latest source starter");
+  });
+
+  it("does not fabricate a TBD source when no source observation is present", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const game = fullGame("unknown-source", "Unknown Away at Unknown Home");
+    Object.assign(game, { away_pitcher_stale: true });
+    const getMlbBoard = vi.fn().mockResolvedValue(payload("classic_mlb", {
+      game_count: 1,
+      games: [game],
+    }));
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(document.querySelector(".tile")).not.toBeNull());
+
+    expect(document.querySelector(".starter-stale-warning")).toBeNull();
+    expect(document.querySelector(".tot-side.away")?.getAttribute("aria-label")).not.toContain("Latest source starter");
+  });
+
   it("renders known team logo markup, resolved team colors, and accessible probability bars", async () => {
     window.history.replaceState({}, "", "/mlb/");
     const game = {
