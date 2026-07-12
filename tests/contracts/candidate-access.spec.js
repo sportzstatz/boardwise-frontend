@@ -37,7 +37,10 @@ async function configureCandidatePage(page, token) {
     window.BOARDWISE_API_BASE = apiBase;
   }, API_BASE);
 
-  if (!token) return;
+  if (!token) {
+    await page.goto("/pricing/", { waitUntil: "domcontentloaded" });
+    return;
+  }
   const apiUrl = new URL(API_BASE);
   const localApi = new Set(["127.0.0.1", "localhost", "::1"]).has(
     apiUrl.hostname
@@ -65,18 +68,63 @@ async function configureCandidatePage(page, token) {
       "Could not install the candidate session cookie; verify the API origin and cookie-name inputs."
     );
   }
+
+  // Establish the frontend origin before credentialed browser fetches.
+  // Browser fetch failures do not serialize Cookie headers into Playwright's
+  // instrumented request call log.
+  await page.goto("/pricing/", { waitUntil: "domcontentloaded" });
 }
 
 /**
  * @param {import("@playwright/test").Page} page
  * @param {string} path
  */
-function apiGet(page, path) {
-  return page.context().request.get(new URL(path, `${API_BASE}/`).toString());
+async function apiGet(page, path) {
+  const result = await page.evaluate(
+    async ({ apiBase, requestPath }) => {
+      let response;
+      try {
+        response = await fetch(new URL(requestPath, `${apiBase}/`), {
+          method: "GET",
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        });
+      } catch (_error) {
+        throw new Error("Candidate API request failed.");
+      }
+
+      let body;
+      try {
+        body = await response.json();
+      } catch (_error) {
+        throw new Error("Candidate API returned a non-JSON response.");
+      }
+
+      // `/me` includes account PII that no contract assertion needs. Keep it
+      // out of Playwright step values and failure renderings.
+      if (requestPath === "/api/v1/me" && body && typeof body === "object") {
+        delete body.email;
+        delete body.display_name;
+        delete body.user_id;
+      }
+      return {
+        status: response.status,
+        headers: Object.fromEntries(response.headers.entries()),
+        body,
+      };
+    },
+    { apiBase: API_BASE, requestPath: path }
+  );
+
+  return {
+    status: () => result.status,
+    headers: () => result.headers,
+    json: async () => result.body,
+  };
 }
 
 /**
- * @param {import("@playwright/test").APIResponse | import("@playwright/test").Response} response
+ * @param {{headers: () => Record<string, string>}} response
  * @param {string} label
  */
 function expectPrivateNoStore(response, label) {

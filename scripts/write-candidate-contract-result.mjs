@@ -95,6 +95,9 @@ async function assertSafeFile(path, secrets) {
     if (cookieName && text.includes(`${cookieName}=`)) {
       throw new Error("A session cookie was found in contract evidence.");
     }
+    if (/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(text)) {
+      throw new Error("An email address was found in contract evidence.");
+    }
   }
 }
 
@@ -144,6 +147,33 @@ if (!output.startsWith(cwdPrefix)) {
   throw new Error("Contract evidence output must stay inside the repository checkout.");
 }
 
+// Create a safe failure attestation before inspecting optional reports. If
+// collection, web-server startup, or sanitization failed, the workflow still
+// retains machine-readable evidence without copying unsafe material.
+await rm(output, { recursive: true, force: true });
+await mkdir(output, { recursive: true });
+const initialResult = {
+  schema_version: 1,
+  release_id: releaseId,
+  workflow_run_id: process.env.GITHUB_RUN_ID || "local",
+  status: "failed",
+  started_at: startedAt,
+  completed_at: new Date().toISOString(),
+  data_sha: dataSha,
+  api_sha: apiSha,
+  frontend_sha: frontendSha,
+  skipped: 0,
+  xfailed: 0,
+  evidence_complete: false,
+  error_category: "candidate_evidence_incomplete",
+  checks: CHECKS.map((name) => ({ name, status: "failed" })),
+};
+await writeFile(
+  resolve(output, "result.json"),
+  `${JSON.stringify(initialResult, null, 2)}\n`,
+  "utf8"
+);
+
 await assertNoDisabledContractTests(contractSources);
 
 const junit = await readFile(junitSource, "utf8");
@@ -173,8 +203,6 @@ const secrets = secretBuffers();
 await assertSafeFile(junitSource, secrets);
 await assertSafeTree(reportSource, secrets);
 
-await rm(output, { recursive: true, force: true });
-await mkdir(output, { recursive: true });
 await cp(junitSource, resolve(output, "junit.xml"));
 await cp(reportSource, resolve(output, "playwright-report"), { recursive: true });
 
@@ -190,6 +218,7 @@ const result = {
   frontend_sha: frontendSha,
   skipped,
   xfailed: 0,
+  evidence_complete: true,
   checks: CHECKS.map((name) => ({ name, status })),
 };
 await writeFile(

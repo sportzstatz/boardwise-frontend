@@ -1,4 +1,4 @@
-name: Candidate Frontend Contracts (Authoritative)
+name: Candidate Frontend Contracts (Reusable)
 
 on:
   workflow_call:
@@ -35,34 +35,6 @@ on:
         required: true
       BOARDWISE_CONTRACT_ADMIN_SESSION_TOKEN:
         required: true
-  workflow_dispatch:
-    inputs:
-      release_id:
-        description: "Release manifest identifier"
-        required: true
-        type: string
-      data_sha:
-        description: "Exact candidate boardwise-data commit"
-        required: true
-        type: string
-      api_sha:
-        description: "Exact candidate boardwise-api commit"
-        required: true
-        type: string
-      frontend_sha:
-        description: "Exact candidate boardwise-frontend commit"
-        required: true
-        type: string
-      candidate_api_base:
-        description: "Candidate API origin (never production)"
-        required: true
-        type: string
-      session_cookie:
-        description: "Candidate API session-cookie name"
-        required: false
-        default: "__Host-bw_session"
-        type: string
-
 permissions:
   contents: read
 
@@ -86,7 +58,7 @@ env:
 
 jobs:
   candidate-contracts:
-    name: candidate frontend contracts / authoritative
+    name: candidate frontend contracts / reusable gate
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
@@ -106,36 +78,63 @@ jobs:
           [[ "$API_SHA" =~ ^[0-9a-fA-F]{40}$ ]]
           [[ "$FRONTEND_SHA" =~ ^[0-9a-fA-F]{40}$ ]]
 
+      - name: Checkout exact data candidate
+        uses: actions/checkout@v7
+        with:
+          repository: sportzstatz/boardwise-data
+          ref: ${{ inputs.data_sha }}
+          fetch-depth: 0
+          path: candidate-data
+
+      - name: Checkout exact API candidate
+        uses: actions/checkout@v7
+        with:
+          repository: sportzstatz/boardwise-api
+          ref: ${{ inputs.api_sha }}
+          fetch-depth: 0
+          path: candidate-api
+
       - name: Checkout exact frontend candidate
         uses: actions/checkout@v7
         with:
           repository: sportzstatz/boardwise-frontend
           ref: ${{ inputs.frontend_sha }}
           fetch-depth: 0
+          path: source
 
-      - name: Verify candidate identity and protected-branch reachability
+      - name: Verify source identities and protected-branch reachability
         env:
+          DATA_SHA: ${{ inputs.data_sha }}
+          API_SHA: ${{ inputs.api_sha }}
           FRONTEND_SHA: ${{ inputs.frontend_sha }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "${FRONTEND_SHA,,}"
-          git fetch origin main --quiet
-          git merge-base --is-ancestor "$FRONTEND_SHA" origin/main
+          test "$(git -C candidate-data rev-parse HEAD)" = "${DATA_SHA,,}"
+          test "$(git -C candidate-api rev-parse HEAD)" = "${API_SHA,,}"
+          test "$(git -C source rev-parse HEAD)" = "${FRONTEND_SHA,,}"
+          for repository in candidate-data candidate-api source; do
+            git -C "$repository" fetch origin main --quiet
+            git -C "$repository" merge-base --is-ancestor \
+              "$(git -C "$repository" rev-parse HEAD)" origin/main
+          done
 
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: source/package-lock.json
 
       - name: Install dependencies
+        working-directory: source
         run: npm ci
 
       - name: Install Playwright browser
+        working-directory: source
         run: npx playwright install --with-deps chromium
 
       - name: Validate candidate API target
+        working-directory: source
         run: node scripts/validate-contract-api-base.mjs
 
       - name: Record contract start
@@ -145,14 +144,23 @@ jobs:
       - name: Run candidate API, DOM, access, and billing contracts
         id: candidate-contracts
         continue-on-error: true
+        working-directory: source
         env:
           BOARDWISE_CONTRACT_FREE_SESSION_TOKEN: ${{ secrets.BOARDWISE_CONTRACT_FREE_SESSION_TOKEN }}
           BOARDWISE_CONTRACT_FOUNDER_SESSION_TOKEN: ${{ secrets.BOARDWISE_CONTRACT_FOUNDER_SESSION_TOKEN }}
           BOARDWISE_CONTRACT_ADMIN_SESSION_TOKEN: ${{ secrets.BOARDWISE_CONTRACT_ADMIN_SESSION_TOKEN }}
-        run: npm run test:contracts:candidate
+        run: |
+          for token in \
+            "$BOARDWISE_CONTRACT_FREE_SESSION_TOKEN" \
+            "$BOARDWISE_CONTRACT_FOUNDER_SESSION_TOKEN" \
+            "$BOARDWISE_CONTRACT_ADMIN_SESSION_TOKEN"; do
+            echo "::add-mask::$token"
+          done
+          npm run test:contracts:candidate
 
       - name: Assemble sanitized frontend contract evidence
         if: always() && steps.candidate-contracts.outcome != 'skipped'
+        working-directory: source
         env:
           BOARDWISE_CONTRACT_STATUS: ${{ steps.candidate-contracts.outcome == 'success' && 'passed' || 'failed' }}
           BOARDWISE_CONTRACT_STARTED_AT: ${{ steps.contract-start.outputs.started_at }}
@@ -166,12 +174,12 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: frontend-contracts-${{ inputs.release_id }}-${{ github.run_attempt }}
-          path: frontend-contracts
+          path: source/frontend-contracts
           if-no-files-found: error
           retention-days: 30
 
       - name: Enforce candidate contract result
         if: steps.candidate-contracts.outcome != 'success'
         run: |
-          echo "Authoritative candidate frontend contracts failed." >&2
+          echo "Candidate frontend contracts failed." >&2
           exit 1

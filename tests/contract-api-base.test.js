@@ -27,6 +27,13 @@ describe("contract API target", () => {
         BOARDWISE_CONTRACT_TARGET: "candidate",
       })
     ).toThrow(/must not target the production API/);
+
+    expect(() =>
+      resolveContractApiBase({
+        BOARDWISE_CONTRACT_API_BASE: "https://api.useboardwise.com.",
+        BOARDWISE_CONTRACT_TARGET: "candidate",
+      })
+    ).toThrow(/canonical hostname/);
   });
 
   it("pins production compatibility to the production origin", () => {

@@ -29,7 +29,7 @@ async function mockDetailApis(page, { board, props, authenticated }) {
       contentType: "application/json",
       body: JSON.stringify({
         authenticated,
-        user: authenticated ? { email: "founder@example.com" } : null,
+        user: authenticated ? { email: "fo***@e***.test" } : null,
         plan: authenticated ? (limitedBoard ? "free" : "founder") : "guest",
         features: { mlb_board_basic: authenticated, mlb_board_advanced: authenticated && !limitedBoard },
       }),
@@ -202,7 +202,7 @@ test.describe("MLB game detail v2 consumes the props response contract", () => {
         contentType: "application/json",
         body: JSON.stringify({
           authenticated: true,
-          user: { email: "founder@example.com" },
+          user: { email: "fo***@e***.test" },
           plan: "founder",
           features: { mlb_board_basic: true, mlb_board_advanced: true },
         }),

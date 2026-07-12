@@ -5,12 +5,15 @@ response shapes and access behavior the candidate frontend expects. There is
 no implicit API target: `BOARDWISE_CONTRACT_API_BASE` is required, and the
 configuration fails before test discovery when it is absent or invalid.
 
-The authoritative candidate gate and production compatibility monitoring are
+The reusable candidate gate and production compatibility monitoring are
 different workflows:
 
-- `.github/workflows/candidate-contract-gate.yml` verifies exact data, API, and
-  frontend SHAs against a non-production candidate API. This is the only
-  frontend contract workflow that can contribute candidate-approval evidence.
+- `.github/workflows/candidate-contract-gate.yml` is callable only by a release
+  orchestrator. It checks out and verifies all three exact SHAs before testing
+  a non-production API. Its result is authoritative only when the private ops
+  workflow also proves that API/database stack was started from those sources;
+  there is deliberately no standalone manual dispatch that can self-attest an
+  unrelated API URL.
 - `.github/workflows/production-api-compatibility.yml` explicitly targets the
   deployed production API. It monitors drift but is non-authoritative for a
   candidate release.
@@ -105,7 +108,7 @@ must preserve private/no-store headers.
 
 ## Evidence And Retention
 
-The authoritative workflow writes this sanitized artifact subtree:
+The reusable workflow writes this sanitized artifact subtree:
 
 ```text
 frontend-contracts/
@@ -120,7 +123,9 @@ passing result requires zero failed, skipped, or xfailed tests. Candidate
 traces, videos, and screenshots are disabled because authenticated browser
 capture can retain session headers or test-user data. The HTML/JUnit report is
 scanned for the scoped session values and Cookie headers before upload. Success
-and failure artifacts are retained for 30 days.
+and failure artifacts are retained for 30 days. A minimal failed `result.json`
+is created before report inspection, so configuration, collection, web-server,
+or sanitizer failures still leave safe machine-readable failure evidence.
 
 ## Intentionally Excluded
 

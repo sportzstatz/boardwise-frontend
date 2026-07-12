@@ -29,6 +29,11 @@ export function resolveContractApiBase(env = process.env) {
   if (parsed.username || parsed.password) {
     throw new Error("BOARDWISE_CONTRACT_API_BASE must not contain credentials.");
   }
+  if (parsed.hostname.endsWith(".")) {
+    throw new Error(
+      "BOARDWISE_CONTRACT_API_BASE must use a canonical hostname without a trailing dot."
+    );
+  }
   if (parsed.search || parsed.hash) {
     throw new Error("BOARDWISE_CONTRACT_API_BASE must not contain a query or fragment.");
   }
