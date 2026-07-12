@@ -1268,7 +1268,10 @@ async function loadDetail(options = {}) {
   const date = readTargetDate();
   // Both fetches run in parallel; the props fetch is family-agnostic so the
   // board's model-fallback retry never re-issues it.
-  const propsPromise = options.propsPromise || fetchProps(date);
+  // Attach the rejection handler immediately. A fast props failure can settle
+  // while the board request is still pending; deferring the catch until after
+  // the board await would briefly expose an unhandled rejection to the page.
+  const propsPromise = options.propsPromise || settleProps(fetchProps(date));
   try {
     const payload = await window.BoardWiseApi.getMlbBoard(date, {
       model: requestedModel || undefined,
@@ -1286,13 +1289,13 @@ async function loadDetail(options = {}) {
     }
     const game = findGame(payload, gdState.gamePk);
     if (!game) {
-      await settleProps(propsPromise);
+      await propsPromise;
       renderNav(payload, null);
       renderGameNotFound(payload);
       return;
     }
     gdState.game = game;
-    await settleProps(propsPromise);
+    await propsPromise;
     renderDetail();
   } catch (error) {
     if (requestedModel && !options.isModelFallback && Number(error?.status) === 400) {
@@ -1301,7 +1304,7 @@ async function loadDetail(options = {}) {
       return;
     }
     console.error(error);
-    await settleProps(propsPromise);
+    await propsPromise;
     showAccessError(error);
   }
 }
