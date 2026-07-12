@@ -88,14 +88,15 @@ jobs:
       - name: Run unit tests
         run: npm run test
 
-  api-contract-tests:
-    name: boardwise-frontend / api-contract-tests
+  dom-contract-tests:
+    name: boardwise-frontend / dom-contract-tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     env:
-      BOARDWISE_CONTRACT_API_BASE: https://api.useboardwise.com
-      BOARDWISE_CONTRACT_SPORT: mlb
+      # The DOM project route-mocks every API response. An explicit loopback
+      # origin keeps the no-fallback contract intact without contacting an API.
+      BOARDWISE_CONTRACT_API_BASE: http://127.0.0.1:9
 
     steps:
       - name: Checkout repository
@@ -114,18 +115,19 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Run API contract tests
-        run: npm run test:contracts
+      - name: Run DOM contract tests
+        run: npm run test:contracts:dom
 
-      - name: Upload Playwright contract results
+      - name: Upload Playwright DOM contract results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-contract-results
+          name: playwright-dom-contract-results-${{ github.run_attempt }}
           path: |
             test-results
             playwright-report
           if-no-files-found: ignore
+          retention-days: 30
 
   visual-snapshots:
     name: boardwise-frontend / visual-snapshots
@@ -161,6 +163,7 @@ jobs:
             test-results
             playwright-report
           if-no-files-found: ignore
+          retention-days: 30
 
   accessibility-tests:
     name: boardwise-frontend / accessibility-tests
@@ -196,6 +199,7 @@ jobs:
             test-results
             playwright-report
           if-no-files-found: ignore
+          retention-days: 30
 
   mobile-webkit-tests:
     name: boardwise-frontend / mobile-webkit-tests
@@ -231,6 +235,7 @@ jobs:
             test-results
             playwright-report
           if-no-files-found: ignore
+          retention-days: 30
 
   build:
     name: boardwise-frontend / build

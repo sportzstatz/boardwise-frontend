@@ -1,0 +1,177 @@
+name: Candidate Frontend Contracts (Authoritative)
+
+on:
+  workflow_call:
+    inputs:
+      release_id:
+        description: "Release manifest identifier"
+        required: true
+        type: string
+      data_sha:
+        description: "Exact candidate boardwise-data commit"
+        required: true
+        type: string
+      api_sha:
+        description: "Exact candidate boardwise-api commit"
+        required: true
+        type: string
+      frontend_sha:
+        description: "Exact candidate boardwise-frontend commit"
+        required: true
+        type: string
+      candidate_api_base:
+        description: "Candidate API origin (never production)"
+        required: true
+        type: string
+      session_cookie:
+        description: "Candidate API session-cookie name"
+        required: false
+        default: "__Host-bw_session"
+        type: string
+    secrets:
+      BOARDWISE_CONTRACT_FREE_SESSION_TOKEN:
+        required: true
+      BOARDWISE_CONTRACT_FOUNDER_SESSION_TOKEN:
+        required: true
+      BOARDWISE_CONTRACT_ADMIN_SESSION_TOKEN:
+        required: true
+  workflow_dispatch:
+    inputs:
+      release_id:
+        description: "Release manifest identifier"
+        required: true
+        type: string
+      data_sha:
+        description: "Exact candidate boardwise-data commit"
+        required: true
+        type: string
+      api_sha:
+        description: "Exact candidate boardwise-api commit"
+        required: true
+        type: string
+      frontend_sha:
+        description: "Exact candidate boardwise-frontend commit"
+        required: true
+        type: string
+      candidate_api_base:
+        description: "Candidate API origin (never production)"
+        required: true
+        type: string
+      session_cookie:
+        description: "Candidate API session-cookie name"
+        required: false
+        default: "__Host-bw_session"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candidate-frontend-contracts-${{ inputs.release_id }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  NODE_VERSION: "22"
+  BOARDWISE_RELEASE_ID: ${{ inputs.release_id }}
+  BOARDWISE_DATA_SHA: ${{ inputs.data_sha }}
+  BOARDWISE_API_SHA: ${{ inputs.api_sha }}
+  BOARDWISE_FRONTEND_SHA: ${{ inputs.frontend_sha }}
+  BOARDWISE_CONTRACT_API_BASE: ${{ inputs.candidate_api_base }}
+  BOARDWISE_CONTRACT_TARGET: candidate
+  BOARDWISE_CONTRACT_SESSION_COOKIE: ${{ inputs.session_cookie }}
+
+jobs:
+  candidate-contracts:
+    name: candidate frontend contracts / authoritative
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: staging
+
+    steps:
+      - name: Validate release metadata
+        env:
+          RELEASE_ID: ${{ inputs.release_id }}
+          DATA_SHA: ${{ inputs.data_sha }}
+          API_SHA: ${{ inputs.api_sha }}
+          FRONTEND_SHA: ${{ inputs.frontend_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$ ]]
+          [[ "$DATA_SHA" =~ ^[0-9a-fA-F]{40}$ ]]
+          [[ "$API_SHA" =~ ^[0-9a-fA-F]{40}$ ]]
+          [[ "$FRONTEND_SHA" =~ ^[0-9a-fA-F]{40}$ ]]
+
+      - name: Checkout exact frontend candidate
+        uses: actions/checkout@v7
+        with:
+          repository: sportzstatz/boardwise-frontend
+          ref: ${{ inputs.frontend_sha }}
+          fetch-depth: 0
+
+      - name: Verify candidate identity and protected-branch reachability
+        env:
+          FRONTEND_SHA: ${{ inputs.frontend_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${FRONTEND_SHA,,}"
+          git fetch origin main --quiet
+          git merge-base --is-ancestor "$FRONTEND_SHA" origin/main
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Validate candidate API target
+        run: node scripts/validate-contract-api-base.mjs
+
+      - name: Record contract start
+        id: contract-start
+        run: echo "started_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
+      - name: Run candidate API, DOM, access, and billing contracts
+        id: candidate-contracts
+        continue-on-error: true
+        env:
+          BOARDWISE_CONTRACT_FREE_SESSION_TOKEN: ${{ secrets.BOARDWISE_CONTRACT_FREE_SESSION_TOKEN }}
+          BOARDWISE_CONTRACT_FOUNDER_SESSION_TOKEN: ${{ secrets.BOARDWISE_CONTRACT_FOUNDER_SESSION_TOKEN }}
+          BOARDWISE_CONTRACT_ADMIN_SESSION_TOKEN: ${{ secrets.BOARDWISE_CONTRACT_ADMIN_SESSION_TOKEN }}
+        run: npm run test:contracts:candidate
+
+      - name: Assemble sanitized frontend contract evidence
+        if: always() && steps.candidate-contracts.outcome != 'skipped'
+        env:
+          BOARDWISE_CONTRACT_STATUS: ${{ steps.candidate-contracts.outcome == 'success' && 'passed' || 'failed' }}
+          BOARDWISE_CONTRACT_STARTED_AT: ${{ steps.contract-start.outputs.started_at }}
+          BOARDWISE_CONTRACT_FREE_SESSION_TOKEN: ${{ secrets.BOARDWISE_CONTRACT_FREE_SESSION_TOKEN }}
+          BOARDWISE_CONTRACT_FOUNDER_SESSION_TOKEN: ${{ secrets.BOARDWISE_CONTRACT_FOUNDER_SESSION_TOKEN }}
+          BOARDWISE_CONTRACT_ADMIN_SESSION_TOKEN: ${{ secrets.BOARDWISE_CONTRACT_ADMIN_SESSION_TOKEN }}
+        run: node scripts/write-candidate-contract-result.mjs
+
+      - name: Upload candidate frontend contract evidence
+        if: always() && steps.candidate-contracts.outcome != 'skipped'
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-contracts-${{ inputs.release_id }}-${{ github.run_attempt }}
+          path: frontend-contracts
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce candidate contract result
+        if: steps.candidate-contracts.outcome != 'success'
+        run: |
+          echo "Authoritative candidate frontend contracts failed." >&2
+          exit 1

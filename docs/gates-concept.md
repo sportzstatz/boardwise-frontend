@@ -217,8 +217,25 @@ the official/tracking performance scope options.
 `/account/` loads `/api/v1/me` and displays the current account, plan, and
 feature state. Guests are directed to sign in.
 
-`/pricing/` is static product copy in this repo. It does not imply that Stripe
-checkout routes exist.
+Founder accounts receive billing-management controls on `/account/`. The
+frontend accepts a Customer Portal URL only when it is HTTPS and hosted by
+Stripe. Admin access is described as internal rather than as a paid Founder
+subscription.
+
+Authenticated Free accounts can start the fixed Founder checkout from
+`/pricing/` only when the API enables it. A disabled or unavailable checkout
+stays on the page with safe fallback copy. Checkout and portal responses are
+treated as untrusted: the browser follows only HTTPS Stripe-hosted URLs.
+
+`/account/?checkout=success` never grants Founder access from the redirect. It
+polls `/api/v1/billing/status`, reloads `/api/v1/me` only after the backend
+reports Founder, and otherwise leaves the current plan unchanged. The cancel
+return on `/pricing/` changes copy only and does not alter access.
+
+Candidate browser contracts for these states require an explicit non-production
+API origin and disposable seeded role sessions. Production API compatibility is
+a separate monitoring workflow and is not candidate-approval evidence. See
+`docs/API_CONTRACT_TESTS.md`.
 
 ## CSP And Third Parties
 
@@ -229,7 +246,8 @@ preferred when possible.
 
 ## Not Implemented By Frontend Gates
 
-- Billing checkout and webhook behavior.
+- Stripe webhook reconciliation and entitlement writes (API/data behavior).
+- Creation or mutation of Stripe objects inside frontend candidate contracts.
 - Saved picks, alerts, and exports.
 - Any entitlement decision that is not also enforced by the API.
 - Hosted auth widgets beyond the current magic-link/Turnstile flow.

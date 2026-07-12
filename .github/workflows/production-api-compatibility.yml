@@ -1,0 +1,83 @@
+name: Production API Compatibility (Non-Authoritative)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 10 * * *"
+  pull_request:
+    paths:
+      - ".github/workflows/production-api-compatibility.yml"
+      - "package-lock.json"
+      - "package.json"
+      - "playwright.contract.config.js"
+      - "scripts/contract-api-base.mjs"
+      - "tests/contracts/api-contract.spec.js"
+      - "tests/contracts/contract-helpers.js"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/production-api-compatibility.yml"
+      - "package-lock.json"
+      - "package.json"
+      - "playwright.contract.config.js"
+      - "scripts/contract-api-base.mjs"
+      - "tests/contracts/api-contract.spec.js"
+      - "tests/contracts/contract-helpers.js"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-api-compatibility-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  NODE_VERSION: "22"
+  BOARDWISE_CONTRACT_API_BASE: https://api.useboardwise.com
+  BOARDWISE_CONTRACT_TARGET: production-compatibility
+  BOARDWISE_CONTRACT_SPORT: mlb
+
+jobs:
+  production-api-compatibility:
+    name: production API compatibility / non-authoritative
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Validate explicit production target
+        run: node scripts/validate-contract-api-base.mjs
+
+      - name: Run production compatibility contracts
+        run: npm run test:contracts:api
+
+      - name: Upload production compatibility results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-api-compatibility-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 30
