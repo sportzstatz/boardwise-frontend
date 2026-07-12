@@ -7,6 +7,7 @@ const API_BASE = resolveContractApiBase();
 const SESSION_COOKIE =
   String(process.env.BOARDWISE_CONTRACT_SESSION_COOKIE || "").trim() ||
   "__Host-bw_session";
+const NAVIGATION_CAPTURE_KEY = "boardwise-contract-billing-navigations";
 
 if (process.env.BOARDWISE_CONTRACT_TARGET !== "candidate") {
   throw new Error(
@@ -30,17 +31,9 @@ const SESSIONS = Object.freeze({
 
 /**
  * @param {import("@playwright/test").Page} page
- * @param {string | undefined} token
+ * @param {string} token
  */
-async function configureCandidatePage(page, token) {
-  await page.addInitScript((apiBase) => {
-    window.BOARDWISE_API_BASE = apiBase;
-  }, API_BASE);
-
-  if (!token) {
-    await page.goto("/pricing/", { waitUntil: "domcontentloaded" });
-    return;
-  }
+async function installCandidateSession(page, token) {
   const apiUrl = new URL(API_BASE);
   const localApi = new Set(["127.0.0.1", "localhost", "::1"]).has(
     apiUrl.hostname
@@ -68,11 +61,111 @@ async function configureCandidatePage(page, token) {
       "Could not install the candidate session cookie; verify the API origin and cookie-name inputs."
     );
   }
+}
+
+/**
+ * @param {import("@playwright/test").Page} page
+ * @param {string | undefined} token
+ */
+async function configureCandidatePage(page, token) {
+  await page.addInitScript((apiBase) => {
+    window.BOARDWISE_API_BASE = apiBase;
+  }, API_BASE);
+
+  if (!token) {
+    await page.goto("/pricing/", { waitUntil: "domcontentloaded" });
+    return;
+  }
+  await installCandidateSession(page, token);
 
   // Establish the frontend origin before credentialed browser fetches.
   // Browser fetch failures do not serialize Cookie headers into Playwright's
   // instrumented request call log.
   await page.goto("/pricing/", { waitUntil: "domcontentloaded" });
+}
+
+/** @param {import("@playwright/test").Page} page */
+async function installNavigationCapture(page) {
+  await page.addInitScript((captureKey) => {
+    window.sessionStorage.removeItem(captureKey);
+    window.BoardWiseNavigate = (url) => {
+      const raw = window.sessionStorage.getItem(captureKey);
+      const existing = raw ? JSON.parse(raw) : [];
+      const navigations = Array.isArray(existing) ? existing : [];
+      navigations.push(url);
+      window.sessionStorage.setItem(captureKey, JSON.stringify(navigations));
+    };
+  }, NAVIGATION_CAPTURE_KEY);
+}
+
+/** @param {import("@playwright/test").Page} page */
+async function capturedNavigations(page) {
+  return page.evaluate((captureKey) => {
+    const raw = window.sessionStorage.getItem(captureKey);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  }, NAVIGATION_CAPTURE_KEY);
+}
+
+/** @param {string} path */
+function candidateApiUrl(path) {
+  return new URL(path, `${API_BASE}/`).toString();
+}
+
+/**
+ * Fulfill only the billing response boundary while leaving the production
+ * page code and its frozen BoardWiseApi client intact. That makes these
+ * browser checks exercise the real client method, request construction, and
+ * navigation allowlist without creating provider-side Checkout/Portal state.
+ *
+ * @param {import("@playwright/test").Page} page
+ * @param {string} path
+ * @param {Record<string, unknown>} body
+ */
+async function fulfillCandidateBillingJson(page, path, body) {
+  const endpoint = candidateApiUrl(path);
+  const frontendOrigin = new URL(page.url()).origin;
+  const corsHeaders = {
+    "access-control-allow-origin": frontendOrigin,
+    "access-control-allow-credentials": "true",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-headers": "content-type",
+  };
+  await page.route(endpoint, async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: corsHeaders });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: {
+        ...corsHeaders,
+        "cache-control": "private, no-store, max-age=0",
+      },
+      body: JSON.stringify(body),
+    });
+  });
+  return endpoint;
+}
+
+/**
+ * The authoritative candidate stack intentionally keeps checkout disabled.
+ * These URL-boundary cases replace only the billing-status and provider URL
+ * responses so the shipped pricing handler can exercise its real API client
+ * and navigation allowlist without weakening the separate disabled-state test.
+ *
+ * @param {import("@playwright/test").Page} page
+ */
+async function exposeCheckoutForNavigationContract(page) {
+  await fulfillCandidateBillingJson(page, "/api/v1/billing/status", {
+    plan: "free",
+    checkout_available: true,
+    portal_available: false,
+    subscription: null,
+  });
+  await page.reload({ waitUntil: "domcontentloaded" });
 }
 
 /**
@@ -267,6 +360,95 @@ test.describe("candidate browser access and billing matrix", () => {
     expect(firstPollBody.plan).toBe("free");
     expect(firstPollBody.checkout_available).toBe(false);
     await expect(page.locator("#account-plan")).toContainText("Free");
+
+    const founderPollPromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === "GET" &&
+        new URL(response.url()).pathname === "/api/v1/billing/status"
+    );
+    await installCandidateSession(page, SESSIONS.founder);
+    const founderPoll = await founderPollPromise;
+    expect(founderPoll.status(), "Founder billing poll status").toBe(200);
+    const founderPollBody = await founderPoll.json();
+    expect(founderPollBody.plan).toBe("founder");
+    expect(founderPollBody.portal_available).toBe(true);
+    await expect(page.locator("#account-plan")).toContainText("Founder");
+    await expect(page.locator("#account-billing-notice")).toContainText(
+      "Your BoardWise Founder access is active"
+    );
+  });
+
+  test("Checkout captures an approved Stripe HTTPS navigation from the real browser client", async ({
+    page,
+  }) => {
+    const stripeCheckoutUrl =
+      "https://checkout.stripe.com/c/pay/cs_test_browser_contract";
+    await installNavigationCapture(page);
+    await configureCandidatePage(page, SESSIONS.free);
+    await exposeCheckoutForNavigationContract(page);
+    const checkoutEndpoint = await fulfillCandidateBillingJson(
+      page,
+      "/api/v1/billing/checkout",
+      {
+        checkout_url: stripeCheckoutUrl,
+        checkout_session_id: "cs_test_browser_contract",
+      }
+    );
+    expect(
+      await page.evaluate(
+        () => typeof window.BoardWiseApi?.createBillingCheckout
+      )
+    ).toBe("function");
+
+    const checkoutRequestPromise = page.waitForRequest(
+      (request) =>
+        request.method() === "POST" &&
+        new URL(request.url()).pathname === "/api/v1/billing/checkout"
+    );
+    const checkoutButton = page.locator("#pricing-checkout-button");
+    await expect(checkoutButton).toBeVisible();
+    await checkoutButton.click();
+    const checkoutRequest = await checkoutRequestPromise;
+
+    expect(checkoutRequest.url()).toBe(checkoutEndpoint);
+    expect(checkoutRequest.postDataJSON()).toEqual({});
+    await expect.poll(() => capturedNavigations(page)).toEqual([
+      stripeCheckoutUrl,
+    ]);
+    await expect(page.locator("#pricing-checkout-notice")).toBeHidden();
+  });
+
+  test("Checkout refuses a Stripe lookalike returned through the real browser client", async ({
+    page,
+  }) => {
+    await installNavigationCapture(page);
+    await configureCandidatePage(page, SESSIONS.free);
+    await exposeCheckoutForNavigationContract(page);
+    const checkoutEndpoint = await fulfillCandidateBillingJson(
+      page,
+      "/api/v1/billing/checkout",
+      {
+        checkout_url: "https://checkout.stripe.com.attacker.example/pay",
+        checkout_session_id: "cs_test_browser_contract",
+      }
+    );
+
+    const checkoutRequestPromise = page.waitForRequest(
+      (request) =>
+        request.method() === "POST" &&
+        new URL(request.url()).pathname === "/api/v1/billing/checkout"
+    );
+    const checkoutButton = page.locator("#pricing-checkout-button");
+    await expect(checkoutButton).toBeVisible();
+    await checkoutButton.click();
+    const checkoutRequest = await checkoutRequestPromise;
+
+    expect(checkoutRequest.url()).toBe(checkoutEndpoint);
+    await expect(page.locator("#pricing-checkout-notice")).toContainText(
+      "Checkout is not available right now"
+    );
+    expect(await capturedNavigations(page)).toEqual([]);
+    await expect(checkoutButton).toBeEnabled();
   });
 
   test("Founder gets the complete board and paid-account billing controls", async ({
@@ -320,6 +502,73 @@ test.describe("candidate browser access and billing matrix", () => {
     await page.goto("/performance/");
     await expect(page).toHaveURL((url) => url.pathname === "/");
     await expect(page.locator("[data-performance-app]")).toHaveCount(0);
+  });
+
+  test("Portal captures an approved Stripe HTTPS navigation from the real browser client", async ({
+    page,
+  }) => {
+    const stripePortalUrl =
+      "https://billing.stripe.com/p/session/browser_contract";
+    await installNavigationCapture(page);
+    await configureCandidatePage(page, SESSIONS.founder);
+    await page.goto("/account/");
+    await expect(page.locator("#account-plan")).toContainText("Founder");
+    const portalEndpoint = await fulfillCandidateBillingJson(
+      page,
+      "/api/v1/billing/portal",
+      { portal_url: stripePortalUrl }
+    );
+    expect(
+      await page.evaluate(() => typeof window.BoardWiseApi?.createBillingPortal)
+    ).toBe("function");
+
+    const portalRequestPromise = page.waitForRequest(
+      (request) =>
+        request.method() === "POST" &&
+        new URL(request.url()).pathname === "/api/v1/billing/portal"
+    );
+    const manageBilling = page.locator("#account-manage-billing");
+    await expect(manageBilling).toBeVisible();
+    await manageBilling.click();
+    const portalRequest = await portalRequestPromise;
+
+    expect(portalRequest.url()).toBe(portalEndpoint);
+    expect(portalRequest.postData()).toBeNull();
+    await expect.poll(() => capturedNavigations(page)).toEqual([
+      stripePortalUrl,
+    ]);
+    await expect(page.locator("#account-billing-notice")).toBeHidden();
+  });
+
+  test("Portal refuses a non-HTTPS Stripe URL returned through the real browser client", async ({
+    page,
+  }) => {
+    await installNavigationCapture(page);
+    await configureCandidatePage(page, SESSIONS.founder);
+    await page.goto("/account/");
+    await expect(page.locator("#account-plan")).toContainText("Founder");
+    const portalEndpoint = await fulfillCandidateBillingJson(
+      page,
+      "/api/v1/billing/portal",
+      { portal_url: "http://billing.stripe.com/p/session/browser_contract" }
+    );
+
+    const portalRequestPromise = page.waitForRequest(
+      (request) =>
+        request.method() === "POST" &&
+        new URL(request.url()).pathname === "/api/v1/billing/portal"
+    );
+    const manageBilling = page.locator("#account-manage-billing");
+    await expect(manageBilling).toBeVisible();
+    await manageBilling.click();
+    const portalRequest = await portalRequestPromise;
+
+    expect(portalRequest.url()).toBe(portalEndpoint);
+    await expect(page.locator("#account-billing-notice")).toContainText(
+      "The billing portal is unavailable right now"
+    );
+    expect(await capturedNavigations(page)).toEqual([]);
+    await expect(manageBilling).not.toHaveAttribute("aria-busy");
   });
 
   test("Admin sees concealed performance and does not get paid billing controls", async ({
