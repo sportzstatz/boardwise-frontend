@@ -128,6 +128,20 @@ describe("pricing page checkout", () => {
     expect(notice.textContent).toContain("Checkout is not available right now");
   });
 
+  it("refuses a non-Stripe checkout redirect returned by the API", async () => {
+    const { button, navigate, notice } = await loadPricingPage({
+      createBillingCheckout: vi.fn().mockResolvedValue({
+        checkout_url: "https://checkout.stripe.com.attacker.example/pay",
+      }),
+    });
+
+    button.click();
+    await settle();
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(notice.textContent).toContain("Checkout is not available right now");
+  });
+
   it("shows a canceled-checkout notice from the Stripe cancel redirect", async () => {
     const { notice, navigate } = await loadPricingPage({
       url: "/pricing/?checkout=canceled",

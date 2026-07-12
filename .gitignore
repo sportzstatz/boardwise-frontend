@@ -43,6 +43,7 @@ build/
 coverage/
 test-results/
 playwright-report/
+frontend-contracts/
 
 # Cloudflare / Wrangler local state
 .wrangler/

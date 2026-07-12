@@ -220,6 +220,30 @@ describe("account page", () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
+  it("refuses a non-Stripe portal redirect returned by the API", async () => {
+    const founderState = {
+      authenticated: true,
+      user: { email: "founder@example.test", display_name: "Founder", member_since: "2025" },
+      plan: "founder",
+      features: { account_profile: true, mlb_board_basic: true, mlb_board_advanced: true },
+    };
+    const createBillingPortal = vi.fn().mockResolvedValue({
+      portal_url: "https://billing.stripe.com.attacker.example/session",
+    });
+    const navigate = vi.fn();
+    window.BoardWiseNavigate = navigate;
+
+    await renderAccount(founderState, { createBillingPortal });
+    document.getElementById("account-manage-billing")?.click();
+
+    await vi.waitFor(() => {
+      expect(document.getElementById("account-billing-notice")?.textContent).toContain(
+        "billing portal is unavailable"
+      );
+    });
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it("finalizes checkout success by polling billing status until founder access lands", async () => {
     const freeState = {
       authenticated: true,

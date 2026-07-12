@@ -1,4 +1,4 @@
-name: Frontend Release Gate
+name: Frontend Deployment Gate (Not Candidate Approval)
 
 on:
   workflow_dispatch:
@@ -12,6 +12,10 @@ on:
           - production
       expected_sha:
         description: "Commit SHA to release"
+        required: true
+        type: string
+      contract_api_base:
+        description: "Explicit deployment-compatibility API origin (not candidate evidence)"
         required: true
         type: string
       notes:
@@ -36,7 +40,7 @@ env:
 
 jobs:
   release-gate:
-    name: boardwise-frontend / release-gate / ${{ inputs.environment }}
+    name: boardwise-frontend / deployment-gate / ${{ inputs.environment }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
@@ -77,6 +81,11 @@ jobs:
           git fetch origin main --quiet
           git merge-base --is-ancestor "$EXPECTED_SHA" origin/main
 
+      - name: Validate explicit contract API target
+        env:
+          BOARDWISE_CONTRACT_API_BASE: ${{ inputs.contract_api_base }}
+        run: node scripts/validate-contract-api-base.mjs
+
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
@@ -91,6 +100,8 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
 
       - name: Validate frontend
+        env:
+          BOARDWISE_CONTRACT_API_BASE: ${{ inputs.contract_api_base }}
         run: |
           npm run lint
           npm run typecheck
@@ -101,6 +112,17 @@ jobs:
           npm run test:mobile-webkit
           npm run build
           git diff --check
+
+      - name: Retain failed Playwright validation artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-release-playwright-failure-${{ inputs.environment }}-${{ github.run_attempt }}
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Verify build output
         run: |
@@ -125,6 +147,7 @@ jobs:
             printf '# boardwise-frontend release handoff\n\n'
             printf 'Environment: %s\n' "$RELEASE_ENV"
             printf 'Commit: %s\n' "$EXPECTED_SHA"
+            printf 'Candidate approval: not provided by this deployment gate\n'
             printf 'Notes:\n'
             printf '%s\n' "$RELEASE_NOTES" | sed 's/^/> /'
             printf '\n'

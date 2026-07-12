@@ -35,6 +35,21 @@ Local preview:
 npm run preview
 ```
 
+Contract checks never choose an API implicitly. Supply the candidate API
+origin for request-level checks:
+
+```bash
+BOARDWISE_CONTRACT_API_BASE=http://127.0.0.1:8000 \
+  BOARDWISE_CONTRACT_TARGET=candidate \
+  npm run test:contracts
+```
+
+The authenticated candidate matrix additionally consumes protected,
+disposable Free/Founder/Admin session values. See
+`docs/API_CONTRACT_TESTS.md`; do not put session values in source, logs, or
+artifacts. Production compatibility monitoring is separate and
+non-authoritative for candidate approval.
+
 For docs-only changes, `git diff --check` and targeted public-doc hygiene scans
 are normally enough.
 
