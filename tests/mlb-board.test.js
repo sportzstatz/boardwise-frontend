@@ -426,6 +426,29 @@ describe("mlb-board model selector", () => {
     expect(new URL(window.location.href).searchParams.get("model")).toBeNull();
   });
 
+  it("never renders eagle* families as selector pills even when advertised", async () => {
+    window.history.replaceState({}, "", "/mlb/");
+    const getMlbBoard = vi.fn().mockResolvedValue(
+      payload("classic_mlb", {
+        game_count: 1,
+        games: [{ game_pk: 123456, game_label: "Away at Home" }],
+        available_model_families: [
+          { key: "eagle_eye", label: "Eagle Eye", available: true, badge: "Player props" },
+          { key: "classic_mlb", label: "Classic MLB", available: true },
+        ],
+      })
+    );
+
+    await loadMlbBoardScript(getMlbBoard);
+    await vi.waitFor(() => expect(getMlbBoard).toHaveBeenCalledTimes(1));
+
+    // eagle* families are props engines, not board families: no pill, and no
+    // model param forwarded onto game detail links.
+    expect(document.querySelector('[data-model-family="eagle_eye"]')).toBeNull();
+    expect(document.querySelectorAll("#model-selector [data-model-family]")).toHaveLength(1);
+    expect(document.querySelector('[data-model-family="classic_mlb"]')).not.toBeNull();
+  });
+
   it("hides the model selector when the API advertises no model families", async () => {
     window.history.replaceState({}, "", "/mlb/");
     const getMlbBoard = vi.fn().mockResolvedValue(

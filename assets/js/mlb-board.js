@@ -262,8 +262,11 @@ function updatePageSubtitle(payload = state.payload) {
 }
 
 function availableModelFamilies(metadata = selectedModelMetadata()) {
+  // eagle* families are props engines, never board families (their output
+  // lives in each game detail page): no selector pill, no model param on
+  // detail links, even while the API advertises them.
   return (Array.isArray(metadata.available_model_families) ? metadata.available_model_families : [])
-    .filter((item) => item && typeof item === "object" && item.key);
+    .filter((item) => item && typeof item === "object" && item.key && !/^eagle/.test(String(item.key)));
 }
 
 function modelAvailabilityMap(metadata = selectedModelMetadata()) {
