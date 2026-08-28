@@ -184,6 +184,19 @@ describe("CFB experimental forecast board", () => {
     expect(grouped.at(-1).times[0].label).toBe("Kickoff TBD");
   });
 
+  it("flows the next kickoff into the same date grid without an empty desktop column", async () => {
+    const payload = structuredClone(FULL);
+    payload.games.push(copyGame({ game_id: 109, kickoff_utc: "2026-08-29T19:30:00Z" }));
+    await load("founder", payload);
+    expect(document.querySelectorAll(".cfb-date-group")).toHaveLength(1);
+    expect(document.querySelectorAll(".cfb-date-group > .cfb-game-grid")).toHaveLength(1);
+    const slots = [...document.querySelectorAll(".cfb-game-slot")];
+    expect(slots).toHaveLength(2);
+    expect(slots.map((slot) => slot.querySelector("h3")?.textContent)).toEqual([
+      expect.stringContaining("11:00 AM"), expect.stringContaining("2:30 PM"),
+    ]);
+  });
+
   it("uses real team names, local logos, and BoardWise probability terminology", async () => {
     await load("founder");
     expect(document.body.textContent).toContain("Iowa State Cyclones");
@@ -205,6 +218,15 @@ describe("CFB experimental forecast board", () => {
     expect(winner.querySelector(".cfb-market-table")).not.toBeNull();
     expect(winner.textContent).toContain("DraftKings");
     expect(winner.textContent).toContain("FanDuel");
+  });
+
+  it("summarizes each market with its model-favored exact outcome and best comparable price", async () => {
+    await load("founder");
+    expect(document.querySelector('[data-market="winner"] > summary')?.textContent).toContain("Winner· Kansas State Wildcats · 67.2% · -210");
+    expect(document.querySelector('[data-market="spread"] > summary')?.textContent).toContain("Spread· Kansas State Wildcats -6.5 · 50.4% · -108");
+    expect(document.querySelector('[data-market="total"] > summary')?.textContent).toContain("Total· Over 56 · 49.3% · -105");
+    expect(document.body.textContent).not.toContain("best pick");
+    expect(document.body.textContent).not.toContain("recommendation row");
   });
 
   it("ranks only directly comparable prices and handles positive and negative odds", async () => {
@@ -239,6 +261,7 @@ describe("CFB experimental forecast board", () => {
     expect(document.querySelector('[data-game-id="101"] [data-market="spread"]')?.hasAttribute("open")).toBe(true);
     expect(document.querySelector('[data-game-id="101"] .cfb-model-details')?.hasAttribute("open")).toBe(true);
     expect(document.querySelector('[data-game-id="101"] [data-market="winner"]')?.hasAttribute("open")).toBe(false);
+    expect(document.querySelector(".cfb-model-details > summary")?.textContent).toBe("Model Details");
   });
 
   it("renders withheld values as unavailable and never leaks prohibited product fields", async () => {

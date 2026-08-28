@@ -18,6 +18,13 @@ function secondGame(payload, overrides = {}) {
   game.away_team = { code: "cfb-2294", name: "Iowa Hawkeyes", abbreviation: "IOWA", logo_key: "cfb-2294" };
   game.home_team = { code: "cfb-158", name: "Nebraska Cornhuskers", abbreviation: "NEB", logo_key: "cfb-158" };
   game.venue = "Memorial Stadium";
+  game.kickoff_utc = "2026-08-29T19:30:00Z";
+  for (const market of game.markets || []) {
+    for (const offer of market.offers || []) {
+      if (offer.selection === "cfb-2306") offer.selection = "cfb-158";
+      if (offer.selection === "cfb-66") offer.selection = "cfb-2294";
+    }
+  }
   Object.assign(game, overrides);
   return game;
 }
@@ -59,12 +66,19 @@ async function render(page, options = {}) {
 }
 
 test.describe("CFB forecast beta visual baselines", () => {
-  test("1440 default FBS Complete board uses two cards", async ({ page }) => {
+  test("1440 fills an odd kickoff group with the next kickoff", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     const payload = await fixture();
     payload.games.push(secondGame(payload));
     await render(page, { payload });
     await expect(page.locator(".cfb-game-card")).toHaveCount(2);
+    const slots = page.locator(".cfb-game-slot");
+    await expect(slots).toHaveCount(2);
+    await expect(slots.nth(0).locator(":scope > h3")).toContainText("11:00 AM");
+    await expect(slots.nth(1).locator(":scope > h3")).toContainText("2:30 PM");
+    const slotBoxes = await slots.evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().toJSON()));
+    expect(Math.abs(slotBoxes[0].y - slotBoxes[1].y)).toBeLessThan(1);
+    expect(slotBoxes[1].x).toBeGreaterThan(slotBoxes[0].x);
     await expect(page).toHaveScreenshot("cfb-1440-default-two-card-board.png", { fullPage: true });
   });
 

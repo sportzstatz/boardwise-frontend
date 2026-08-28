@@ -118,7 +118,8 @@ async function expectNoA11yViolations(page) {
 async function expectLandingSemantics(page) {
   await expect(page.locator("#landing-preview")).toHaveAttribute("data-state", "ready");
   await expect(page.locator("#proof")).toBeVisible();
-  await expect(page.locator(".landing-board-card__icon[aria-hidden='true']")).toHaveCount(4);
+  await expect(page.locator(".landing-board-card__icon[aria-hidden='true']")).toHaveCount(5);
+  await expect(page.getByLabel("CFB experimental forecast board")).toHaveAttribute("href", "/cfb/");
   await expect(page.getByLabel("NHL off-season board")).toContainText("Off-season");
   await expect(page.locator('a[href="/nhl/"]')).toHaveCount(0);
   await expect(page.locator(".landing-preview__label")).toHaveText("Today's matchup");

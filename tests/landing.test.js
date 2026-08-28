@@ -574,9 +574,17 @@ describe("landing page", () => {
   it("shipped board card icons contain the approved emoji", async () => {
     const html = await readFile(resolve(process.cwd(), "index.html"), "utf8");
     expect(html).toContain('aria-hidden="true">⚾️</span>');
+    expect(html).toContain('aria-hidden="true">🏈</span>');
     expect(html).toContain('aria-hidden="true">🏒</span>');
     expect(html).toContain('aria-hidden="true">🏀</span>');
     expect(html).toContain('aria-hidden="true">🏈</span>');
+  });
+
+  it("ships a direct CFB experimental forecast card", async () => {
+    const html = await readFile(resolve(process.cwd(), "index.html"), "utf8");
+    expect(html).toContain('id="landing-cfb-card"');
+    expect(html).toContain('href="/cfb/"');
+    expect(html).toContain("Open CFB board");
   });
 
   it("ships NHL as an off-season non-link card", async () => {
