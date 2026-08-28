@@ -186,14 +186,18 @@ describe("CFB experimental forecast board", () => {
 
   it("flows the next kickoff into the same date grid without an empty desktop column", async () => {
     const payload = structuredClone(FULL);
-    payload.games.push(copyGame({ game_id: 109, kickoff_utc: "2026-08-29T19:30:00Z" }));
+    const nextKickoff = "2026-08-29T19:30:00Z";
+    payload.games.push(copyGame({ game_id: 109, kickoff_utc: nextKickoff }));
     await load("founder", payload);
     expect(document.querySelectorAll(".cfb-date-group")).toHaveLength(1);
     expect(document.querySelectorAll(".cfb-date-group > .cfb-game-grid")).toHaveLength(1);
     const slots = [...document.querySelectorAll(".cfb-game-slot")];
     expect(slots).toHaveLength(2);
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      hour: "numeric", minute: "2-digit", timeZoneName: "short",
+    });
     expect(slots.map((slot) => slot.querySelector("h3")?.textContent)).toEqual([
-      expect.stringContaining("11:00 AM"), expect.stringContaining("2:30 PM"),
+      formatter.format(new Date(FULL.games[0].kickoff_utc)), formatter.format(new Date(nextKickoff)),
     ]);
   });
 
