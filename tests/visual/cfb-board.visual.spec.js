@@ -98,7 +98,12 @@ test.describe("CFB forecast beta visual baselines", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await render(page);
     await page.locator(".cfb-model-details summary").click();
-    await expect(page.locator(".cfb-game-card")).toHaveScreenshot("cfb-390-model-details.png");
+    await page.locator(".cfb-model-details").evaluate((details) => {
+      const controls = document.querySelector("#cfb-controls");
+      const offset = controls instanceof HTMLElement ? controls.offsetHeight : 0;
+      window.scrollTo(0, details.getBoundingClientRect().top + window.scrollY - offset);
+    });
+    await expect(page).toHaveScreenshot("cfb-390-model-details.png");
     await page.evaluate(() => window.scrollTo(0, 500));
     await expect(page.locator("#cfb-controls")).toBeVisible();
     await expect(page).toHaveScreenshot("cfb-390-sticky-filters.png");
