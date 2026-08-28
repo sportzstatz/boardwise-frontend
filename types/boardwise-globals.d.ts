@@ -378,6 +378,20 @@ interface Window {
   BoardWiseGates?: BoardWiseGatesApi;
   BoardWiseWiseChoice?: BoardWiseWiseChoiceApi;
   BoardWiseMlbBranding?: BoardWiseMlbBrandingApi;
+  BoardWiseCfbBranding?: {
+    teams: Record<string, {
+      logo: string;
+      primary: string;
+      secondary: string;
+      probabilityColor: string;
+    }>;
+    fallback: {
+      primary: string;
+      secondary: string;
+      probabilityColor: string;
+    };
+  };
+  __BoardWiseCfbTestHooks?: Record<string, any>;
   BoardWiseLanding?: BoardWiseLandingApi;
   BoardWiseNavigate?: (url: string) => void;
   turnstile?: TurnstileApi;

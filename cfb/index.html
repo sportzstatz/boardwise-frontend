@@ -60,13 +60,39 @@
       </div>
     </section>
 
-    <section id="cfb-loading" class="cfb-state-card" role="status" aria-live="polite">
-      <span class="cfb-loader" aria-hidden="true"></span>
-      <div><strong>Loading the current football slate…</strong><p>Checking access and the latest safe release.</p></div>
+    <section id="cfb-controls" class="cfb-controls" aria-label="College football board filters" hidden>
+      <div class="cfb-controls__week">
+        <label for="cfb-week">Season and week</label>
+        <select id="cfb-week" name="week"></select>
+      </div>
+      <fieldset class="cfb-filter-group" id="cfb-classification-filters">
+        <legend>Matchup classification</legend>
+        <div class="cfb-filter-chips" data-filter-group="classification"></div>
+      </fieldset>
+      <fieldset class="cfb-filter-group" id="cfb-state-filters">
+        <legend>Forecast state</legend>
+        <div class="cfb-filter-chips" data-filter-group="state"></div>
+      </fieldset>
+      <button id="cfb-reset-filters" class="cfb-reset" type="button">Reset</button>
+    </section>
+
+    <section id="cfb-board-summary" class="cfb-board-summary" aria-live="polite" hidden>
+      <strong id="cfb-match-count">0 matching games</strong>
+      <span id="cfb-selected-filters">FBS · Complete</span>
+      <span id="cfb-state-summary">0 complete · 0 degraded · 0 unavailable</span>
+      <span id="cfb-next-kickoff">Next kickoff —</span>
+    </section>
+
+    <section id="cfb-loading" class="cfb-loading" role="status" aria-live="polite" aria-busy="true">
+      <span class="sr-only">Loading the current football slate and checking access.</span>
+      <div class="cfb-skeleton-grid" aria-hidden="true">
+        <article class="cfb-skeleton-card"><span></span><div></div><div></div><div></div></article>
+        <article class="cfb-skeleton-card"><span></span><div></div><div></div><div></div></article>
+      </div>
     </section>
     <section id="cfb-error" class="cfb-state-card cfb-state-card--error" role="alert" hidden></section>
     <section id="cfb-access" class="cfb-state-card cfb-state-card--access" hidden></section>
-    <section id="cfb-games" class="cfb-game-list" aria-label="College football forecasts" hidden></section>
+    <section id="cfb-games" class="cfb-game-list" aria-label="College football forecasts" aria-busy="false" hidden></section>
 
     <aside class="cfb-boundary-note" aria-labelledby="cfb-boundary-title">
       <h2 id="cfb-boundary-title">What this beta is — and is not</h2>
@@ -83,6 +109,7 @@
   <script src="/assets/js/api-client.js"></script>
   <script src="/assets/js/auth-state.js"></script>
   <script src="/assets/js/gates.js"></script>
+  <script src="/assets/js/cfb-team-branding.js"></script>
   <script src="/assets/js/cfb-board.js"></script>
   <script src="/assets/js/apply-gates.js"></script>
 </body>
