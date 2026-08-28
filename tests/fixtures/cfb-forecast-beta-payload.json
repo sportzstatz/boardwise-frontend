@@ -1,0 +1,72 @@
+{
+  "sport": "cfb",
+  "access": "full",
+  "required_feature": null,
+  "beta": {
+    "label": "Experimental Forecast Beta",
+    "model_context": "experimental",
+    "forecast_only": true,
+    "has_selections": false
+  },
+  "release": {
+    "season": 2026,
+    "week": 0,
+    "released_at": "2026-08-27T18:30:00Z"
+  },
+  "games": [
+    {
+      "game_id": 101,
+      "kickoff_utc": "2026-08-29T16:00:00Z",
+      "status": "scheduled",
+      "away_team": { "code": "nvu", "name": "Northern Valley", "abbreviation": "NVU", "logo_key": "nvu" },
+      "home_team": { "code": "lsu", "name": "Lakeside State", "abbreviation": "LSU", "logo_key": "lsu" },
+      "venue": "Founders Field",
+      "data_state": "complete",
+      "lock_state": "pregame",
+      "forecast": {
+        "expected_home_score": "31.4",
+        "expected_away_score": "24.8",
+        "home_win_probability": "0.672",
+        "away_win_probability": "0.328",
+        "expected_margin_home": "6.6",
+        "expected_total": "56.2",
+        "retained_quantiles": { "margin_p10": "-8.5", "margin_p50": "6.0", "margin_p90": "21.0", "total_p50": "56.0" }
+      },
+      "markets": [
+        {
+          "market": "winner",
+          "label": "Winner",
+          "offers": [
+            { "bookmaker": "draftkings", "selection": "lsu", "original_line": null, "original_price_american": -220, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": null, "current_price_american": -225, "current_captured_at": "2026-08-27T18:20:00Z", "model_probability": "0.672", "same_book_no_vig_probability": "0.661", "push_probability": "0", "market_state": "complete" },
+            { "bookmaker": "fanduel", "selection": "lsu", "original_line": null, "original_price_american": -215, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": null, "current_price_american": -210, "current_captured_at": "2026-08-27T18:18:00Z", "model_probability": "0.672", "same_book_no_vig_probability": "0.655", "push_probability": "0", "market_state": "complete" }
+          ]
+        },
+        {
+          "market": "spread",
+          "label": "Spread",
+          "offers": [
+            { "bookmaker": "draftkings", "selection": "lsu", "original_line": "-6.0", "original_price_american": -110, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": "-6.5", "current_price_american": -108, "current_captured_at": "2026-08-27T18:20:00Z", "model_probability": "0.504", "same_book_no_vig_probability": "0.500", "push_probability": "0", "market_state": "complete" },
+            { "bookmaker": "fanduel", "selection": "lsu", "original_line": "-6.5", "original_price_american": -105, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": "-7.0", "current_price_american": -102, "current_captured_at": "2026-08-27T18:18:00Z", "model_probability": "0.488", "same_book_no_vig_probability": "0.498", "push_probability": "0.028", "market_state": "complete" }
+          ]
+        },
+        {
+          "market": "total",
+          "label": "Total",
+          "offers": [
+            { "bookmaker": "draftkings", "selection": "over", "original_line": "55.5", "original_price_american": -110, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": "56.0", "current_price_american": -105, "current_captured_at": "2026-08-27T18:20:00Z", "model_probability": "0.493", "same_book_no_vig_probability": "0.499", "push_probability": "0.024", "market_state": "complete" },
+            { "bookmaker": "fanduel", "selection": "over", "original_line": "55.5", "original_price_american": -108, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": "56.0", "current_price_american": -110, "current_captured_at": "2026-08-27T18:18:00Z", "model_probability": "0.493", "same_book_no_vig_probability": "0.501", "push_probability": "0.024", "market_state": "complete" }
+          ]
+        }
+      ],
+      "model_details": {
+        "model_name": "Round House",
+        "model_context": "experimental",
+        "as_of": "2026-08-27T18:15:00Z",
+        "home_classification": "fbs",
+        "away_classification": "fbs",
+        "forecast_only": true,
+        "has_selections": false
+      }
+    }
+  ]
+}

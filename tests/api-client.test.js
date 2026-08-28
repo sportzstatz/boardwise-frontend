@@ -69,6 +69,30 @@ describe("api-client", () => {
     expect(endpointText).not.toContain("/api/mlb/board");
   });
 
+  it("keeps CFB landing public and the current board credentialed with no selector", async () => {
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ sport: "cfb", beta_enabled: true }))
+      .mockResolvedValueOnce(jsonResponse({ sport: "cfb", access: "full", games: [] }));
+    vi.stubGlobal("fetch", fetch);
+    const api = await loadApiClient();
+
+    await api.getCfbLanding();
+    await api.getCfbBoard();
+
+    expect(api.endpoints.landingCfb).toBe("/api/v1/public/landing/cfb");
+    expect(api.endpoints.cfbBoardCurrent).toBe("/api/v1/boards/cfb/current");
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      `${DEFAULT_API_BASE}/api/v1/public/landing/cfb`,
+      expect.objectContaining({ credentials: "omit", cache: "no-store" })
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      `${DEFAULT_API_BASE}/api/v1/boards/cfb/current`,
+      expect.objectContaining({ credentials: "include", cache: "no-store" })
+    );
+  });
+
   it("loads the public MLB landing snapshot without a no-store override", async () => {
     const fetch = vi.fn().mockResolvedValue(jsonResponse({ sport: "mlb" }));
     vi.stubGlobal("fetch", fetch);
