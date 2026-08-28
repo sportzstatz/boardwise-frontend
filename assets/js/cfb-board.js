@@ -556,6 +556,65 @@
     }));
   }
 
+  function bindMobileControlsVisibility() {
+    if (!controlsEl || typeof window.matchMedia !== "function") return;
+    const mobile = window.matchMedia("(max-width: 760px)");
+    let lastY = window.scrollY;
+    let direction = "";
+    let distance = 0;
+    let frame = 0;
+
+    const show = () => controlsEl.classList.remove("cfb-controls--scroll-hidden");
+    const update = () => {
+      frame = 0;
+      const currentY = Math.max(0, window.scrollY);
+      const delta = currentY - lastY;
+      lastY = currentY;
+      if (!mobile.matches || controlsEl.hidden || currentY < 24
+        || controlsEl.contains(document.activeElement)) {
+        direction = "";
+        distance = 0;
+        show();
+        return;
+      }
+      if (Math.abs(delta) < 1) return;
+
+      const nextDirection = delta > 0 ? "down" : "up";
+      if (nextDirection !== direction) {
+        direction = nextDirection;
+        distance = 0;
+      }
+      distance += Math.abs(delta);
+      if (direction === "up" && distance >= 12) {
+        show();
+        distance = 0;
+        return;
+      }
+      if (direction !== "down" || controlsEl.classList.contains("cfb-controls--scroll-hidden")) return;
+      const top = Number.parseFloat(getComputedStyle(controlsEl).top) || 0;
+      const isStuck = controlsEl.getBoundingClientRect().top <= top + 1;
+      if (!isStuck) {
+        distance = 0;
+        return;
+      }
+      if (distance >= 72) {
+        controlsEl.classList.add("cfb-controls--scroll-hidden");
+        distance = 0;
+      }
+    };
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    mobile.addEventListener?.("change", () => {
+      lastY = window.scrollY;
+      direction = "";
+      distance = 0;
+      show();
+    });
+    controlsEl.addEventListener("focusin", show);
+  }
+
   function updateUrl(replace = false) {
     const query = serializeFilters(activeFilters);
     window.history[replace ? "replaceState" : "pushState"]({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
@@ -671,5 +730,6 @@
     serializeFilters, applyFilters, countFilters, selectionLabel, offersComparable,
     betterBookPair, quoteState, marketHeadline, gameCard, unavailableCard, renderBoard,
   };
+  bindMobileControlsVisibility();
   void bootstrap();
 })();
