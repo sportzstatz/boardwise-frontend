@@ -119,14 +119,20 @@ test.describe("CFB forecast beta visual baselines", () => {
     });
     await expect(page).toHaveScreenshot("cfb-390-model-details.png");
     const controls = page.locator("#cfb-controls");
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(controls).not.toHaveClass(/cfb-controls--scroll-hidden/);
     const controlsTop = await controls.evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
     await page.evaluate((top) => window.scrollTo(0, top + 240), controlsTop);
+    await expect(controls).toHaveClass(/cfb-controls--scroll-hidden/);
+    await page.evaluate(() => window.scrollTo(0, Math.max(0, window.scrollY - 40)));
+    await expect(controls).not.toHaveClass(/cfb-controls--scroll-hidden/);
     await expect(controls).toBeVisible();
-    const stickyPosition = await controls.evaluate((element) => ({
-      expectedTop: Number.parseFloat(getComputedStyle(element).top),
+    const revealedPosition = await controls.evaluate((element) => ({
+      position: getComputedStyle(element).position,
       renderedTop: element.getBoundingClientRect().top,
     }));
-    expect(Math.abs(stickyPosition.renderedTop - stickyPosition.expectedTop)).toBeLessThan(1);
+    expect(revealedPosition.position).toBe("sticky");
+    expect(revealedPosition.renderedTop).toBeLessThan(48);
     await expect(controls).toHaveScreenshot("cfb-390-sticky-filters.png");
   });
 

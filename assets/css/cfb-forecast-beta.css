@@ -186,7 +186,8 @@ html, body { overflow-x: clip; }
   .cfb-beta-stamp { min-width: 0; }
   .cfb-slate-bar { grid-template-columns: 1fr 1fr; gap: 13px; }
   .cfb-slate-bar__boundary { grid-column: 1/-1; border-left: 0; border-top: 1px solid rgba(255,255,255,.2); padding: 11px 0 0; }
-  .cfb-controls { position: sticky; top: max(8px,env(safe-area-inset-top)); grid-template-columns: minmax(0,1fr) auto; padding: 10px; backdrop-filter: blur(12px); }
+  .cfb-controls { position: sticky; top: max(8px,env(safe-area-inset-top)); grid-template-columns: minmax(0,1fr) auto; padding: 10px; backdrop-filter: blur(12px); transition: transform .2s ease, opacity .2s ease; }
+  .cfb-controls--scroll-hidden { opacity: 0; pointer-events: none; transform: translateY(calc(-100% - max(8px,env(safe-area-inset-top)))); }
   .cfb-controls__week { min-width: 0; }
   .cfb-controls__week select { width: 100%; max-width: none; }
   .cfb-filter-group { grid-column: 1/-1; }
@@ -203,6 +204,10 @@ html, body { overflow-x: clip; }
   .cfb-probability__track { height: 96px; width: 14px; }
   .cfb-game-card__head { align-items: flex-start; }
   .cfb-model-grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cfb-controls { transition: none; }
 }
 
 @media (max-width: 520px) {

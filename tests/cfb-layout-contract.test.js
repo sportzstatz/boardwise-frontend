@@ -21,6 +21,8 @@ describe("CFB responsive and loading contracts", () => {
     expect(css).toMatch(/@media \(max-width: 760px\)[\s\S]*?\.cfb-controls\s*\{[^}]*position:\s*sticky/s);
     expect(css).toContain("overflow-x: clip");
     expect(css).toContain("env(safe-area-inset-top)");
+    expect(css).toMatch(/\.cfb-controls--scroll-hidden\s*\{[^}]*transform:\s*translateY/s);
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.cfb-controls\s*\{[^}]*transition:\s*none/s);
   });
 
   it("ships two-column skeleton markup and loads branding before board code", () => {
