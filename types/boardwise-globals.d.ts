@@ -259,7 +259,7 @@ interface BoardWiseApiClient {
   logout(): Promise<Record<string, any> | null>;
   getMlbLanding(): Promise<BoardWiseMlbLandingPayload>;
   getCfbLanding(): Promise<BoardWiseCfbLandingPayload>;
-  getCfbBoard(options?: { week?: number }): Promise<BoardWiseCfbBoardPayload>;
+  getCfbBoard(): Promise<BoardWiseCfbBoardPayload>;
   getMlbBoard(
     targetDate?: string,
     options?: { model?: string }

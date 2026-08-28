@@ -144,7 +144,30 @@ describe("CFB experimental forecast board", () => {
     const { parseFilters, serializeFilters } = window.__BoardWiseCfbTestHooks;
     expect(parseFilters("?week=1&classification=fcs&state=all", [0, 1], 0)).toEqual({ week: 1, classification: "fcs", state: "all" });
     expect(parseFilters("?week=99&classification=unknown&state=bogus", [0], 0)).toEqual({ week: 0, classification: "fbs", state: "complete" });
+    expect(parseFilters("", [0, 4], 4)).toEqual({ week: 4, classification: "fbs", state: "complete" });
     expect(serializeFilters({ week: 0, classification: "fbs", state: "complete" }, true)).toBe("week=0&classification=fbs&state=complete");
+  });
+
+  it("keeps the selector on the one API-authoritative current slate", async () => {
+    const payload = structuredClone(FULL);
+    payload.release.week = 4;
+    payload.authorized_weeks = [0, 1, 4];
+    window.history.replaceState({}, "", "/cfb/?week=1&classification=fcs&state=all");
+    const api = await load("founder", payload);
+    const selector = /** @type {HTMLSelectElement} */ (document.getElementById("cfb-week"));
+    expect(selector.options).toHaveLength(1);
+    expect(selector.value).toBe("4");
+    expect(selector.disabled).toBe(true);
+    expect(document.getElementById("cfb-slate")?.textContent).toContain("Week 4");
+    expect(new URL(window.location.href).searchParams.get("week")).toBe("4");
+    expect(api.getCfbBoard).toHaveBeenCalledTimes(1);
+    expect(api.getCfbBoard).toHaveBeenCalledWith();
+
+    window.history.pushState({}, "", "/cfb/?week=2&classification=fbs&state=complete");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    expect(document.getElementById("cfb-slate")?.textContent).toContain("Week 4");
+    expect(new URL(window.location.href).searchParams.get("week")).toBe("4");
+    expect(api.getCfbBoard).toHaveBeenCalledTimes(1);
   });
 
   it("groups by local date and exact kickoff with TBD last and stable matchup sorting", async () => {

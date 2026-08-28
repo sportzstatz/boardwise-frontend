@@ -156,8 +156,9 @@
       ? params.get("classification") : DEFAULT_CLASSIFICATION;
     const state = stateOptions.some((option) => option.key === params.get("state"))
       ? params.get("state") : DEFAULT_STATE;
-    const requestedWeek = Number(params.get("week"));
-    const week = Number.isSafeInteger(requestedWeek) && weeks.includes(requestedWeek)
+    const weekParam = params.get("week");
+    const requestedWeek = weekParam === null || weekParam.trim() === "" ? null : Number(weekParam);
+    const week = requestedWeek !== null && Number.isSafeInteger(requestedWeek) && weeks.includes(requestedWeek)
       ? requestedWeek : currentWeek;
     return { classification, state, week };
   }
@@ -525,6 +526,12 @@
     window.history[replace ? "replaceState" : "pushState"]({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
   }
 
+  function readCurrentSlateFilters(currentWeek) {
+    activeFilters = parseFilters(window.location.search, [currentWeek], currentWeek);
+    const requestedWeek = new URLSearchParams(window.location.search).get("week");
+    if (requestedWeek !== null && requestedWeek !== String(currentWeek)) updateUrl(true);
+  }
+
   function renderCachedBoard() {
     if (!payloadCache || !gamesEl) return;
     hideStates();
@@ -559,10 +566,8 @@
   function renderBoard(payload) {
     payloadCache = payload;
     const currentWeek = Number(payload?.release?.week ?? payload?.slate?.week ?? 0);
-    const projected = Array.isArray(payload?.authorized_weeks)
-      ? payload.authorized_weeks.map(Number).filter(Number.isSafeInteger) : [];
-    allowedWeeks = [...new Set(projected.length ? projected : [currentWeek])].sort((a, b) => a - b);
-    activeFilters = parseFilters(window.location.search, allowedWeeks, currentWeek);
+    allowedWeeks = [currentWeek];
+    readCurrentSlateFilters(currentWeek);
     renderCachedBoard();
   }
 
@@ -613,22 +618,16 @@
     updateUrl(); renderCachedBoard(); byId("cfb-title")?.scrollIntoView({ block: "start" });
   });
 
-  weekEl?.addEventListener("change", async () => {
+  weekEl?.addEventListener("change", () => {
     const selected = Number(weekEl.value);
-    if (!allowedWeeks.includes(selected) || selected === activeFilters.week) return;
-    activeFilters = { ...activeFilters, week: selected };
-    updateUrl(); showLoading(); byId("cfb-title")?.scrollIntoView({ block: "start" });
-    try {
-      const next = await window.BoardWiseApi.getCfbBoard({ week: selected });
-      if (Number(next?.release?.week ?? next?.slate?.week) !== selected) throw new Error("week unavailable");
-      renderBoard(next);
-    } catch (_error) { showError("That week is not available in the current authorized forecast beta."); }
+    if (selected === activeFilters.week) return;
+    if (weekEl) weekEl.value = String(activeFilters.week);
   });
 
   window.addEventListener("popstate", () => {
     if (!payloadCache) return;
     const currentWeek = Number(payloadCache?.release?.week ?? payloadCache?.slate?.week ?? 0);
-    activeFilters = parseFilters(window.location.search, allowedWeeks, currentWeek);
+    readCurrentSlateFilters(currentWeek);
     renderCachedBoard();
   });
 
