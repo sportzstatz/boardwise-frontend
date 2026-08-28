@@ -311,6 +311,41 @@
     return [...outcomes.entries()];
   }
 
+  function marketHeadline(group, game) {
+    const offers = (Array.isArray(group?.offers) ? group.offers : []).filter((offer) => (
+      String(offer?.market_state) === "complete"
+      && Boolean(offer?.current_captured_at)
+      && finite(offer?.model_probability) !== null
+      && finite(offer?.current_price_american) !== null
+      && (group?.market === "winner" || finite(offer?.current_line) !== null)
+    ));
+    if (!offers.length) return null;
+
+    const featured = [...offers].sort((left, right) => (
+      /** @type {number} */ (finite(right.model_probability))
+      - /** @type {number} */ (finite(left.model_probability))
+      || /** @type {number} */ (finite(right.current_price_american))
+      - /** @type {number} */ (finite(left.current_price_american))
+    ))[0];
+    const featuredLine = finite(featured.current_line);
+    const exactOffers = offers.filter((offer) => (
+      String(offer.selection) === String(featured.selection)
+      && finite(offer.current_line) === featuredLine
+    ));
+    const bestPrice = exactOffers.reduce((best, offer) => (
+      /** @type {number} */ (finite(offer.current_price_american))
+      > /** @type {number} */ (finite(best.current_price_american)) ? offer : best
+    ), featured);
+    const outcome = selectionLabel(featured.selection, game, group.market);
+    const exactLine = group.market === "total" ? String(featuredLine) : line(featuredLine);
+    const exactOutcome = group.market === "winner" ? outcome : `${outcome} ${exactLine}`;
+    return {
+      outcome: exactOutcome,
+      probability: percent(featured.model_probability),
+      price: american(bestPrice.current_price_american),
+    };
+  }
+
   function marketTable(group, game) {
     const outcomes = outcomesFor(group, game);
     if (!outcomes.length) return `<p class="cfb-market-note">This market is missing, stale, incomplete, or unavailable in the current safe release.</p>`;
@@ -355,13 +390,13 @@
 
   function marketAccordion(group, game, season, week) {
     const offers = Array.isArray(group?.offers) ? group.offers : [];
-    const books = new Set(offers.map((offer) => offer.bookmaker)).size;
     const state = accordionState(season, week)?.[String(game.game_id)] || {};
     const section = String(group?.market || "unknown");
     const bodyId = `cfb-${season}-${week}-${game.game_id}-${section}`;
     if (!offers.length) return `<div class="cfb-accordion cfb-accordion--unavailable" data-market="${esc(section)}"><div class="cfb-accordion__unavailable"><span class="cfb-accordion__title">${esc(group?.label || "Market")}</span><span>Unavailable</span></div></div>`;
+    const headline = marketHeadline(group, game);
     return `<details class="cfb-accordion cfb-market" data-market="${esc(section)}" data-section="${esc(section)}"${state.market === section ? " open" : ""}>
-      <summary aria-controls="${esc(bodyId)}" aria-expanded="${state.market === section ? "true" : "false"}"><span><span class="cfb-accordion__title">${esc(group?.label || "Market")}</span><span class="cfb-accordion__state">${books} book${books === 1 ? "" : "s"} · ${offers.length} offer${offers.length === 1 ? "" : "s"}</span></span></summary>
+      <summary aria-controls="${esc(bodyId)}" aria-expanded="${state.market === section ? "true" : "false"}"><span><span class="cfb-accordion__title">${esc(group?.label || "Market")}</span>${headline ? `<span class="cfb-accordion__headline"><span aria-hidden="true">·</span> ${esc(headline.outcome)} <span aria-hidden="true">·</span> ${esc(headline.probability)} <span aria-hidden="true">·</span> ${esc(headline.price)}</span>` : `<span class="cfb-accordion__state">Current offers</span>`}</span></summary>
       <div class="cfb-accordion__body" id="${esc(bodyId)}">${marketTable(group, game)}</div></details>`;
   }
 
@@ -377,7 +412,7 @@
     const state = accordionState(season, week)?.[String(game.game_id)] || {};
     const bodyId = `cfb-${season}-${week}-${game.game_id}-model`;
     return `<details class="cfb-accordion cfb-model-details" data-section="model"${state.model ? " open" : ""}>
-      <summary aria-controls="${esc(bodyId)}" aria-expanded="${state.model ? "true" : "false"}"><span><span class="cfb-accordion__title">Model Details</span><span class="cfb-accordion__state">Founder-safe context</span></span></summary>
+      <summary aria-controls="${esc(bodyId)}" aria-expanded="${state.model ? "true" : "false"}"><span class="cfb-accordion__title">Model Details</span></summary>
       <div class="cfb-accordion__body" id="${esc(bodyId)}">
         <section class="cfb-model-section"><h4>Forecast summary</h4><dl class="cfb-model-grid">
           <div><dt>Model</dt><dd>${esc(details.model_name || "Round House")}</dd></div>
@@ -447,7 +482,7 @@
   }
 
   function renderGroups(games, full, season, week) {
-    return groupGames(games).map((date) => `<section class="cfb-date-group"><h2>${esc(date.label)}</h2>${date.times.map((time) => `<section class="cfb-time-group"><h3>${esc(time.label)}</h3><div class="cfb-game-grid">${time.games.map((game) => gameCard(game, full, season, week)).join("")}</div></section>`).join("")}</section>`).join("");
+    return groupGames(games).map((date) => `<section class="cfb-date-group"><h2>${esc(date.label)}</h2><div class="cfb-game-grid">${date.times.map((time) => time.games.map((game) => `<section class="cfb-game-slot"><h3>${esc(time.label)}</h3>${gameCard(game, full, season, week)}</section>`).join("")).join("")}</div></section>`).join("");
   }
 
   function hideStates() {
@@ -634,7 +669,7 @@
   window.__BoardWiseCfbTestHooks = {
     esc, finite, classificationBucket, sortGames, groupGames, parseFilters,
     serializeFilters, applyFilters, countFilters, selectionLabel, offersComparable,
-    betterBookPair, quoteState, gameCard, unavailableCard, renderBoard,
+    betterBookPair, quoteState, marketHeadline, gameCard, unavailableCard, renderBoard,
   };
   void bootstrap();
 })();

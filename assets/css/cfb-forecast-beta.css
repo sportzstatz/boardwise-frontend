@@ -73,10 +73,10 @@ html, body { overflow-x: clip; }
 .cfb-date-group { margin-top: 30px; }
 .cfb-date-group:first-child { margin-top: 0; }
 .cfb-date-group > h2 { margin: 0 0 15px; color: var(--cfb-navy-deep); font-family: var(--bw-font-display); font-size: 30px; letter-spacing: -.015em; }
-.cfb-time-group { margin-top: 22px; }
-.cfb-time-group > h3 { margin: 0 0 10px; display: flex; align-items: center; gap: 12px; color: #5d6875; font-size: 12px; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
-.cfb-time-group > h3::after { content: ""; height: 1px; flex: 1; background: #d6d1c7; }
 .cfb-game-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; align-items: start; }
+.cfb-game-slot { min-width: 0; }
+.cfb-game-slot > h3 { margin: 0 0 10px; display: flex; align-items: center; gap: 12px; color: #5d6875; font-size: 12px; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
+.cfb-game-slot > h3::after { content: ""; height: 1px; flex: 1; background: #d6d1c7; }
 .cfb-game-card { min-width: 0; overflow: hidden; border: 1px solid var(--cfb-rule); border-radius: 20px; background: var(--cfb-paper); box-shadow: 0 10px 30px rgba(17,39,64,.1); }
 .cfb-game-card--degraded { border-color: #c89b3b; }
 .cfb-game-card--unavailable { border-color: #aeb7c1; }
@@ -120,6 +120,7 @@ html, body { overflow-x: clip; }
 .cfb-accordion[open] > summary::after { content: "–"; }
 .cfb-accordion__title { font-family: var(--bw-font-display); font-size: 18px; font-weight: 900; }
 .cfb-accordion__state { margin-left: 7px; color: #66717d; font-family: var(--bw-font-sans); font-size: 10px; font-weight: 800; }
+.cfb-accordion__headline { margin-left: 5px; color: #546270; font-family: var(--bw-font-sans); font-size: 11px; font-weight: 850; }
 .cfb-accordion__body { border-top: 1px solid var(--cfb-rule); padding: 14px 16px 17px; background: #faf9f5; }
 .cfb-accordion__unavailable { min-height: 52px; padding: 13px 17px; display: flex; align-items: center; justify-content: space-between; color: #687480; }
 .cfb-accordion__unavailable > span:last-child { font-size: 10px; font-weight: 900; text-transform: uppercase; }

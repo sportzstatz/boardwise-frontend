@@ -419,6 +419,10 @@
   gap: 16px;
 }
 
+.landing-boards .landing-card-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .landing-board-card,
 .landing-info-card {
   min-width: 0;
@@ -759,7 +763,8 @@
     grid-template-columns: 1fr;
   }
 
-  .landing-card-grid {
+  .landing-card-grid,
+  .landing-boards .landing-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -842,7 +847,8 @@
 }
 
 @media (max-width: 520px) {
-  .landing-card-grid {
+  .landing-card-grid,
+  .landing-boards .landing-card-grid {
     grid-template-columns: 1fr;
   }
 
