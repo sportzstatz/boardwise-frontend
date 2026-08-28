@@ -18,6 +18,12 @@
   }
 
   function finite(value) {
+    if (
+      value === null
+      || value === undefined
+      || (typeof value !== "number" && typeof value !== "string")
+      || (typeof value === "string" && value.trim() === "")
+    ) return null;
     const number = Number(value);
     return Number.isFinite(number) ? number : null;
   }
@@ -200,8 +206,14 @@
     if (!forecast) {
       return `<div class="cfb-locked-game"><h3>${esc(game.away_team?.name)} at ${esc(game.home_team?.name)}</h3><p>${game.data_state === "unavailable" ? "The current release has no forecast values for this game." : "Founder access is required to view the experimental forecast values and market offers."}</p></div>`;
     }
-    const awayProbability = Math.max(0, Math.min(1, finite(forecast.away_win_probability) ?? .5));
-    const homeProbability = Math.max(0, Math.min(1, finite(forecast.home_win_probability) ?? (1 - awayProbability)));
+    const awayProbabilityValue = finite(forecast.away_win_probability);
+    const homeProbabilityValue = finite(forecast.home_win_probability);
+    const probabilityAvailable = awayProbabilityValue !== null && homeProbabilityValue !== null;
+    const awayProbability = probabilityAvailable ? Math.max(0, Math.min(1, awayProbabilityValue)) : 0;
+    const homeProbability = probabilityAvailable ? Math.max(0, Math.min(1, homeProbabilityValue)) : 0;
+    const probabilityLabel = probabilityAvailable
+      ? `Win probability: ${game.away_team?.name} ${percent(forecast.away_win_probability)}; ${game.home_team?.name} ${percent(forecast.home_win_probability)}`
+      : `Win probability unavailable for ${game.away_team?.name} at ${game.home_team?.name}`;
     return `
       <div class="cfb-matchup">
         <section class="cfb-team" aria-label="${esc(game.away_team?.name)}, expected score ${esc(score(forecast.expected_away_score))}, win probability ${esc(percent(forecast.away_win_probability))}">
@@ -211,7 +223,7 @@
           <div class="cfb-team__score tnum">${esc(score(forecast.expected_away_score))}<span>Expected score</span></div>
           <div class="cfb-team__prob tnum">${esc(percent(forecast.away_win_probability))}</div>
         </section>
-        <div class="cfb-probability" role="img" aria-label="Win probability: ${esc(game.away_team?.name)} ${esc(percent(forecast.away_win_probability))}; ${esc(game.home_team?.name)} ${esc(percent(forecast.home_win_probability))}">
+        <div class="cfb-probability" role="img" aria-label="${esc(probabilityLabel)}">
           <div class="cfb-probability__label">Win prob</div>
           <div class="cfb-probability__track" aria-hidden="true"><span class="cfb-probability__away" style="height:${(awayProbability * 100).toFixed(1)}%"></span><span class="cfb-probability__home" style="height:${(homeProbability * 100).toFixed(1)}%"></span></div>
           <div class="cfb-probability__vs">VS</div>
@@ -336,6 +348,7 @@
 
   (/** @type {any} */ (window)).__BoardWiseCfbTestHooks = {
     esc,
+    finite,
     offersComparable,
     betterBook,
     gameCard,

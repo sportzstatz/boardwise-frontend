@@ -119,6 +119,30 @@ describe("CFB experimental forecast board", () => {
     expect(total?.querySelectorAll(".cfb-book--better")).toHaveLength(1);
   });
 
+  it("rejects null, blank, boolean, and structured values before numeric formatting", async () => {
+    await load("founder");
+    const { finite } = (/** @type {any} */ (window)).__BoardWiseCfbTestHooks;
+    expect(finite(null)).toBeNull();
+    expect(finite(undefined)).toBeNull();
+    expect(finite("  ")).toBeNull();
+    expect(finite(false)).toBeNull();
+    expect(finite([])).toBeNull();
+    expect(finite("0")).toBe(0);
+  });
+
+  it("renders withheld numeric values as unavailable without a synthetic probability", async () => {
+    const payload = structuredClone(FULL);
+    payload.games[0].forecast.away_win_probability = null;
+    payload.games[0].forecast.home_win_probability = null;
+    payload.games[0].markets[0].offers[0].current_price_american = null;
+    await load("founder", payload);
+
+    expect(document.querySelectorAll(".cfb-team__prob")[0]?.textContent).toBe("—");
+    expect(document.querySelector(".cfb-probability")?.getAttribute("aria-label")).toContain("unavailable");
+    expect(document.querySelectorAll(".cfb-probability__track span")[0]?.getAttribute("style")).toBe("height:0.0%");
+    expect(document.querySelectorAll(".cfb-offer__price")[0]?.textContent).toBe("—");
+  });
+
   it("shows degraded and unavailable states without fabricating values", async () => {
     const payload = structuredClone(FULL);
     payload.games[0].data_state = "degraded";
