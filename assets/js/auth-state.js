@@ -3,6 +3,8 @@
     account_profile: false,
     mlb_board_basic: false,
     mlb_board_advanced: false,
+    cfb_board_basic: false,
+    cfb_forecast_beta: false,
     nhl_board_basic: false,
     performance_summary: false,
     performance_breakdown: false,

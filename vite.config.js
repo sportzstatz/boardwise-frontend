@@ -28,6 +28,7 @@ export default defineConfig({
         home: resolve(root, "index.html"),
         account: resolve(root, "account/index.html"),
         login: resolve(root, "login/index.html"),
+        cfb: resolve(root, "cfb/index.html"),
         mlb: resolve(root, "mlb/index.html"),
         mlbGame: resolve(root, "mlb/game/index.html"),
         performance: resolve(root, "performance/index.html"),

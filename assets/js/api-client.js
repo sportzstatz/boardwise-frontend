@@ -13,6 +13,8 @@
     magicLinkVerify: "/api/v1/auth/magic-link/verify",
     logout: "/api/v1/auth/logout",
     landingMlb: "/api/v1/public/landing/mlb",
+    landingCfb: "/api/v1/public/landing/cfb",
+    cfbBoardCurrent: "/api/v1/boards/cfb/current",
     mlbBoardCurrent: "/api/v1/boards/mlb/current",
     mlbBoardDate: "/api/v1/boards/mlb/",
     mlbGames: "/api/v1/mlb/games/",
@@ -181,6 +183,20 @@
     getMlbLanding() {
       return jsonRequest(ENDPOINTS.landingMlb, {
         credentials: "omit",
+      });
+    },
+
+    getCfbLanding() {
+      return jsonRequest(ENDPOINTS.landingCfb, {
+        credentials: "omit",
+        cache: "no-store",
+      });
+    },
+
+    getCfbBoard() {
+      return jsonRequest(ENDPOINTS.cfbBoardCurrent, {
+        credentials: "include",
+        cache: "no-store",
       });
     },
 

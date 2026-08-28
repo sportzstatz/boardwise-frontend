@@ -147,6 +147,30 @@ interface BoardWiseMlbLandingPayload {
   };
 }
 
+interface BoardWiseCfbLandingPayload {
+  sport: "cfb";
+  beta_enabled: boolean;
+  label: string;
+  audience: "founder_admin";
+  game_count: number;
+  complete_game_count: number;
+  degraded_game_count: number;
+  unavailable_game_count: number;
+  next_kickoff: string | null;
+  last_safe_update: string | null;
+  upgrade: { required_feature: string; path: string };
+}
+
+interface BoardWiseCfbBoardPayload {
+  [key: string]: any;
+  sport: "cfb";
+  access: "preview" | "full";
+  required_feature?: string | null;
+  beta?: Record<string, any>;
+  release?: Record<string, any>;
+  games: any[];
+}
+
 interface BoardWisePerformanceFiltersPayload {
   [key: string]: any;
   sports?: string[];
@@ -234,6 +258,8 @@ interface BoardWiseApiClient {
   verifyMagicLink(token: string): Promise<Record<string, any> | null>;
   logout(): Promise<Record<string, any> | null>;
   getMlbLanding(): Promise<BoardWiseMlbLandingPayload>;
+  getCfbLanding(): Promise<BoardWiseCfbLandingPayload>;
+  getCfbBoard(): Promise<BoardWiseCfbBoardPayload>;
   getMlbBoard(
     targetDate?: string,
     options?: { model?: string }

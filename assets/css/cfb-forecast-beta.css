@@ -1,0 +1,261 @@
+:root {
+  --cfb-navy: #112740;
+  --cfb-navy-deep: #0a192b;
+  --cfb-gold: #d6a431;
+  --cfb-gold-soft: #fff5dc;
+  --cfb-field: #40634b;
+  --cfb-paper: #fbfaf6;
+  --cfb-rule: #e3ddd1;
+  --cfb-warning: #8b5b05;
+}
+
+.cfb-board-page { background: #eceae4; }
+
+.cfb-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 44px 0 64px;
+}
+
+.cfb-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 24px;
+}
+
+.cfb-kicker {
+  margin: 0 0 7px;
+  color: #7b5b13;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .17em;
+  text-transform: uppercase;
+}
+
+.cfb-hero h1 {
+  margin: 0;
+  color: var(--cfb-navy-deep);
+  font-family: var(--bw-font-display);
+  font-size: clamp(48px, 7vw, 80px);
+  font-weight: 900;
+  letter-spacing: -.025em;
+  line-height: .9;
+}
+
+.cfb-hero__dek {
+  max-width: 690px;
+  margin: 14px 0 0;
+  color: var(--bw-muted);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.cfb-beta-stamp {
+  min-width: 190px;
+  border: 1px solid rgba(214, 164, 49, .55);
+  border-radius: 16px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--cfb-gold-soft);
+  color: var(--cfb-navy-deep);
+  box-shadow: var(--bw-shadow);
+}
+
+.cfb-beta-stamp > span {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--cfb-gold);
+  font-family: var(--bw-font-display);
+  font-size: 25px;
+  font-weight: 900;
+}
+
+.cfb-beta-stamp strong,
+.cfb-beta-stamp small { display: block; }
+.cfb-beta-stamp strong { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+.cfb-beta-stamp small { margin-top: 2px; color: var(--bw-muted); font-weight: 700; }
+
+.cfb-slate-bar {
+  border-radius: 18px;
+  padding: 18px 22px;
+  display: grid;
+  grid-template-columns: minmax(150px, .7fr) minmax(180px, 1fr) minmax(280px, 1.5fr);
+  gap: 22px;
+  align-items: center;
+  background: var(--cfb-navy);
+  color: #fff;
+  box-shadow: var(--bw-shadow);
+}
+
+.cfb-slate-bar__label {
+  display: block;
+  margin-bottom: 4px;
+  color: #9eb3ca;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.cfb-slate-bar strong { font-size: 14px; }
+.cfb-slate-bar__boundary { border-left: 1px solid rgba(255,255,255,.16); padding-left: 22px; display: flex; gap: 10px; align-items: center; }
+.cfb-slate-bar__boundary > span { color: var(--cfb-gold); font-size: 24px; }
+.cfb-slate-bar__boundary p { margin: 0; color: #cad5e1; font-size: 12px; line-height: 1.45; }
+
+.cfb-state-card {
+  margin-top: 22px;
+  border: 1px solid var(--cfb-rule);
+  border-radius: 20px;
+  padding: 28px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  background: var(--cfb-paper);
+  box-shadow: var(--bw-shadow);
+}
+
+.cfb-state-card strong { font-family: var(--bw-font-display); font-size: 22px; }
+.cfb-state-card p { margin: 5px 0 0; color: var(--bw-muted); line-height: 1.5; }
+.cfb-state-card--access { display: block; text-align: center; padding: 42px 28px; }
+.cfb-state-card--access .bw-button { margin: 18px 5px 0; }
+.cfb-state-card--error { border-color: #e4aaa4; background: #fff6f5; }
+.cfb-loader { width: 24px; height: 24px; border: 3px solid #d9d5ca; border-top-color: var(--cfb-gold); border-radius: 50%; animation: cfb-spin .8s linear infinite; }
+@keyframes cfb-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .cfb-loader { animation: none; border-top-color: #d9d5ca; } }
+
+.cfb-game-list { margin-top: 22px; display: grid; gap: 24px; }
+.cfb-game-card { overflow: hidden; border: 1px solid var(--cfb-rule); border-radius: 22px; background: var(--cfb-paper); box-shadow: 0 12px 35px rgba(17,39,64,.10); }
+.cfb-game-card--degraded { border-color: #dfbd79; }
+.cfb-game-card--unavailable { border-color: #c8cdd2; }
+
+.cfb-game-card__head {
+  min-height: 78px;
+  padding: 14px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  background: var(--cfb-navy);
+  color: #fff;
+}
+
+.cfb-game-card__meta { margin: 0 0 4px; color: #a9bdd2; font-size: 11px; line-height: 1.4; }
+.cfb-game-card__head h2 { margin: 0; font-family: var(--bw-font-display); font-size: clamp(20px, 3vw, 28px); line-height: 1; }
+.cfb-experimental-badge { flex: none; border-radius: 999px; padding: 7px 12px; background: var(--cfb-gold); color: #1d1606; font-size: 10px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
+
+.cfb-warning {
+  margin: 0;
+  border-bottom: 1px solid #ead6a6;
+  padding: 12px 22px;
+  background: #fff7e5;
+  color: #684300;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cfb-matchup {
+  padding: 34px 28px 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+}
+
+.cfb-team { min-width: 0; text-align: center; }
+.cfb-team-mark { width: 74px; height: 74px; margin: 0 auto 13px; border: 2px solid currentColor; border-radius: 50%; display: grid; place-items: center; background: #fff; color: var(--cfb-navy); font-family: var(--bw-font-display); font-size: 25px; font-weight: 900; box-shadow: 0 2px 7px rgba(17,39,64,.1); }
+.cfb-team h3 { margin: 0; font-family: var(--bw-font-display); font-size: 24px; line-height: 1.05; }
+.cfb-team__classification { margin: 6px 0 0; color: var(--bw-muted); font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.cfb-team__score { margin-top: 16px; color: var(--cfb-navy); font-family: var(--bw-font-display); font-size: 44px; font-weight: 900; line-height: .95; }
+.cfb-team__score span { display: block; margin-top: 5px; color: var(--bw-muted); font-family: var(--bw-font-sans); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.cfb-team__prob { margin-top: 9px; color: #765400; font-family: var(--bw-font-display); font-size: 28px; font-weight: 900; }
+
+.cfb-probability { text-align: center; }
+.cfb-probability__label { color: var(--bw-muted); font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.cfb-probability__track { height: 128px; width: 18px; margin: 9px auto; border-radius: 999px; display: flex; flex-direction: column; overflow: hidden; background: #e8e3d9; box-shadow: inset 0 0 0 1px rgba(17,39,64,.08); }
+.cfb-probability__away { background: var(--cfb-gold); }
+.cfb-probability__home { background: var(--cfb-navy); }
+.cfb-probability__vs { color: var(--cfb-navy); font-family: var(--bw-font-display); font-weight: 900; }
+.cfb-probability__total { margin-top: 4px; color: var(--bw-muted); font-size: 10px; }
+
+.cfb-no-call { margin: 0 22px 22px; border: 1px dashed #c7b98f; border-radius: 14px; padding: 14px 16px; background: #fffdf7; }
+.cfb-no-call__slot { margin-bottom: 5px; color: #7d6018; font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.cfb-no-call p { margin: 2px 0; color: var(--cfb-navy); font-size: 13px; line-height: 1.45; }
+.cfb-no-call strong { font-weight: 900; }
+
+.cfb-accordions { border-top: 1px solid var(--cfb-rule); }
+.cfb-accordion { border-bottom: 1px solid var(--cfb-rule); background: #fff; }
+.cfb-accordion:last-child { border-bottom: 0; }
+.cfb-accordion summary { min-height: 58px; padding: 16px 22px; display: flex; align-items: center; justify-content: space-between; gap: 14px; list-style: none; cursor: pointer; }
+.cfb-accordion summary::-webkit-details-marker { display: none; }
+.cfb-accordion summary::after { content: "+"; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #f2efe7; color: var(--cfb-navy); font-size: 20px; font-weight: 800; }
+.cfb-accordion[open] summary::after { content: "–"; }
+.cfb-accordion__title { font-family: var(--bw-font-display); font-size: 20px; font-weight: 900; }
+.cfb-accordion__state { margin-left: 8px; color: var(--bw-muted); font-family: var(--bw-font-sans); font-size: 11px; font-weight: 700; }
+.cfb-accordion__body { border-top: 1px solid var(--cfb-rule); padding: 18px 22px 22px; background: #faf9f5; }
+
+.cfb-book-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.cfb-book { border: 1px solid var(--cfb-rule); border-radius: 14px; padding: 16px; background: #fff; }
+.cfb-book--better { border-color: #b9912f; box-shadow: inset 0 3px 0 var(--cfb-gold); }
+.cfb-book__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 13px; }
+.cfb-book__name { font-size: 12px; font-weight: 900; text-transform: uppercase; }
+.cfb-book__better { color: #765400; font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.cfb-offer { padding: 11px 0; border-top: 1px solid #f0ede5; }
+.cfb-offer:first-of-type { border-top: 0; padding-top: 0; }
+.cfb-offer__selection { font-weight: 900; }
+.cfb-offer__price { margin-left: 5px; color: #765400; font-family: var(--bw-font-display); font-size: 19px; font-weight: 900; }
+.cfb-offer__facts { margin-top: 7px; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; color: var(--bw-muted); font-size: 11px; }
+.cfb-offer__facts strong { display: block; margin-top: 2px; color: var(--cfb-navy); font-size: 12px; }
+.cfb-offer__freshness { margin: 8px 0 0; color: var(--bw-muted); font-size: 10px; }
+.cfb-market-note { margin: 0; color: var(--bw-muted); font-size: 12px; line-height: 1.5; }
+
+.cfb-model-grid { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+.cfb-model-grid > div { border: 1px solid var(--cfb-rule); border-radius: 12px; padding: 12px; background: #fff; }
+.cfb-model-grid dt { color: var(--bw-muted); font-size: 10px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.cfb-model-grid dd { margin: 5px 0 0; color: var(--cfb-navy); font-size: 13px; font-weight: 800; line-height: 1.4; }
+.cfb-model-limit { margin: 16px 0 0; border-left: 3px solid var(--cfb-gold); padding-left: 12px; color: var(--bw-muted); font-size: 12px; line-height: 1.55; }
+
+.cfb-locked-game { padding: 30px 24px; text-align: center; }
+.cfb-locked-game h3 { margin: 0; font-family: var(--bw-font-display); font-size: 26px; }
+.cfb-locked-game p { margin: 8px auto 0; max-width: 580px; color: var(--bw-muted); line-height: 1.55; }
+
+.cfb-boundary-note { margin-top: 34px; border-left: 4px solid var(--cfb-gold); padding: 4px 0 4px 18px; }
+.cfb-boundary-note h2 { margin: 0 0 7px; font-family: var(--bw-font-display); font-size: 22px; }
+.cfb-boundary-note p { max-width: 900px; margin: 0; color: var(--bw-muted); font-size: 13px; line-height: 1.6; }
+.cfb-footer { padding: 28px max(20px, calc((100vw - 1180px)/2)); background: var(--cfb-navy-deep); color: #a9bdd2; font-size: 11px; line-height: 1.55; }
+.cfb-footer__line { margin-top: 8px; }
+.cfb-footer a { color: #fff; }
+
+@media (max-width: 780px) {
+  .cfb-shell { width: min(100% - 20px, 620px); padding-top: 28px; }
+  .cfb-hero { align-items: flex-start; flex-direction: column; }
+  .cfb-beta-stamp { min-width: 0; }
+  .cfb-slate-bar { grid-template-columns: 1fr 1fr; }
+  .cfb-slate-bar__boundary { grid-column: 1 / -1; border-left: 0; border-top: 1px solid rgba(255,255,255,.16); padding: 13px 0 0; }
+  .cfb-matchup { grid-template-columns: minmax(0,1fr) 64px minmax(0,1fr); gap: 8px; padding: 28px 12px 22px; }
+  .cfb-team-mark { width: 56px; height: 56px; font-size: 20px; }
+  .cfb-team h3 { font-size: 19px; }
+  .cfb-team__score { font-size: 34px; }
+  .cfb-team__prob { font-size: 24px; }
+  .cfb-probability__track { height: 104px; width: 15px; }
+  .cfb-book-grid, .cfb-model-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+  .bw-app-banner__inner { flex-wrap: wrap; padding: 10px 14px; }
+  .bw-app-nav { order: 3; width: 100%; overflow-x: auto; }
+  .bw-app-account { margin-left: auto; }
+  .cfb-game-card__head { align-items: flex-start; flex-direction: column; }
+  .cfb-matchup { grid-template-columns: 1fr 48px 1fr; }
+  .cfb-team h3 { font-size: 17px; }
+  .cfb-team__score { font-size: 30px; }
+  .cfb-team__prob { font-size: 21px; }
+  .cfb-no-call { margin-inline: 12px; }
+  .cfb-accordion summary, .cfb-accordion__body { padding-inline: 14px; }
+}
