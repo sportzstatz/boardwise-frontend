@@ -1,0 +1,1389 @@
+{
+  "schema_version": 1,
+  "season": 2026,
+  "classification": "fbs",
+  "canonical_source": "BoardWise rh.teams + rh.team_membership, reconciled to CFBD /teams/fbs?year=2026",
+  "team_count": 138,
+  "teams": [
+    {
+      "cfbd_team_id": 2,
+      "team_key": "cfb-2",
+      "display_name": "Auburn Tigers",
+      "school": "Auburn",
+      "mascot": "Tigers",
+      "abbreviation": "AUB",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 5,
+      "team_key": "cfb-5",
+      "display_name": "UAB Blazers",
+      "school": "UAB",
+      "mascot": "Blazers",
+      "abbreviation": "UAB",
+      "classification": "fbs",
+      "conference": "American Athletic"
+    },
+    {
+      "cfbd_team_id": 6,
+      "team_key": "cfb-6",
+      "display_name": "South Alabama Jaguars",
+      "school": "South Alabama",
+      "mascot": "Jaguars",
+      "abbreviation": "USA",
+      "classification": "fbs",
+      "conference": "Sun Belt"
+    },
+    {
+      "cfbd_team_id": 8,
+      "team_key": "cfb-8",
+      "display_name": "Arkansas Razorbacks",
+      "school": "Arkansas",
+      "mascot": "Razorbacks",
+      "abbreviation": "ARK",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 9,
+      "team_key": "cfb-9",
+      "display_name": "Arizona State Sun Devils",
+      "school": "Arizona State",
+      "mascot": "Sun Devils",
+      "abbreviation": "ASU",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 12,
+      "team_key": "cfb-12",
+      "display_name": "Arizona Wildcats",
+      "school": "Arizona",
+      "mascot": "Wildcats",
+      "abbreviation": "ARIZ",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 16,
+      "team_key": "cfb-16",
+      "display_name": "Sacramento State Hornets",
+      "school": "Sacramento State",
+      "mascot": "Hornets",
+      "abbreviation": "SAC",
+      "classification": "fbs",
+      "conference": "Mid-American"
+    },
+    {
+      "cfbd_team_id": 21,
+      "team_key": "cfb-21",
+      "display_name": "San Diego State Aztecs",
+      "school": "San Diego State",
+      "mascot": "Aztecs",
+      "abbreviation": "SDSU",
+      "classification": "fbs",
+      "conference": "Pac-12"
+    },
+    {
+      "cfbd_team_id": 23,
+      "team_key": "cfb-23",
+      "display_name": "San José State Spartans",
+      "school": "San José State",
+      "mascot": "Spartans",
+      "abbreviation": "SJSU",
+      "classification": "fbs",
+      "conference": "Mountain West"
+    },
+    {
+      "cfbd_team_id": 24,
+      "team_key": "cfb-24",
+      "display_name": "Stanford Cardinal",
+      "school": "Stanford",
+      "mascot": "Cardinal",
+      "abbreviation": "STAN",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 25,
+      "team_key": "cfb-25",
+      "display_name": "California Golden Bears",
+      "school": "California",
+      "mascot": "Golden Bears",
+      "abbreviation": "CAL",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 26,
+      "team_key": "cfb-26",
+      "display_name": "UCLA Bruins",
+      "school": "UCLA",
+      "mascot": "Bruins",
+      "abbreviation": "UCLA",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 30,
+      "team_key": "cfb-30",
+      "display_name": "USC Trojans",
+      "school": "USC",
+      "mascot": "Trojans",
+      "abbreviation": "USC",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 36,
+      "team_key": "cfb-36",
+      "display_name": "Colorado State Rams",
+      "school": "Colorado State",
+      "mascot": "Rams",
+      "abbreviation": "CSU",
+      "classification": "fbs",
+      "conference": "Pac-12"
+    },
+    {
+      "cfbd_team_id": 38,
+      "team_key": "cfb-38",
+      "display_name": "Colorado Buffaloes",
+      "school": "Colorado",
+      "mascot": "Buffaloes",
+      "abbreviation": "COLO",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 41,
+      "team_key": "cfb-41",
+      "display_name": "UConn Huskies",
+      "school": "UConn",
+      "mascot": "Huskies",
+      "abbreviation": "CONN",
+      "classification": "fbs",
+      "conference": "FBS Independents"
+    },
+    {
+      "cfbd_team_id": 48,
+      "team_key": "cfb-48",
+      "display_name": "Delaware Blue Hens",
+      "school": "Delaware",
+      "mascot": "Blue Hens",
+      "abbreviation": "DEL",
+      "classification": "fbs",
+      "conference": "Conference USA"
+    },
+    {
+      "cfbd_team_id": 52,
+      "team_key": "cfb-52",
+      "display_name": "Florida State Seminoles",
+      "school": "Florida State",
+      "mascot": "Seminoles",
+      "abbreviation": "FSU",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 55,
+      "team_key": "cfb-55",
+      "display_name": "Jacksonville State Gamecocks",
+      "school": "Jacksonville State",
+      "mascot": "Gamecocks",
+      "abbreviation": "JXST",
+      "classification": "fbs",
+      "conference": "Conference USA"
+    },
+    {
+      "cfbd_team_id": 57,
+      "team_key": "cfb-57",
+      "display_name": "Florida Gators",
+      "school": "Florida",
+      "mascot": "Gators",
+      "abbreviation": "FLA",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 58,
+      "team_key": "cfb-58",
+      "display_name": "South Florida Bulls",
+      "school": "South Florida",
+      "mascot": "Bulls",
+      "abbreviation": "USF",
+      "classification": "fbs",
+      "conference": "American Athletic"
+    },
+    {
+      "cfbd_team_id": 59,
+      "team_key": "cfb-59",
+      "display_name": "Georgia Tech Yellow Jackets",
+      "school": "Georgia Tech",
+      "mascot": "Yellow Jackets",
+      "abbreviation": "GT",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 61,
+      "team_key": "cfb-61",
+      "display_name": "Georgia Bulldogs",
+      "school": "Georgia",
+      "mascot": "Bulldogs",
+      "abbreviation": "UGA",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 62,
+      "team_key": "cfb-62",
+      "display_name": "Hawai'i Rainbow Warriors",
+      "school": "Hawai'i",
+      "mascot": "Rainbow Warriors",
+      "abbreviation": "HAW",
+      "classification": "fbs",
+      "conference": "Mountain West"
+    },
+    {
+      "cfbd_team_id": 66,
+      "team_key": "cfb-66",
+      "display_name": "Iowa State Cyclones",
+      "school": "Iowa State",
+      "mascot": "Cyclones",
+      "abbreviation": "ISU",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 68,
+      "team_key": "cfb-68",
+      "display_name": "Boise State Broncos",
+      "school": "Boise State",
+      "mascot": "Broncos",
+      "abbreviation": "BOIS",
+      "classification": "fbs",
+      "conference": "Pac-12"
+    },
+    {
+      "cfbd_team_id": 77,
+      "team_key": "cfb-77",
+      "display_name": "Northwestern Wildcats",
+      "school": "Northwestern",
+      "mascot": "Wildcats",
+      "abbreviation": "NU",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 84,
+      "team_key": "cfb-84",
+      "display_name": "Indiana Hoosiers",
+      "school": "Indiana",
+      "mascot": "Hoosiers",
+      "abbreviation": "IU",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 87,
+      "team_key": "cfb-87",
+      "display_name": "Notre Dame Fighting Irish",
+      "school": "Notre Dame",
+      "mascot": "Fighting Irish",
+      "abbreviation": "ND",
+      "classification": "fbs",
+      "conference": "FBS Independents"
+    },
+    {
+      "cfbd_team_id": 96,
+      "team_key": "cfb-96",
+      "display_name": "Kentucky Wildcats",
+      "school": "Kentucky",
+      "mascot": "Wildcats",
+      "abbreviation": "UK",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 97,
+      "team_key": "cfb-97",
+      "display_name": "Louisville Cardinals",
+      "school": "Louisville",
+      "mascot": "Cardinals",
+      "abbreviation": "LOU",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 98,
+      "team_key": "cfb-98",
+      "display_name": "Western Kentucky Hilltoppers",
+      "school": "Western Kentucky",
+      "mascot": "Hilltoppers",
+      "abbreviation": "WKU",
+      "classification": "fbs",
+      "conference": "Conference USA"
+    },
+    {
+      "cfbd_team_id": 99,
+      "team_key": "cfb-99",
+      "display_name": "LSU Tigers",
+      "school": "LSU",
+      "mascot": "Tigers",
+      "abbreviation": "LSU",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 103,
+      "team_key": "cfb-103",
+      "display_name": "Boston College Eagles",
+      "school": "Boston College",
+      "mascot": "Eagles",
+      "abbreviation": "BC",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 113,
+      "team_key": "cfb-113",
+      "display_name": "Massachusetts Minutemen",
+      "school": "Massachusetts",
+      "mascot": "Minutemen",
+      "abbreviation": "MASS",
+      "classification": "fbs",
+      "conference": "Mid-American"
+    },
+    {
+      "cfbd_team_id": 120,
+      "team_key": "cfb-120",
+      "display_name": "Maryland Terrapins",
+      "school": "Maryland",
+      "mascot": "Terrapins",
+      "abbreviation": "MD",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 127,
+      "team_key": "cfb-127",
+      "display_name": "Michigan State Spartans",
+      "school": "Michigan State",
+      "mascot": "Spartans",
+      "abbreviation": "MSU",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 130,
+      "team_key": "cfb-130",
+      "display_name": "Michigan Wolverines",
+      "school": "Michigan",
+      "mascot": "Wolverines",
+      "abbreviation": "MICH",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 135,
+      "team_key": "cfb-135",
+      "display_name": "Minnesota Golden Gophers",
+      "school": "Minnesota",
+      "mascot": "Golden Gophers",
+      "abbreviation": "MINN",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 142,
+      "team_key": "cfb-142",
+      "display_name": "Missouri Tigers",
+      "school": "Missouri",
+      "mascot": "Tigers",
+      "abbreviation": "MIZ",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 145,
+      "team_key": "cfb-145",
+      "display_name": "Ole Miss Rebels",
+      "school": "Ole Miss",
+      "mascot": "Rebels",
+      "abbreviation": "MISS",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 150,
+      "team_key": "cfb-150",
+      "display_name": "Duke Blue Devils",
+      "school": "Duke",
+      "mascot": "Blue Devils",
+      "abbreviation": "DUKE",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 151,
+      "team_key": "cfb-151",
+      "display_name": "East Carolina Pirates",
+      "school": "East Carolina",
+      "mascot": "Pirates",
+      "abbreviation": "ECU",
+      "classification": "fbs",
+      "conference": "American Athletic"
+    },
+    {
+      "cfbd_team_id": 152,
+      "team_key": "cfb-152",
+      "display_name": "NC State Wolfpack",
+      "school": "NC State",
+      "mascot": "Wolfpack",
+      "abbreviation": "NCSU",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 153,
+      "team_key": "cfb-153",
+      "display_name": "North Carolina Tar Heels",
+      "school": "North Carolina",
+      "mascot": "Tar Heels",
+      "abbreviation": "UNC",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 154,
+      "team_key": "cfb-154",
+      "display_name": "Wake Forest Demon Deacons",
+      "school": "Wake Forest",
+      "mascot": "Demon Deacons",
+      "abbreviation": "WAKE",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 158,
+      "team_key": "cfb-158",
+      "display_name": "Nebraska Cornhuskers",
+      "school": "Nebraska",
+      "mascot": "Cornhuskers",
+      "abbreviation": "NEB",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 164,
+      "team_key": "cfb-164",
+      "display_name": "Rutgers Scarlet Knights",
+      "school": "Rutgers",
+      "mascot": "Scarlet Knights",
+      "abbreviation": "RUTG",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 166,
+      "team_key": "cfb-166",
+      "display_name": "New Mexico State Aggies",
+      "school": "New Mexico State",
+      "mascot": "Aggies",
+      "abbreviation": "NMSU",
+      "classification": "fbs",
+      "conference": "Conference USA"
+    },
+    {
+      "cfbd_team_id": 167,
+      "team_key": "cfb-167",
+      "display_name": "New Mexico Lobos",
+      "school": "New Mexico",
+      "mascot": "Lobos",
+      "abbreviation": "UNM",
+      "classification": "fbs",
+      "conference": "Mountain West"
+    },
+    {
+      "cfbd_team_id": 183,
+      "team_key": "cfb-183",
+      "display_name": "Syracuse Orange",
+      "school": "Syracuse",
+      "mascot": "Orange",
+      "abbreviation": "SYR",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 189,
+      "team_key": "cfb-189",
+      "display_name": "Bowling Green Falcons",
+      "school": "Bowling Green",
+      "mascot": "Falcons",
+      "abbreviation": "BGSU",
+      "classification": "fbs",
+      "conference": "Mid-American"
+    },
+    {
+      "cfbd_team_id": 193,
+      "team_key": "cfb-193",
+      "display_name": "Miami (OH) RedHawks",
+      "school": "Miami (OH)",
+      "mascot": "RedHawks",
+      "abbreviation": "M-OH",
+      "classification": "fbs",
+      "conference": "Mid-American"
+    },
+    {
+      "cfbd_team_id": 194,
+      "team_key": "cfb-194",
+      "display_name": "Ohio State Buckeyes",
+      "school": "Ohio State",
+      "mascot": "Buckeyes",
+      "abbreviation": "OSU",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 195,
+      "team_key": "cfb-195",
+      "display_name": "Ohio Bobcats",
+      "school": "Ohio",
+      "mascot": "Bobcats",
+      "abbreviation": "OHIO",
+      "classification": "fbs",
+      "conference": "Mid-American"
+    },
+    {
+      "cfbd_team_id": 197,
+      "team_key": "cfb-197",
+      "display_name": "Oklahoma State Cowboys",
+      "school": "Oklahoma State",
+      "mascot": "Cowboys",
+      "abbreviation": "OKST",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 201,
+      "team_key": "cfb-201",
+      "display_name": "Oklahoma Sooners",
+      "school": "Oklahoma",
+      "mascot": "Sooners",
+      "abbreviation": "OU",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 202,
+      "team_key": "cfb-202",
+      "display_name": "Tulsa Golden Hurricane",
+      "school": "Tulsa",
+      "mascot": "Golden Hurricane",
+      "abbreviation": "TLSA",
+      "classification": "fbs",
+      "conference": "American Athletic"
+    },
+    {
+      "cfbd_team_id": 204,
+      "team_key": "cfb-204",
+      "display_name": "Oregon State Beavers",
+      "school": "Oregon State",
+      "mascot": "Beavers",
+      "abbreviation": "ORST",
+      "classification": "fbs",
+      "conference": "Pac-12"
+    },
+    {
+      "cfbd_team_id": 213,
+      "team_key": "cfb-213",
+      "display_name": "Penn State Nittany Lions",
+      "school": "Penn State",
+      "mascot": "Nittany Lions",
+      "abbreviation": "PSU",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 218,
+      "team_key": "cfb-218",
+      "display_name": "Temple Owls",
+      "school": "Temple",
+      "mascot": "Owls",
+      "abbreviation": "TEM",
+      "classification": "fbs",
+      "conference": "American Athletic"
+    },
+    {
+      "cfbd_team_id": 221,
+      "team_key": "cfb-221",
+      "display_name": "Pittsburgh Panthers",
+      "school": "Pittsburgh",
+      "mascot": "Panthers",
+      "abbreviation": "PITT",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 228,
+      "team_key": "cfb-228",
+      "display_name": "Clemson Tigers",
+      "school": "Clemson",
+      "mascot": "Tigers",
+      "abbreviation": "CLEM",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 235,
+      "team_key": "cfb-235",
+      "display_name": "Memphis Tigers",
+      "school": "Memphis",
+      "mascot": "Tigers",
+      "abbreviation": "MEM",
+      "classification": "fbs",
+      "conference": "American Athletic"
+    },
+    {
+      "cfbd_team_id": 238,
+      "team_key": "cfb-238",
+      "display_name": "Vanderbilt Commodores",
+      "school": "Vanderbilt",
+      "mascot": "Commodores",
+      "abbreviation": "VAN",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 239,
+      "team_key": "cfb-239",
+      "display_name": "Baylor Bears",
+      "school": "Baylor",
+      "mascot": "Bears",
+      "abbreviation": "BAY",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 242,
+      "team_key": "cfb-242",
+      "display_name": "Rice Owls",
+      "school": "Rice",
+      "mascot": "Owls",
+      "abbreviation": "RICE",
+      "classification": "fbs",
+      "conference": "American Athletic"
+    },
+    {
+      "cfbd_team_id": 245,
+      "team_key": "cfb-245",
+      "display_name": "Texas A&M Aggies",
+      "school": "Texas A&M",
+      "mascot": "Aggies",
+      "abbreviation": "TA&M",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 248,
+      "team_key": "cfb-248",
+      "display_name": "Houston Cougars",
+      "school": "Houston",
+      "mascot": "Cougars",
+      "abbreviation": "HOU",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 249,
+      "team_key": "cfb-249",
+      "display_name": "North Texas Mean Green",
+      "school": "North Texas",
+      "mascot": "Mean Green",
+      "abbreviation": "UNT",
+      "classification": "fbs",
+      "conference": "American Athletic"
+    },
+    {
+      "cfbd_team_id": 251,
+      "team_key": "cfb-251",
+      "display_name": "Texas Longhorns",
+      "school": "Texas",
+      "mascot": "Longhorns",
+      "abbreviation": "TEX",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 252,
+      "team_key": "cfb-252",
+      "display_name": "BYU Cougars",
+      "school": "BYU",
+      "mascot": "Cougars",
+      "abbreviation": "BYU",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 254,
+      "team_key": "cfb-254",
+      "display_name": "Utah Utes",
+      "school": "Utah",
+      "mascot": "Utes",
+      "abbreviation": "UTAH",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 256,
+      "team_key": "cfb-256",
+      "display_name": "James Madison Dukes",
+      "school": "James Madison",
+      "mascot": "Dukes",
+      "abbreviation": "JMU",
+      "classification": "fbs",
+      "conference": "Sun Belt"
+    },
+    {
+      "cfbd_team_id": 258,
+      "team_key": "cfb-258",
+      "display_name": "Virginia Cavaliers",
+      "school": "Virginia",
+      "mascot": "Cavaliers",
+      "abbreviation": "UVA",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 259,
+      "team_key": "cfb-259",
+      "display_name": "Virginia Tech Hokies",
+      "school": "Virginia Tech",
+      "mascot": "Hokies",
+      "abbreviation": "VT",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 264,
+      "team_key": "cfb-264",
+      "display_name": "Washington Huskies",
+      "school": "Washington",
+      "mascot": "Huskies",
+      "abbreviation": "WASH",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 265,
+      "team_key": "cfb-265",
+      "display_name": "Washington State Cougars",
+      "school": "Washington State",
+      "mascot": "Cougars",
+      "abbreviation": "WSU",
+      "classification": "fbs",
+      "conference": "Pac-12"
+    },
+    {
+      "cfbd_team_id": 275,
+      "team_key": "cfb-275",
+      "display_name": "Wisconsin Badgers",
+      "school": "Wisconsin",
+      "mascot": "Badgers",
+      "abbreviation": "WIS",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 276,
+      "team_key": "cfb-276",
+      "display_name": "Marshall Thundering Herd",
+      "school": "Marshall",
+      "mascot": "Thundering Herd",
+      "abbreviation": "MRSH",
+      "classification": "fbs",
+      "conference": "Sun Belt"
+    },
+    {
+      "cfbd_team_id": 277,
+      "team_key": "cfb-277",
+      "display_name": "West Virginia Mountaineers",
+      "school": "West Virginia",
+      "mascot": "Mountaineers",
+      "abbreviation": "WVU",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 278,
+      "team_key": "cfb-278",
+      "display_name": "Fresno State Bulldogs",
+      "school": "Fresno State",
+      "mascot": "Bulldogs",
+      "abbreviation": "FRES",
+      "classification": "fbs",
+      "conference": "Pac-12"
+    },
+    {
+      "cfbd_team_id": 290,
+      "team_key": "cfb-290",
+      "display_name": "Georgia Southern Eagles",
+      "school": "Georgia Southern",
+      "mascot": "Eagles",
+      "abbreviation": "GASO",
+      "classification": "fbs",
+      "conference": "Sun Belt"
+    },
+    {
+      "cfbd_team_id": 295,
+      "team_key": "cfb-295",
+      "display_name": "Old Dominion Monarchs",
+      "school": "Old Dominion",
+      "mascot": "Monarchs",
+      "abbreviation": "ODU",
+      "classification": "fbs",
+      "conference": "Sun Belt"
+    },
+    {
+      "cfbd_team_id": 309,
+      "team_key": "cfb-309",
+      "display_name": "Louisiana Ragin' Cajuns",
+      "school": "Louisiana",
+      "mascot": "Ragin' Cajuns",
+      "abbreviation": "UL",
+      "classification": "fbs",
+      "conference": "Sun Belt"
+    },
+    {
+      "cfbd_team_id": 324,
+      "team_key": "cfb-324",
+      "display_name": "Coastal Carolina Chanticleers",
+      "school": "Coastal Carolina",
+      "mascot": "Chanticleers",
+      "abbreviation": "CCU",
+      "classification": "fbs",
+      "conference": "Sun Belt"
+    },
+    {
+      "cfbd_team_id": 326,
+      "team_key": "cfb-326",
+      "display_name": "Texas State Bobcats",
+      "school": "Texas State",
+      "mascot": "Bobcats",
+      "abbreviation": "TXST",
+      "classification": "fbs",
+      "conference": "Pac-12"
+    },
+    {
+      "cfbd_team_id": 328,
+      "team_key": "cfb-328",
+      "display_name": "Utah State Aggies",
+      "school": "Utah State",
+      "mascot": "Aggies",
+      "abbreviation": "USU",
+      "classification": "fbs",
+      "conference": "Pac-12"
+    },
+    {
+      "cfbd_team_id": 333,
+      "team_key": "cfb-333",
+      "display_name": "Alabama Crimson Tide",
+      "school": "Alabama",
+      "mascot": "Crimson Tide",
+      "abbreviation": "ALA",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 338,
+      "team_key": "cfb-338",
+      "display_name": "Kennesaw State Owls",
+      "school": "Kennesaw State",
+      "mascot": "Owls",
+      "abbreviation": "KENN",
+      "classification": "fbs",
+      "conference": "Conference USA"
+    },
+    {
+      "cfbd_team_id": 344,
+      "team_key": "cfb-344",
+      "display_name": "Mississippi State Bulldogs",
+      "school": "Mississippi State",
+      "mascot": "Bulldogs",
+      "abbreviation": "MSST",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 349,
+      "team_key": "cfb-349",
+      "display_name": "Army Black Knights",
+      "school": "Army",
+      "mascot": "Black Knights",
+      "abbreviation": "ARMY",
+      "classification": "fbs",
+      "conference": "American Athletic"
+    },
+    {
+      "cfbd_team_id": 356,
+      "team_key": "cfb-356",
+      "display_name": "Illinois Fighting Illini",
+      "school": "Illinois",
+      "mascot": "Fighting Illini",
+      "abbreviation": "ILL",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 2005,
+      "team_key": "cfb-2005",
+      "display_name": "Air Force Falcons",
+      "school": "Air Force",
+      "mascot": "Falcons",
+      "abbreviation": "AF",
+      "classification": "fbs",
+      "conference": "Mountain West"
+    },
+    {
+      "cfbd_team_id": 2006,
+      "team_key": "cfb-2006",
+      "display_name": "Akron Zips",
+      "school": "Akron",
+      "mascot": "Zips",
+      "abbreviation": "AKR",
+      "classification": "fbs",
+      "conference": "Mid-American"
+    },
+    {
+      "cfbd_team_id": 2026,
+      "team_key": "cfb-2026",
+      "display_name": "App State Mountaineers",
+      "school": "App State",
+      "mascot": "Mountaineers",
+      "abbreviation": "APP",
+      "classification": "fbs",
+      "conference": "Sun Belt"
+    },
+    {
+      "cfbd_team_id": 2032,
+      "team_key": "cfb-2032",
+      "display_name": "Arkansas State Red Wolves",
+      "school": "Arkansas State",
+      "mascot": "Red Wolves",
+      "abbreviation": "ARST",
+      "classification": "fbs",
+      "conference": "Sun Belt"
+    },
+    {
+      "cfbd_team_id": 2050,
+      "team_key": "cfb-2050",
+      "display_name": "Ball State Cardinals",
+      "school": "Ball State",
+      "mascot": "Cardinals",
+      "abbreviation": "BALL",
+      "classification": "fbs",
+      "conference": "Mid-American"
+    },
+    {
+      "cfbd_team_id": 2084,
+      "team_key": "cfb-2084",
+      "display_name": "Buffalo Bulls",
+      "school": "Buffalo",
+      "mascot": "Bulls",
+      "abbreviation": "BUF",
+      "classification": "fbs",
+      "conference": "Mid-American"
+    },
+    {
+      "cfbd_team_id": 2116,
+      "team_key": "cfb-2116",
+      "display_name": "UCF Knights",
+      "school": "UCF",
+      "mascot": "Knights",
+      "abbreviation": "UCF",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 2117,
+      "team_key": "cfb-2117",
+      "display_name": "Central Michigan Chippewas",
+      "school": "Central Michigan",
+      "mascot": "Chippewas",
+      "abbreviation": "CMU",
+      "classification": "fbs",
+      "conference": "Mid-American"
+    },
+    {
+      "cfbd_team_id": 2132,
+      "team_key": "cfb-2132",
+      "display_name": "Cincinnati Bearcats",
+      "school": "Cincinnati",
+      "mascot": "Bearcats",
+      "abbreviation": "CIN",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 2199,
+      "team_key": "cfb-2199",
+      "display_name": "Eastern Michigan Eagles",
+      "school": "Eastern Michigan",
+      "mascot": "Eagles",
+      "abbreviation": "EMU",
+      "classification": "fbs",
+      "conference": "Mid-American"
+    },
+    {
+      "cfbd_team_id": 2226,
+      "team_key": "cfb-2226",
+      "display_name": "Florida Atlantic Owls",
+      "school": "Florida Atlantic",
+      "mascot": "Owls",
+      "abbreviation": "FAU",
+      "classification": "fbs",
+      "conference": "American Athletic"
+    },
+    {
+      "cfbd_team_id": 2229,
+      "team_key": "cfb-2229",
+      "display_name": "Florida International Panthers",
+      "school": "Florida International",
+      "mascot": "Panthers",
+      "abbreviation": "FIU",
+      "classification": "fbs",
+      "conference": "Conference USA"
+    },
+    {
+      "cfbd_team_id": 2247,
+      "team_key": "cfb-2247",
+      "display_name": "Georgia State Panthers",
+      "school": "Georgia State",
+      "mascot": "Panthers",
+      "abbreviation": "GAST",
+      "classification": "fbs",
+      "conference": "Sun Belt"
+    },
+    {
+      "cfbd_team_id": 2294,
+      "team_key": "cfb-2294",
+      "display_name": "Iowa Hawkeyes",
+      "school": "Iowa",
+      "mascot": "Hawkeyes",
+      "abbreviation": "IOWA",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 2305,
+      "team_key": "cfb-2305",
+      "display_name": "Kansas Jayhawks",
+      "school": "Kansas",
+      "mascot": "Jayhawks",
+      "abbreviation": "KU",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 2306,
+      "team_key": "cfb-2306",
+      "display_name": "Kansas State Wildcats",
+      "school": "Kansas State",
+      "mascot": "Wildcats",
+      "abbreviation": "KSU",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 2309,
+      "team_key": "cfb-2309",
+      "display_name": "Kent State Golden Flashes",
+      "school": "Kent State",
+      "mascot": "Golden Flashes",
+      "abbreviation": "KENT",
+      "classification": "fbs",
+      "conference": "Mid-American"
+    },
+    {
+      "cfbd_team_id": 2335,
+      "team_key": "cfb-2335",
+      "display_name": "Liberty Flames",
+      "school": "Liberty",
+      "mascot": "Flames",
+      "abbreviation": "LIB",
+      "classification": "fbs",
+      "conference": "Conference USA"
+    },
+    {
+      "cfbd_team_id": 2348,
+      "team_key": "cfb-2348",
+      "display_name": "Louisiana Tech Bulldogs",
+      "school": "Louisiana Tech",
+      "mascot": "Bulldogs",
+      "abbreviation": "LT",
+      "classification": "fbs",
+      "conference": "Sun Belt"
+    },
+    {
+      "cfbd_team_id": 2390,
+      "team_key": "cfb-2390",
+      "display_name": "Miami Hurricanes",
+      "school": "Miami",
+      "mascot": "Hurricanes",
+      "abbreviation": "MIA",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 2393,
+      "team_key": "cfb-2393",
+      "display_name": "Middle Tennessee Blue Raiders",
+      "school": "Middle Tennessee",
+      "mascot": "Blue Raiders",
+      "abbreviation": "MTSU",
+      "classification": "fbs",
+      "conference": "Conference USA"
+    },
+    {
+      "cfbd_team_id": 2426,
+      "team_key": "cfb-2426",
+      "display_name": "Navy Midshipmen",
+      "school": "Navy",
+      "mascot": "Midshipmen",
+      "abbreviation": "NAVY",
+      "classification": "fbs",
+      "conference": "American Athletic"
+    },
+    {
+      "cfbd_team_id": 2429,
+      "team_key": "cfb-2429",
+      "display_name": "Charlotte 49ers",
+      "school": "Charlotte",
+      "mascot": "49ers",
+      "abbreviation": "CLT",
+      "classification": "fbs",
+      "conference": "American Athletic"
+    },
+    {
+      "cfbd_team_id": 2433,
+      "team_key": "cfb-2433",
+      "display_name": "UL Monroe Warhawks",
+      "school": "UL Monroe",
+      "mascot": "Warhawks",
+      "abbreviation": "ULM",
+      "classification": "fbs",
+      "conference": "Sun Belt"
+    },
+    {
+      "cfbd_team_id": 2439,
+      "team_key": "cfb-2439",
+      "display_name": "UNLV Rebels",
+      "school": "UNLV",
+      "mascot": "Rebels",
+      "abbreviation": "UNLV",
+      "classification": "fbs",
+      "conference": "Mountain West"
+    },
+    {
+      "cfbd_team_id": 2440,
+      "team_key": "cfb-2440",
+      "display_name": "Nevada Wolf Pack",
+      "school": "Nevada",
+      "mascot": "Wolf Pack",
+      "abbreviation": "NEV",
+      "classification": "fbs",
+      "conference": "Mountain West"
+    },
+    {
+      "cfbd_team_id": 2449,
+      "team_key": "cfb-2449",
+      "display_name": "North Dakota State Bison",
+      "school": "North Dakota State",
+      "mascot": "Bison",
+      "abbreviation": "NDSU",
+      "classification": "fbs",
+      "conference": "Mountain West"
+    },
+    {
+      "cfbd_team_id": 2459,
+      "team_key": "cfb-2459",
+      "display_name": "Northern Illinois Huskies",
+      "school": "Northern Illinois",
+      "mascot": "Huskies",
+      "abbreviation": "NIU",
+      "classification": "fbs",
+      "conference": "Mountain West"
+    },
+    {
+      "cfbd_team_id": 2483,
+      "team_key": "cfb-2483",
+      "display_name": "Oregon Ducks",
+      "school": "Oregon",
+      "mascot": "Ducks",
+      "abbreviation": "ORE",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 2509,
+      "team_key": "cfb-2509",
+      "display_name": "Purdue Boilermakers",
+      "school": "Purdue",
+      "mascot": "Boilermakers",
+      "abbreviation": "PUR",
+      "classification": "fbs",
+      "conference": "Big Ten"
+    },
+    {
+      "cfbd_team_id": 2534,
+      "team_key": "cfb-2534",
+      "display_name": "Sam Houston Bearkats",
+      "school": "Sam Houston",
+      "mascot": "Bearkats",
+      "abbreviation": "SHSU",
+      "classification": "fbs",
+      "conference": "Conference USA"
+    },
+    {
+      "cfbd_team_id": 2567,
+      "team_key": "cfb-2567",
+      "display_name": "SMU Mustangs",
+      "school": "SMU",
+      "mascot": "Mustangs",
+      "abbreviation": "SMU",
+      "classification": "fbs",
+      "conference": "ACC"
+    },
+    {
+      "cfbd_team_id": 2572,
+      "team_key": "cfb-2572",
+      "display_name": "Southern Miss Golden Eagles",
+      "school": "Southern Miss",
+      "mascot": "Golden Eagles",
+      "abbreviation": "USM",
+      "classification": "fbs",
+      "conference": "Sun Belt"
+    },
+    {
+      "cfbd_team_id": 2579,
+      "team_key": "cfb-2579",
+      "display_name": "South Carolina Gamecocks",
+      "school": "South Carolina",
+      "mascot": "Gamecocks",
+      "abbreviation": "SC",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 2623,
+      "team_key": "cfb-2623",
+      "display_name": "Missouri State Bears",
+      "school": "Missouri State",
+      "mascot": "Bears",
+      "abbreviation": "MOST",
+      "classification": "fbs",
+      "conference": "Conference USA"
+    },
+    {
+      "cfbd_team_id": 2628,
+      "team_key": "cfb-2628",
+      "display_name": "TCU Horned Frogs",
+      "school": "TCU",
+      "mascot": "Horned Frogs",
+      "abbreviation": "TCU",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 2633,
+      "team_key": "cfb-2633",
+      "display_name": "Tennessee Volunteers",
+      "school": "Tennessee",
+      "mascot": "Volunteers",
+      "abbreviation": "TENN",
+      "classification": "fbs",
+      "conference": "SEC"
+    },
+    {
+      "cfbd_team_id": 2636,
+      "team_key": "cfb-2636",
+      "display_name": "UTSA Roadrunners",
+      "school": "UTSA",
+      "mascot": "Roadrunners",
+      "abbreviation": "UTSA",
+      "classification": "fbs",
+      "conference": "American Athletic"
+    },
+    {
+      "cfbd_team_id": 2638,
+      "team_key": "cfb-2638",
+      "display_name": "UTEP Miners",
+      "school": "UTEP",
+      "mascot": "Miners",
+      "abbreviation": "UTEP",
+      "classification": "fbs",
+      "conference": "Mountain West"
+    },
+    {
+      "cfbd_team_id": 2641,
+      "team_key": "cfb-2641",
+      "display_name": "Texas Tech Red Raiders",
+      "school": "Texas Tech",
+      "mascot": "Red Raiders",
+      "abbreviation": "TTU",
+      "classification": "fbs",
+      "conference": "Big 12"
+    },
+    {
+      "cfbd_team_id": 2649,
+      "team_key": "cfb-2649",
+      "display_name": "Toledo Rockets",
+      "school": "Toledo",
+      "mascot": "Rockets",
+      "abbreviation": "TOL",
+      "classification": "fbs",
+      "conference": "Mid-American"
+    },
+    {
+      "cfbd_team_id": 2653,
+      "team_key": "cfb-2653",
+      "display_name": "Troy Trojans",
+      "school": "Troy",
+      "mascot": "Trojans",
+      "abbreviation": "TROY",
+      "classification": "fbs",
+      "conference": "Sun Belt"
+    },
+    {
+      "cfbd_team_id": 2655,
+      "team_key": "cfb-2655",
+      "display_name": "Tulane Green Wave",
+      "school": "Tulane",
+      "mascot": "Green Wave",
+      "abbreviation": "TULN",
+      "classification": "fbs",
+      "conference": "American Athletic"
+    },
+    {
+      "cfbd_team_id": 2711,
+      "team_key": "cfb-2711",
+      "display_name": "Western Michigan Broncos",
+      "school": "Western Michigan",
+      "mascot": "Broncos",
+      "abbreviation": "WMU",
+      "classification": "fbs",
+      "conference": "Mid-American"
+    },
+    {
+      "cfbd_team_id": 2751,
+      "team_key": "cfb-2751",
+      "display_name": "Wyoming Cowboys",
+      "school": "Wyoming",
+      "mascot": "Cowboys",
+      "abbreviation": "WYO",
+      "classification": "fbs",
+      "conference": "Mountain West"
+    }
+  ]
+}

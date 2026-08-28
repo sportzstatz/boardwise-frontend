@@ -259,7 +259,7 @@ interface BoardWiseApiClient {
   logout(): Promise<Record<string, any> | null>;
   getMlbLanding(): Promise<BoardWiseMlbLandingPayload>;
   getCfbLanding(): Promise<BoardWiseCfbLandingPayload>;
-  getCfbBoard(): Promise<BoardWiseCfbBoardPayload>;
+  getCfbBoard(options?: { week?: number }): Promise<BoardWiseCfbBoardPayload>;
   getMlbBoard(
     targetDate?: string,
     options?: { model?: string }
@@ -378,6 +378,20 @@ interface Window {
   BoardWiseGates?: BoardWiseGatesApi;
   BoardWiseWiseChoice?: BoardWiseWiseChoiceApi;
   BoardWiseMlbBranding?: BoardWiseMlbBrandingApi;
+  BoardWiseCfbBranding?: {
+    teams: Record<string, {
+      logo: string;
+      primary: string;
+      secondary: string;
+      probabilityColor: string;
+    }>;
+    fallback: {
+      primary: string;
+      secondary: string;
+      probabilityColor: string;
+    };
+  };
+  __BoardWiseCfbTestHooks?: Record<string, any>;
   BoardWiseLanding?: BoardWiseLandingApi;
   BoardWiseNavigate?: (url: string) => void;
   turnstile?: TurnstileApi;

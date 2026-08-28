@@ -18,8 +18,8 @@
       "game_id": 101,
       "kickoff_utc": "2026-08-29T16:00:00Z",
       "status": "scheduled",
-      "away_team": { "code": "nvu", "name": "Northern Valley", "abbreviation": "NVU", "logo_key": "nvu" },
-      "home_team": { "code": "lsu", "name": "Lakeside State", "abbreviation": "LSU", "logo_key": "lsu" },
+      "away_team": { "code": "cfb-66", "name": "Iowa State Cyclones", "abbreviation": "ISU", "logo_key": "cfb-66" },
+      "home_team": { "code": "cfb-2306", "name": "Kansas State Wildcats", "abbreviation": "KSU", "logo_key": "cfb-2306" },
       "venue": "Founders Field",
       "data_state": "complete",
       "lock_state": "pregame",
@@ -37,16 +37,18 @@
           "market": "winner",
           "label": "Winner",
           "offers": [
-            { "bookmaker": "draftkings", "selection": "lsu", "original_line": null, "original_price_american": -220, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": null, "current_price_american": -225, "current_captured_at": "2026-08-27T18:20:00Z", "model_probability": "0.672", "same_book_no_vig_probability": "0.661", "push_probability": "0", "market_state": "complete" },
-            { "bookmaker": "fanduel", "selection": "lsu", "original_line": null, "original_price_american": -215, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": null, "current_price_american": -210, "current_captured_at": "2026-08-27T18:18:00Z", "model_probability": "0.672", "same_book_no_vig_probability": "0.655", "push_probability": "0", "market_state": "complete" }
+            { "bookmaker": "draftkings", "selection": "cfb-2306", "original_line": null, "original_price_american": -220, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": null, "current_price_american": -225, "current_captured_at": "2026-08-27T18:20:00Z", "model_probability": "0.672", "same_book_no_vig_probability": "0.661", "push_probability": "0", "market_state": "complete" },
+            { "bookmaker": "fanduel", "selection": "cfb-2306", "original_line": null, "original_price_american": -215, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": null, "current_price_american": -210, "current_captured_at": "2026-08-27T18:18:00Z", "model_probability": "0.672", "same_book_no_vig_probability": "0.655", "push_probability": "0", "market_state": "complete" },
+            { "bookmaker": "draftkings", "selection": "cfb-66", "original_line": null, "original_price_american": 180, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": null, "current_price_american": 185, "current_captured_at": "2026-08-27T18:20:00Z", "model_probability": "0.328", "same_book_no_vig_probability": "0.339", "push_probability": "0", "market_state": "complete" },
+            { "bookmaker": "fanduel", "selection": "cfb-66", "original_line": null, "original_price_american": 175, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": null, "current_price_american": 190, "current_captured_at": "2026-08-27T18:18:00Z", "model_probability": "0.328", "same_book_no_vig_probability": "0.345", "push_probability": "0", "market_state": "complete" }
           ]
         },
         {
           "market": "spread",
           "label": "Spread",
           "offers": [
-            { "bookmaker": "draftkings", "selection": "lsu", "original_line": "-6.0", "original_price_american": -110, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": "-6.5", "current_price_american": -108, "current_captured_at": "2026-08-27T18:20:00Z", "model_probability": "0.504", "same_book_no_vig_probability": "0.500", "push_probability": "0", "market_state": "complete" },
-            { "bookmaker": "fanduel", "selection": "lsu", "original_line": "-6.5", "original_price_american": -105, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": "-7.0", "current_price_american": -102, "current_captured_at": "2026-08-27T18:18:00Z", "model_probability": "0.488", "same_book_no_vig_probability": "0.498", "push_probability": "0.028", "market_state": "complete" }
+            { "bookmaker": "draftkings", "selection": "cfb-2306", "original_line": "-6.0", "original_price_american": -110, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": "-6.5", "current_price_american": -108, "current_captured_at": "2026-08-27T18:20:00Z", "model_probability": "0.504", "same_book_no_vig_probability": "0.500", "push_probability": "0", "market_state": "complete" },
+            { "bookmaker": "fanduel", "selection": "cfb-2306", "original_line": "-6.5", "original_price_american": -105, "original_captured_at": "2026-08-27T16:00:00Z", "current_line": "-7.0", "current_price_american": -102, "current_captured_at": "2026-08-27T18:18:00Z", "model_probability": "0.488", "same_book_no_vig_probability": "0.498", "push_probability": "0.028", "market_state": "complete" }
           ]
         },
         {
