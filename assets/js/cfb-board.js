@@ -278,14 +278,34 @@
     </span>`;
   }
 
+  function probabilityState(offer, market) {
+    if (!offer?.current_captured_at || finite(offer?.current_price_american) === null) {
+      return "current_quote_missing";
+    }
+    const original = finite(offer.original_line);
+    const current = finite(offer.current_line);
+    if (market !== "winner" && (original === null || current === null)) return "line_missing";
+    if (original !== current) return "line_changed";
+    return "matched_evaluated_line";
+  }
+
+  function currentProbability(offer, market) {
+    return probabilityState(offer, market) === "matched_evaluated_line"
+      ? finite(offer?.model_probability) : null;
+  }
+
   function quoteDetails(offer) {
     if (!offer) return "";
-    const original = offer.original_price_american == null ? "Opening offer not retained"
-      : `Opening ${line(offer.original_line)} ${american(offer.original_price_american)}`.trim();
+    const original = offer.original_price_american == null ? "Evaluated offer not retained"
+      : `Evaluated offer ${line(offer.original_line)} ${american(offer.original_price_american)}`.trim();
+    const retained = (key, legacy) => Object.hasOwn(offer, key) ? offer[key] : offer[legacy];
     return `<details class="cfb-quote-details"><summary>Quote details</summary><div>
-      <span>Same-book no-vig <strong>${esc(percent(offer.same_book_no_vig_probability))}</strong></span>
-      <span>Push probability <strong>${esc(percent(offer.push_probability))}</strong></span>
-      <span>${esc(original)}</span><span>Updated ${esc(when(offer.current_captured_at, false))}</span>
+      <span>${esc(original)}</span>
+      <span>BoardWise probability at evaluated line <strong>${esc(percent(retained("original_model_probability", "model_probability")))}</strong></span>
+      <span>Evaluated same-book no-vig <strong>${esc(percent(retained("original_same_book_no_vig_probability", "same_book_no_vig_probability")))}</strong></span>
+      <span>Push probability at evaluated line <strong>${esc(percent(retained("original_push_probability", "push_probability")))}</strong></span>
+      <span>Evaluated quote captured ${esc(when(offer.original_captured_at))}</span>
+      <span>Current quote captured ${esc(when(offer.current_captured_at))}</span>
     </div></details>`;
   }
 
@@ -294,10 +314,14 @@
     return `${exactLine ? `${exactLine} ` : ""}${american(offer?.current_price_american)}`.trim();
   }
 
-  function offerCell(offer, label) {
+  function offerCell(offer, label, market) {
     if (!offer) return `<td data-label="${esc(label)}"><span class="cfb-offer-missing">Book missing</span></td>`;
+    const state = probabilityState(offer, market);
+    const unavailable = state === "line_changed" ? "Line moved · probability unavailable at current line"
+      : "Probability unavailable for current offer";
     return `<td data-label="${esc(label)}"><strong class="cfb-offer-primary tnum">${esc(offerPrimary(offer))}</strong>
-      <span class="cfb-offer-probability">BoardWise probability <strong>${esc(percent(offer.model_probability))}</strong></span>
+      <span class="cfb-offer-probability">BoardWise probability <strong>${esc(percent(currentProbability(offer, market)))}</strong></span>
+      ${state !== "matched_evaluated_line" ? `<span class="cfb-market-note">${esc(unavailable)}</span>` : ""}
       <span class="cfb-quote-state">${esc(quoteState(offer.market_state))}</span>${quoteDetails(offer)}</td>`;
   }
 
@@ -315,7 +339,7 @@
     const offers = (Array.isArray(group?.offers) ? group.offers : []).filter((offer) => (
       String(offer?.market_state) === "complete"
       && Boolean(offer?.current_captured_at)
-      && finite(offer?.model_probability) !== null
+      && currentProbability(offer, group.market) !== null
       && finite(offer?.current_price_american) !== null
       && (group?.market === "winner" || finite(offer?.current_line) !== null)
     ));
@@ -354,12 +378,14 @@
         const draftkings = offers.find((offer) => offer.bookmaker === "draftkings");
         const fanduel = offers.find((offer) => offer.bookmaker === "fanduel");
         const better = betterBookPair(draftkings, fanduel);
-        const probabilityOffer = draftkings || fanduel;
+        const probabilityOffer = [draftkings, fanduel].find((offer) => (
+          currentProbability(offer, "winner") !== null
+        ));
         const best = better === "draftkings" ? `DraftKings ${american(draftkings.current_price_american)}`
           : better === "fanduel" ? `FanDuel ${american(fanduel.current_price_american)}`
             : better === "tie" ? `Same price ${american(draftkings.current_price_american)}`
               : "Different lines — compare separately";
-        return `<tr><th scope="row">${esc(outcome)}</th><td data-label="BoardWise probability"><strong>${esc(percent(probabilityOffer?.model_probability))}</strong></td>
+        return `<tr><th scope="row">${esc(outcome)}</th><td data-label="BoardWise probability"><strong>${esc(percent(currentProbability(probabilityOffer, "winner")))}</strong></td>
           <td data-label="DraftKings">${esc(american(draftkings?.current_price_american))}${quoteDetails(draftkings)}</td>
           <td data-label="FanDuel">${esc(american(fanduel?.current_price_american))}${quoteDetails(fanduel)}</td>
           <td data-label="Best current price" class="cfb-best-price">${esc(best)}</td></tr>`;
@@ -370,7 +396,7 @@
       const draftkings = offers.find((offer) => offer.bookmaker === "draftkings");
       const fanduel = offers.find((offer) => offer.bookmaker === "fanduel");
       const comparable = draftkings && fanduel && offersComparable(draftkings, fanduel);
-      return `<tr><th scope="row">${esc(outcome)}</th>${offerCell(draftkings, "DraftKings")}${offerCell(fanduel, "FanDuel")}</tr>
+      return `<tr><th scope="row">${esc(outcome)}</th>${offerCell(draftkings, "DraftKings", group.market)}${offerCell(fanduel, "FanDuel", group.market)}</tr>
         <tr class="cfb-comparison-row"><td colspan="3">${comparable ? "Same exact line — prices are directly comparable." : "DIFFERENT LINES — compare each exact offer separately."}</td></tr>`;
     }).join("");
     return `<div class="cfb-table-wrap"><table class="cfb-market-table cfb-market-table--exact"><thead><tr><th>Outcome</th><th>DraftKings</th><th>FanDuel</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -463,7 +489,7 @@
 
   function gameHeader(game, badge = "Experimental forecast") {
     const status = game.lock_state === "locked" ? "Locked at kickoff" : String(game.status || "Scheduled");
-    return `<header class="cfb-game-card__head"><div><p class="cfb-game-card__meta">${esc(when(game.kickoff_utc))} · ${esc(game.venue || "Venue unavailable")} · ${esc(status)}</p><h2>${esc(matchupName(game))}</h2></div><span class="cfb-experimental-badge">${esc(badge)}</span></header>`;
+    return `<header class="cfb-game-card__head"><div><p class="cfb-game-card__meta">${esc(when(game.kickoff_utc))} · ${esc(game.venue || "Venue unavailable")} · ${esc(status)}</p><h2>${esc(matchupName(game))}</h2>${game.forecast ? `<p class="cfb-game-card__meta">Forecast as of ${esc(when(game.model_details?.as_of))}</p>` : ""}</div><span class="cfb-experimental-badge">${esc(badge)}</span></header>`;
   }
 
   function unavailableCard(game) {

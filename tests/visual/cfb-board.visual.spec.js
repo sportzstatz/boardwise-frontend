@@ -127,13 +127,21 @@ test.describe("CFB forecast beta visual baselines", () => {
     await page.evaluate(() => window.scrollTo(0, Math.max(0, window.scrollY - 40)));
     await expect(controls).not.toHaveClass(/cfb-controls--scroll-hidden/);
     await expect(controls).toBeVisible();
+    await expect(controls).toHaveCSS("transform", "none");
     const revealedPosition = await controls.evaluate((element) => ({
       position: getComputedStyle(element).position,
       renderedTop: element.getBoundingClientRect().top,
     }));
     expect(revealedPosition.position).toBe("sticky");
     expect(revealedPosition.renderedTop).toBeLessThan(48);
-    await expect(controls).toHaveScreenshot("cfb-390-sticky-filters.png");
+    // Crop in whole CSS pixels after the reveal transition has completed.
+    const bounds = await controls.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds.y).toBeGreaterThanOrEqual(0);
+    await expect(page).toHaveScreenshot("cfb-390-sticky-filters.png", {
+      clip: { x: Math.round(bounds.x), y: Math.round(bounds.y),
+        width: Math.round(bounds.width), height: Math.round(bounds.height) },
+    });
   });
 
   test("360 Free locked shell", async ({ page }) => {
