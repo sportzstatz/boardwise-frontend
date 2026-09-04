@@ -224,13 +224,86 @@ describe("CFB experimental forecast board", () => {
     expect(winner.textContent).toContain("FanDuel");
   });
 
-  it("summarizes each market with its model-favored exact outcome and best comparable price", async () => {
-    await load("founder");
+  it("summarizes unchanged evaluated lines with their probability and comparable price", async () => {
+    const payload = structuredClone(FULL);
+    for (const group of payload.games[0].markets) {
+      for (const offer of group.offers) offer.original_line = offer.current_line;
+    }
+    await load("founder", payload);
     expect(document.querySelector('[data-market="winner"] > summary')?.textContent).toContain("Winner· Kansas State Wildcats · 67.2% · -210");
     expect(document.querySelector('[data-market="spread"] > summary')?.textContent).toContain("Spread· Kansas State Wildcats -6.5 · 50.4% · -108");
     expect(document.querySelector('[data-market="total"] > summary')?.textContent).toContain("Total· Over 56 · 49.3% · -105");
     expect(document.body.textContent).not.toContain("best pick");
     expect(document.body.textContent).not.toContain("recommendation row");
+  });
+
+
+  it("withholds moved-line probabilities and ranking while retaining evaluated quote details", async () => {
+    await load("founder");
+    const spread = document.querySelector('[data-market="spread"]');
+    const total = document.querySelector('[data-market="total"]');
+    expect(spread?.querySelector("summary")?.textContent).toContain("Current offers");
+    expect(total?.querySelector("summary")?.textContent).toContain("Current offers");
+    expect(spread?.querySelector("summary")?.textContent).not.toContain("50.4%");
+    expect(spread?.querySelector(".cfb-offer-primary")?.textContent).toBe("-6.5 -108");
+    expect(spread?.querySelector(".cfb-offer-probability")?.textContent).toContain("—");
+    expect(spread?.textContent).toContain("Line moved · probability unavailable at current line");
+    const details = spread?.querySelector(".cfb-quote-details");
+    expect(details?.textContent).toContain("Evaluated offer -6 -110");
+    expect(details?.textContent).toContain("BoardWise probability at evaluated line 50.4%");
+    expect(details?.textContent).toContain("Evaluated same-book no-vig 50.0%");
+    expect(details?.textContent).toContain("Evaluated quote captured");
+    expect(details?.textContent).toContain("Current quote captured");
+    expect(document.body.textContent).not.toContain("Opening");
+  });
+
+  it("ranks an unchanged offer above a moved offer with a larger old probability", async () => {
+    const payload = structuredClone(FULL);
+    const offers = payload.games[0].markets.find((group) => group.market === "spread").offers;
+    offers[1].original_line = offers[1].current_line;
+    await load("founder", payload);
+    const summary = document.querySelector('[data-market="spread"] > summary');
+    expect(summary?.textContent).toContain("Kansas State Wildcats -7 · 48.8% · -102");
+    expect(summary?.textContent).not.toContain("50.4%");
+  });
+
+  it("keeps evaluated probabilities available in details with the new withheld contract", async () => {
+    const payload = structuredClone(FULL);
+    const offers = payload.games[0].markets.find((group) => group.market === "total").offers;
+    for (const offer of offers) {
+      Object.assign(offer, {
+        original_model_probability: offer.model_probability,
+        original_push_probability: offer.push_probability,
+        original_same_book_no_vig_probability: offer.same_book_no_vig_probability,
+        model_probability: null, push_probability: null, same_book_no_vig_probability: null,
+        current_probability_state: "line_changed",
+      });
+    }
+    await load("founder", payload);
+    const total = document.querySelector('[data-market="total"]');
+    expect(total?.querySelector(".cfb-offer-probability")?.textContent).toContain("—");
+    expect(total?.querySelector(".cfb-quote-details")?.textContent).toContain("Evaluated offer +55.5 -110");
+    expect(total?.querySelector(".cfb-quote-details")?.textContent).toContain("probability at evaluated line 49.3%");
+  });
+
+  it.each(["original_line", "current_line", "current_captured_at", "current_price_american"])(
+    "does not rank a spread with missing %s", async (missing) => {
+      const payload = structuredClone(FULL);
+      const offers = payload.games[0].markets.find((group) => group.market === "spread").offers;
+      for (const offer of offers) {
+        offer.original_line = offer.current_line;
+        offer[missing] = null;
+      }
+      await load("founder", payload);
+      expect(document.querySelector('[data-market="spread"] > summary')?.textContent).toContain("Current offers");
+      expect(document.querySelector('[data-market="spread"] .cfb-offer-probability')?.textContent).toContain("—");
+    },
+  );
+
+  it("shows forecast time separately from the newer release time", async () => {
+    await load("founder");
+    expect(document.querySelector(".cfb-game-card__head")?.textContent).toContain("Forecast as of");
+    expect(document.getElementById("cfb-updated")?.textContent).not.toBe("—");
   });
 
   it("ranks only directly comparable prices and handles positive and negative odds", async () => {
