@@ -378,7 +378,9 @@
         const draftkings = offers.find((offer) => offer.bookmaker === "draftkings");
         const fanduel = offers.find((offer) => offer.bookmaker === "fanduel");
         const better = betterBookPair(draftkings, fanduel);
-        const probabilityOffer = draftkings || fanduel;
+        const probabilityOffer = [draftkings, fanduel].find((offer) => (
+          currentProbability(offer, "winner") !== null
+        ));
         const best = better === "draftkings" ? `DraftKings ${american(draftkings.current_price_american)}`
           : better === "fanduel" ? `FanDuel ${american(fanduel.current_price_american)}`
             : better === "tie" ? `Same price ${american(draftkings.current_price_american)}`

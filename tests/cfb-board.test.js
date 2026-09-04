@@ -238,6 +238,35 @@ describe("CFB experimental forecast board", () => {
   });
 
 
+  it.each(["current_captured_at", "current_price_american", "model_probability"])(
+    "uses FanDuel winner probability when DraftKings is missing %s", async (missing) => {
+      const payload = structuredClone(FULL);
+      const offers = payload.games[0].markets.find((group) => group.market === "winner").offers;
+      offers[0][missing] = null;
+      offers[1].model_probability = "0.604";
+      await load("founder", payload);
+      const probability = document.querySelector('[data-market="winner"] tbody tr:first-child [data-label="BoardWise probability"]');
+      expect(probability?.textContent).toBe("60.4%");
+    },
+  );
+
+  it("prefers DraftKings winner probability when both books are eligible", async () => {
+    const payload = structuredClone(FULL);
+    const offers = payload.games[0].markets.find((group) => group.market === "winner").offers;
+    offers[1].model_probability = "0.704";
+    await load("founder", payload);
+    expect(document.querySelector('[data-market="winner"] tbody tr:first-child [data-label="BoardWise probability"]')?.textContent).toBe("67.2%");
+  });
+
+  it("withholds winner probability when neither book has an eligible current offer", async () => {
+    const payload = structuredClone(FULL);
+    const offers = payload.games[0].markets.find((group) => group.market === "winner").offers;
+    offers[0].current_captured_at = null;
+    offers[1].current_price_american = null;
+    await load("founder", payload);
+    expect(document.querySelector('[data-market="winner"] tbody tr:first-child [data-label="BoardWise probability"]')?.textContent).toBe("—");
+  });
+
   it("withholds moved-line probabilities and ranking while retaining evaluated quote details", async () => {
     await load("founder");
     const spread = document.querySelector('[data-market="spread"]');
