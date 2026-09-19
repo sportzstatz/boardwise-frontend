@@ -642,13 +642,27 @@
   }
 
   function updateUrl(replace = false) {
-    const query = serializeFilters(activeFilters);
+    const query = serializeFilters(activeFilters, defaultStateFor(activeFilters.classification) !== DEFAULT_STATE);
     window.history[replace ? "replaceState" : "pushState"]({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+  }
+
+  function defaultStateFor(classification) {
+    const games = Array.isArray(payloadCache?.games) ? payloadCache.games : [];
+    return games.some((game) => (classification === "all" || classificationBucket(game) === classification)
+      && game.data_state === DEFAULT_STATE) ? DEFAULT_STATE : "all";
+  }
+
+  function resetFilters() {
+    activeFilters = { ...activeFilters, classification: DEFAULT_CLASSIFICATION, state: defaultStateFor(DEFAULT_CLASSIFICATION) };
   }
 
   function readCurrentSlateFilters(currentWeek) {
     activeFilters = parseFilters(window.location.search, [currentWeek], currentWeek);
-    const requestedWeek = new URLSearchParams(window.location.search).get("week");
+    const params = new URLSearchParams(window.location.search);
+    if (!stateOptions.some((option) => option.key === params.get("state"))) {
+      activeFilters.state = defaultStateFor(activeFilters.classification);
+    }
+    const requestedWeek = params.get("week");
     if (requestedWeek !== null && requestedWeek !== String(currentWeek)) updateUrl(true);
   }
 
@@ -722,7 +736,7 @@
   controlsEl?.addEventListener("click", (event) => {
     const target = /** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (event.target).closest("button"));
     if (!target) return;
-    if (target.id === "cfb-reset-filters") activeFilters = { ...activeFilters, classification: DEFAULT_CLASSIFICATION, state: DEFAULT_STATE };
+    if (target.id === "cfb-reset-filters") resetFilters();
     else if (target.dataset.filter === "classification") activeFilters = { ...activeFilters, classification: target.dataset.value || DEFAULT_CLASSIFICATION };
     else if (target.dataset.filter === "state") activeFilters = { ...activeFilters, state: target.dataset.value || DEFAULT_STATE };
     else return;
@@ -732,9 +746,8 @@
   gamesEl?.addEventListener("click", (event) => {
     const target = /** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (event.target).closest("button[data-empty-action]"));
     if (!target) return;
-    activeFilters = target.dataset.emptyAction === "all-states"
-      ? { ...activeFilters, state: "all" }
-      : { ...activeFilters, classification: DEFAULT_CLASSIFICATION, state: DEFAULT_STATE };
+    if (target.dataset.emptyAction === "all-states") activeFilters = { ...activeFilters, state: "all" };
+    else resetFilters();
     updateUrl(); renderCachedBoard(); byId("cfb-title")?.scrollIntoView({ block: "start" });
   });
 
