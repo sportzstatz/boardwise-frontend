@@ -109,6 +109,50 @@ describe("CFB experimental forecast board", () => {
     expect(document.querySelectorAll(".cfb-game-card")).toHaveLength(1);
   });
 
+  it("shows the current week's games when its default classification has no complete forecasts", async () => {
+    const payload = structuredClone(FULL);
+    payload.release.week = 3;
+    payload.games[0].data_state = "degraded";
+    payload.games.push(copyGame({ game_id: 102, data_state: "unavailable", forecast: null, markets: [] }));
+    const completeFcs = copyGame({ game_id: 103 });
+    completeFcs.model_details.home_classification = "fcs";
+    completeFcs.model_details.away_classification = "fcs";
+    payload.games.push(completeFcs);
+    await load("founder", payload);
+    expect(document.getElementById("cfb-slate")?.textContent).toContain("Week 3");
+    expect(document.querySelector('[data-filter="state"][data-value="all"]')?.getAttribute("aria-pressed")).toBe("true");
+    expect(document.querySelectorAll(".cfb-game-card")).toHaveLength(2);
+    expect(document.querySelector(".cfb-warning")?.textContent).toContain("LIMITED FORECAST");
+    expect(document.querySelector('[data-game-id="102"]')?.textContent).toContain("FORECAST UNAVAILABLE");
+    expect(document.querySelector('[data-game-id="103"]')).toBeNull();
+  });
+
+  it("honors an explicit empty state filter and resets to available games", async () => {
+    const payload = structuredClone(FULL);
+    payload.games[0].data_state = "degraded";
+    window.history.replaceState({}, "", "/cfb/?state=complete");
+    await load("founder", payload);
+    /** @type {HTMLElement} */ (document.getElementById("cfb-title")).scrollIntoView = vi.fn();
+    expect(document.querySelectorAll(".cfb-game-card")).toHaveLength(0);
+    /** @type {HTMLButtonElement} */ (document.querySelector('[data-empty-action="reset"]')).click();
+    expect(document.querySelectorAll(".cfb-game-card")).toHaveLength(1);
+    /** @type {HTMLButtonElement} */ (document.querySelector('[data-filter="state"][data-value="complete"]')).click();
+    expect(new URL(window.location.href).searchParams.get("state")).toBe("complete");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    expect(document.querySelectorAll(".cfb-game-card")).toHaveLength(0);
+    /** @type {HTMLButtonElement} */ (document.getElementById("cfb-reset-filters")).click();
+    expect(document.querySelectorAll(".cfb-game-card")).toHaveLength(1);
+  });
+
+  it("uses the available default when the URL's data-state filter is invalid", async () => {
+    const payload = structuredClone(FULL);
+    payload.games[0].data_state = "degraded";
+    window.history.replaceState({}, "", "/cfb/?state=bogus");
+    await load("founder", payload);
+    expect(document.querySelectorAll(".cfb-game-card")).toHaveLength(1);
+    expect(document.querySelector('[data-filter="state"][data-value="all"]')?.getAttribute("aria-pressed")).toBe("true");
+  });
+
   it("maps classification pairings without treating unknown as FBS or Other", async () => {
     await load("founder");
     const { classificationBucket } = window.__BoardWiseCfbTestHooks;
